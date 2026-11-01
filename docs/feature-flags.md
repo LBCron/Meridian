@@ -245,8 +245,9 @@ also reserves a winner block — the sender's score, which stops they
 landed, how many times they have completed this route, and the
 route's best score so far — carried inside the link for the
 winner-declaration surfaces that land as Package B of the same delta;
-in Package A the block is decoded and carried, but no screen reads it
-yet, and no completion mints one. One failure line is new: when THIS
+in Package A the block was decoded and carried, but no screen read
+it yet, and no completion minted one (Package B, next paragraph,
+changed both). One failure line is new: when THIS
 build opens a link from a format newer than itself (a `#c=mc9.`-style
 prefix), or one naming a region this build's frozen list doesn't have
 yet, the notice headline is "This challenge needs the newest
@@ -258,6 +259,59 @@ shows only "Could not load this challenge." — it has never heard of
 the format, so it cannot point anyone at a newer version; the
 newest-Meridian headline exists only in builds new enough to
 recognise a newer format when they see one.
+
+**Winner declaration (2026-10-31, Package B of the mc3 + winner
+delta).** The winner block Package A carried silently now drives the
+game. A challenge link with a block opens on a welcome card with a
+Stakes section: "🎯 Beat {best} — the best score yet on this route.",
+with the sender's own score nested under it when someone earlier in
+the chain holds the best ("Your friend scored {sender} on this
+one."), and the honesty line the whole feature stands on — "One
+honest note: this score is your friend's word — Meridian can't check
+scores sent in links." How many tries anyone took appears nowhere on
+the card; tries are a story told after play, never a stake shown
+before it. During the run a small chip at the bottom of the map
+shows the target and your running score ("🎯 {best} · you
+{running}"); if the stops left can no longer pay the target, the
+chip stops quoting a number you cannot reach and counts landed
+stops instead ("landed {x} of {n}"). Finishing brings the verdict
+screen: one of four calls — a win ("You beat it! 🏆"), a dead heat
+inside the tie band ("Dead heat! You share the crown! 🤝" — close
+enough is never scored as a loss, and it never moves the best), a
+near miss within half of one perfect stop ("So close! 🎯"), or a
+loss ("Better luck next time! 🍀") — over a bar that sweeps to your
+score against the route's perfect score, with the target drawn on
+it from the first frame as a gold tick labelled "TARGET {best}" and,
+on a win, a "✓ PASSED" tag that stays put. Scores are never counted
+up: the numbers are final from the first frame, and under
+reduced-motion settings nothing animates at all — the same
+information, standing still. Under the bar, a stop-by-stop strip
+compares your landings with the sender's ("Stop by stop — you landed
+{x}, they landed {y}."), names the stops you both missed as the hard
+stops (if any place's name can't be resolved, the strip honestly
+falls back to the counts alone, with no names and no hard-stops
+line), and repeats the honesty line, because the friend's row is
+their word too. Below that, the tries arrive as story: who set the
+mark and in how many goes, and how many times you yourself have
+finished this route. Passing the route along mints YOUR block —
+your score, your stops, your completion count, and the best raised
+to yours if you beat it — under one guard against farming: from
+your third completion of the same route, your score can still be
+the sender's score on the next link, but it can no longer raise the
+chain's best (when the guard is what held the target, the verdict
+says so: "The target only rises on a player's first two tries at a
+route."). "Share just the route" rides beside the
+pass-along (one of the share offers the flag gates, like the rest):
+the same route with no winner block and no scores at all. Every non-win verdict offers a retry of the same route; a win
+leads with passing it along. The completion counts themselves live
+on the device in one small store (`meridian.challenge.attempts.v1`,
+keyed by the route's scoring version, edition, region and ordered
+places, capped at 512 routes): turning the friend-challenges flag
+off does not clear it, and "Reset my history" does. Sharing your
+exact played route from the end-of-run summary mints a block the
+same way (you are the sender; the best starts at your route score) —
+a played Globe route is the standing exception: it still shares in
+mc1, which has no room for a block, exactly as before.
 
 **Creating mid-game (2026-10-29, Package B).** Three more doors into the
 same challenge, all behind the same flag. While a game is running, the

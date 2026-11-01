@@ -1,3 +1,159 @@
+# BRANCH_STATUS — feat/challenge-winner-verdict
+
+- **Branch:** `feat/challenge-winner-verdict`
+- **Base:** `main` — RETARGETED 2026-11-01 after #290 merged (squash
+  `f1baf18`). Original base was `feat/challenge-mc3-codec` at its
+  panel-frozen tip `4ec34bc` (Package A, PR #290), stacked per the
+  governing manifest §Q5. The rebase onto main replayed B's 14
+  commits with zero conflicts; range-diff 14/14 "=" and the composed
+  tree is byte-identical to the pre-retarget tip (see the cure-round
+  chapter at the end of this file).
+- **Governing:** `.council/manifests/2026-10-31-mc3-winner-council-verdict.md`
+  §Q2 (winner gates + attempts store + farming guard), §Q3 (welcome
+  Stakes + receipts), §Q4 (verdict screen + chip + motion). Owner's
+  "Build it" (2026-10-31), neither amendment struck.
+
+## Task capsule
+
+TASK / requested outcome: Package B — winner declaration on mc3.
+Target at start ("🎯 Beat {best}"), ratchet to best-so-far, the
+verdict completion screen (win / dead heat / so close / better luck
+next time / route-only share), veto-rewritten motion + reduced-motion
+version, farming guard on the 3rd+ completion of the same route,
+attempts-as-story after play only, "your friend's word" honesty
+labels on welcome + verdict.
+
+Tier and rationale: Tier 2 — feature across codec consumers, storage,
+and the completion surface (stacked on Package A's Tier 2 branch).
+
+Done condition / evidence: gates green on the final tip (tsc, npm
+test, test:worker, lint-cards, build:pages, E2E under flock
+--workers=1); the verdict taxonomy exercised end-to-end from crafted
+legal W links (WIN / HOLD at the exact band edge / NEAR-MISS at
+shortfall 100 / LOSS at 955, duel + facts, chip unreachable switch,
+reduced-motion WIN, summary mint); full-pipeline panel on the final
+tip with the two owed rulings (Systems mask-DROP dissent re-hearing;
+practice off-ramp with the built welcome card); PR opened with
+`--base feat/challenge-mc3-codec`. NO MERGE.
+
+Judged interpretations (flagged for the panel, none blocking):
+(1) margin lines use the copy deck's full sentences ("You won by
+{margin}." etc.) — the motion table's shorthand ("Won by {m}") read
+as layout notes, not copy; the aria sentence uses the same sentences.
+(2) Score numbers ≥ 1,000 render with `toLocaleString("en-US")` on
+the welcome goal card, chip, and verdict (the app's score convention;
+the deck is silent on grouping). (3) The own-history fact uses the
+deck's literal template "You've finished this route {j} times." for
+every j — the deck gives "one go" singulars for the sender facts but
+none here. (4) The retry button label is "Try this route again" —
+the deck mandates the offer, names no label. (5) The summary exact
+mint attests the ROUTE score (the first-10 results' sum), not the
+session total; the shipped non-target summary text is untouched.
+(6) The farming guard binds only against an incoming best (B4's own
+parenthetical: "sender′ still updates"); a chain-starting completion
+is never guarded.
+
+## Status
+
+- [x] Logic layer (`f00531c`) — `src/game/challenge-attempts.ts`
+  (store `meridian.challenge.attempts.v1`, canonical tuple
+  `s|edition|region|ordered ids`, cap 512 LRU, fail-closed; flag-off
+  does NOT clear it; Reset-my-history DOES — wired into
+  `reset-history.ts` with its U-R1 sentinel updated) and
+  `src/game/challenge-verdict.ts` (pure: taxonomy with HOLD band
+  `max(⌊5% of T⌋, 25)` and NEAR-MISS shortfall ≤ 207, headlines,
+  sub/margin/duel lines, attempts facts, aria sentence, 5 receipt
+  forms, exact-target share text, `mintWinnerBlock` with the farming
+  guard, mask/streak/attainability helpers). 13 new unit test blocks
+  (5 attempts-store + 8 verdict), all passing. (An earlier draft of
+  this line said 23 — the Office Hours seat's byte-count corrected
+  it; the reset U-R1 sentinel was also extended, not added.)
+- [x] Surfaces (`09c6ec5`) — welcome Stakes goal card + disclosure
+  (attempts nowhere on the card); verdict screen (headline + icon,
+  target bar with gold TARGET tick + static ✓ PASSED on a win, duel
+  strip with named dots + repeated disclosure, attempts facts,
+  tap-to-settle, aria-live sentence at the verdict point, immediate
+  under reduced motion); veto-spec CSS choreography in
+  `src/styles.css` (scores at frame 0, no count-up; reduced-motion =
+  all static); pass-along minting REPLACES Package A's lossless carry
+  (the completer becomes the sender; best ratchets; record-once per
+  run via a session marker keyed by run seed); governing receipts;
+  "Share just the route" (same route, no winner block); Retry via a
+  route override on `startPendingChallenge`, threaded GameApp → Play
+  → PlayLoaded; summary exact mint with the target share text; the
+  in-run target chip with the unreachable switch (hides while the aim
+  pin moves — `onAim` is the drag signal available without new map
+  plumbing).
+- [x] Gates + E2E — tsc clean; npm test (scripts 861: 850 pass/0
+  fail/11 skipped; src 1867/1867); test:worker green; lint-cards
+  GATE PASSED; build:pages exit 0; E2E under flock --workers=1 on
+  the bundled chromium-1243 (the VM's meta-chromium currently
+  refuses startup — WebGL domain policy): the shipped
+  friend-challenge sweep finished 52 passed / 2 failed / 1
+  skipped, both failures dispositioned with evidence (an earlier
+  draft of this record claimed the sweep all-green — that read
+  came from a piped tail's exit code and was wrong): (1) the
+  mc2-package-b (f) mc2-completion test asserted the decoded
+  pass-along's winner is `undefined` — a stale pin from Package
+  A's codec cure (decode reports `winner: null`, as A's golden
+  tests pin); a control run on A's unmodified tip fails the
+  identical test, so it is not a Package B regression; the
+  assertion is aligned test-only in `4baa336` and the file now
+  passes 6/6. (2) The mc2-review flag-off failure was a flake —
+  passed on re-run (3/3 in its file); an mc1 test in the
+  package-b file flaked once during diagnosis (aim-placement)
+  and passed in the sweep, the A control, and the cure
+  verification. The new verdict spec stands at 7 passed + 1
+  parked (exit 0, full-log read): the seven challenge-path tests
+  passed in every run of the file. The eighth, the summary-mint
+  scenario, is parked `test.fixme` (`427a18d`) with its full
+  diagnosis in the test: six attempts failed only in the map-tap
+  interaction layer (stale-projection miss → 0-score run → the
+  mint correctly sealing no block per the zero rule; dive-in
+  instability burning the 240 s timeout; a tap never registering
+  an aim), never in the mint logic — which stays covered by the
+  mint unit tests, two panel seats' source verification of the
+  summary memo/effect, and the identical mint → encode → decode
+  chain E2E-proven on the challenge path in the same file. (An
+  earlier draft of this record claimed 8/8 from partial output
+  reads; the full-log record is this paragraph.)
+  Benchmark vs A's tip: JS gz +3,994 B
+  (+0.070%), CSS gz +380 B (+1.022%).
+- [x] Docs — feature-flags.md Package B paragraph + README line
+  (`8908707`); Package A paragraph's present-tense mint claim cured
+  to past tense in the cure commit (DevEx N1).
+- [x] Panel (full pipeline, 12 seats + DevEx, personas verbatim) on
+  tip `8ea02ed` — 1 APPROVE · 8 APPROVE-WITH-NITS · 3 BLOCK cured ·
+  1 BLOCK split (below) · DevEx PASS-WITH-NITS → confirmation PASS.
+  Owed rulings: mask STAYS, unanimous 12/12 (Systems' DROP dissent
+  does not survive the built strip); practice off-ramp SHIPS
+  WITHOUT by majority (Level Architect dissent recorded in the PR
+  body; if built later, the Game Designer's bar applies: practice
+  never writes attempts, never mints). All six judged
+  interpretations endorsed or unobjected. Cure round 1 (`d61be2f`):
+  reset paused-run wipe now includes `meridian.run.mc3` (Senior
+  Developer block; the gap originated in Package A — flagged in
+  the PR body for #290); tap-to-settle flag lifted to the
+  ChallengeComplete root (Frontend block); WIN pass-along takes
+  `variant="primary"` (UX Designer block); riders — tick-label
+  flip past 80%, chip timer unmount cleanup, docs tense/caveats,
+  the 13-test count correction. Confirmations on `d61be2f`:
+  Senior Developer BLOCK LIFTED · Frontend BLOCK LIFTED · UX
+  Designer BLOCK LIFTED · DevEx PASS · Office Hours NITS CURED.
+  Dismissed with byte evidence: Senior Architect's summaryAttempts
+  divergence (the memo checks the marker; seat CONFIRMED the
+  rebuttal, nit withdrawn); Game Narrative's comment-typo
+  citation (the quoted text exists nowhere in `src/`).
+  UNRESOLVED, owner's call (in the PR body): Game Level Architect
+  BLOCK 1 — §Q4's tier-blind `routeCeiling` at the verdict/chip
+  surfaces (real tier-1 ceiling 650 vs the bound's 1,514 at n=5);
+  keep the manifest as written, or amend §Q4 to tier-aware
+  ceilings at the two surfaces (codec gate unchanged either way).
+- [x] PR with `--base feat/challenge-mc3-codec` — see the PR link in
+  REPORT.md. NO MERGE (owner's per-PR word only).
+
+---
+
 # BRANCH_STATUS — feat/challenge-mc3-codec
 
 - **Branch:** `feat/challenge-mc3-codec`
@@ -1336,3 +1492,71 @@ Approvals needed (exact action + owner), checker, escalation:
   rewritten to fix/wave1-p0 in 2efcbb6, which no longer matched its
   Branch line. The heading is restored to feat/challenge-mc2-package-c,
   and the Wave 1 record below it gets its own fix/wave1-p0 heading.
+
+## 2026-11-01 — Retarget onto main + cure round (PR #291)
+
+- [x] **Retarget:** `git rebase --onto origin/main 0b4ed6b` — 14/14
+  B commits replayed, zero conflicts; range-diff 14/14 "="; tree
+  diff vs the pre-retarget tip `abcbea3` EMPTY; #290's squash tree
+  identical to `0b4ed6b`. Retargeted tip `eeb0eb9`, force-pushed
+  with lease (owner's retarget instruction); PR base = main.
+- [x] **D2 amendment (owner ruling "1&2", 2026-11-01)** — commits
+  `65749a5` + `25ffdf7` (wiring) + `bb21aed` (manifest): §Q4
+  ceilings are tier-aware at the verdict sub-line/bar/aria and the
+  in-run chip (`placeScoreBound` / `routeTierCeiling` in
+  `challenge-verdict.ts`; surfaces fall back to the tier-blind
+  bound if a place's tier cannot resolve). Codec gate in
+  `challenge.ts` UNCHANGED. HOLD band pinned as
+  `max(⌊0.05·T⌋, 25)` in code doc + manifest. Manifest gained a
+  dated Amendments entry; everything else byte-untouched.
+  Numbers: Nebraska route (tiers 1,1,2,2,2) verdict ceiling
+  1,514 → **740**; all-tier-1 ×5 = **650**; all-tier-5 unchanged.
+- [x] **F-291-1** — verdict strip hit glyph `text-white` →
+  `text-bg`. Measured: 1.10:1 → **17.05:1 dark / 14.08:1 light**
+  (static audit in the evidence dir; E2E glyph assertion in the
+  WIN reduced-motion test).
+- [x] **F-291-2** — TARGET tick: `background: var(--gold-ink)` +
+  `box-shadow: 0 0 0 1px var(--bg)`. Measured: body vs track
+  **11.38:1 dark / 3.81:1 light**; ring vs fill 17.05 / 14.08.
+  Disclosed edge: light tick-body vs fg fill is nominally 2.96:1
+  but never directly adjacent (the ring always interposes).
+- [x] **A-291-2** — `.verdict-strip-dot::after` hit area
+  `inset: -12px -3px` = 44 px tall × 26 px pitch wide (visual disc
+  unchanged at 20 px; WCAG 2.5.8 spacing — neighbours touch,
+  never overlap) + `:focus-visible` ring. Verified by an
+  elementFromPoint probe 10 px above the disc in the E2E
+  a11y-cures test.
+- [x] **A-291-3** — duel strip + pass-along share are `inert`
+  until the choreography settles; settle fires on tap, ANY
+  keydown (before the focus move), or a timer at 1,600 ms (0 ms
+  under reduced motion). Nothing is focusable while invisible;
+  visuals unchanged. Verified in the E2E a11y-cures test + the
+  WIN test's immediate settled state under reduced motion.
+- [x] **Gates on the cure tip** (sealed:
+  `~/workspace/meridian-link-winner/evidence-291-cure/`): tsc 0 ·
+  npm test 0 (scripts 850/0/11 skipped; src 1879/0) ·
+  test:worker 0 · lint-cards GATE PASSED · build:pages 0.
+  CI on the tip: build (22.x) SUCCESS · e2e SUCCESS ·
+  GitGuardian SUCCESS · Workers Builds FAILURE (non-required,
+  fails on every branch tip — standing).
+- [x] **E2E** (local, flock, --workers=1; full narrative in the
+  evidence dir's E2E-NOTES.md): touched-surface set — verdict
+  spec complete (8 passed + parked summary-mint fixme); a
+  renderer crash under VM memory pressure cascaded 37 post-crash
+  launch failures; fresh re-run of the 4 affected files =
+  43 passed / 2 failed, the 2 (endgame-share) reproducing
+  IDENTICALLY on unmodified main (ERR_TUNNEL console assertion)
+  = environment class.
+- [ ] **Panel re-vote on the cured tip** — running.
+- [ ] Merge — owner's per-PR word only. NO MERGE from here.
+- [x] **Cure-2 (panel BLOCK, re-vote on `6b5c14d`):** the UX
+  Designer seat blocked — `--gold-ink` is undefined in the default
+  `:root` (its `#f2c14e` sits in the dormant `[data-theme="night"]`
+  block; nothing sets `data-theme`), so the F-291-2 tick rendered
+  transparent in default dark. The round's E2E ran in light scheme
+  and its audit read the night block as "dark" — both misses are
+  recorded in the evidence dir. Fix (`7e3776d`):
+  `background: var(--gold-ink, #f2c14e)` + a dark-scheme E2E
+  regression test (token proven empty; tick paints
+  rgb(242, 193, 78)). Verdict spec re-run: 9 passed + 1 parked
+  skip, exit 0. Re-vote on `7e3776d` follows.
