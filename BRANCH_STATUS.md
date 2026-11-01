@@ -720,3 +720,477 @@ Approvals needed (exact action + owner), checker, escalation:
   - [x] Stage 0 — clone @ `6abe3e6`, branch created, npm ci, manifest + AGENTS.md read, surfaces mapped.
   - [x] Stage 1 — TDD: label test RED with the predicted signature (`does not provide an export named 'CHALLENGE_REVIEW_LABEL'`); privacy contract written as a construction pin (the behavioural proof is the E2E); E2E RED on the unmodified build (both entry tests fail on the missing entry; the flag-off guard passes; the seeded-Texas-deck review flow itself completes, proving the harness).
   - [x] Stage 2 — Build: `CHALLENGE_REVIEW_LABEL` in challenge.ts; home-card entry in both deck branches (`.review-challenge-open`, mirroring the reset opener's geometry); ReviewComplete secondary-button entry; `handleReviewChallenge` in GameApp (Editions exit + mini-picker in one state batch, flag re-read at tap) threaded GameApp → Play → PlayLoaded → ReviewComplete, gated on PlayLoaded's boot-authoritative flag read. tsc clean; challenge unit suite 37/37.
+
+<!-- Rebase onto main 24f4d2a: HEAD Package C record kept above per the coordination ledger; Wave 1 record kept below. Neither record overwritten. -->
+
+# BRANCH_STATUS — fix/wave1-p0 (Wave 1 P0, council audit)
+
+- **Branch:** `fix/wave1-p0`
+- **Base:** main `24f4d2a` (rebased tip 2026-10-30; prior base `45976699` superseded — see rebase record below).
+- **State:** INTEGRATED — 3 shipped + Item 2 held out (see HELD-OUT record
+  in Done below); tip `2c083b3` on base main `24f4d2a` (PR #286 merged);
+  PR #287 OPEN (opened at prior head `c2e7648b`; this rebase updates its
+  head automatically); full gates + Wave 1 suites + panel merge re-vote
+  on this tip owed.
+  NO MERGE without the owner's per-PR word.
+- **Governing manifest:** `.council/manifests/2026-10-29-wave1-p0.md` (Tier-2,
+  Chair APPROVED, token `AUTH_RUN_TDD_IMPLEMENTATION`; first commit `1fb73a0`,
+  pushed to origin SHA-identical via the Git Data API owner route).
+- **Prior record:** this file previously carried the Package C branch record
+  (feat/challenge-mc2-package-c); Package C merged as PR #285 at `3aa16b56`,
+  and its full record lives in that PR and in git history.
+
+## Done (integrated)
+
+- [x] Item 1 — discarded-run notice + durable shadow record
+      (`meridian.discarded-notice`).
+- [ ] Item 2 — HELD OUT, NOT SHIPPED: `?idle-ms=` honoured only on loopback;
+      120,000 ms elsewhere. This item's diff (commit `575e7e2`, skipped in
+      the rebase — see rebase record below) is NOT on this branch; its gate
+      (deployed-origin live check, both production hosts) did not run, so no
+      reader may conclude the loopback gate shipped. Held out of the
+      merge-ready set.
+- [x] Item 3 — round-loop a11y: one reveal announcer, Next-place focus,
+      summary-dialog trap/Escape/return focus.
+- [x] Item 4 (UNCONDITIONAL only) — build-aware share URL + dead Search hidden.
+- [x] Footprint (rebased tip `ed2ff4b9` vs new base main `45976699`): raw
+      +2289/−65; cap-relevant +1770/−38 — vs the amended +2100/−400 cap,
+      headroom 330 (not 95). Old-base numbers (vs `3aa16b56`, integrated tip
+      `b1ca852`): raw +2332/−67, cap-relevant +1855/−40; amended-waiver
+      accounting at the panel-cure worktree was +2005/−62 (95 headroom at
+      the time — superseded by the rebase recount).
+- [x] Footprint (rebased tip `2c083b3` vs base main `24f4d2a`): raw
+      +2327/−39; cap-relevant +1770/−38 — vs the amended +2100/−400 cap,
+      headroom 330, unchanged from the `45976699` recount (#286 touches no
+      branch file except this record).
+
+## Blocked (no code, owner decisions)
+
+- [ ] Q2 idle-kill policy (keep kill vs "Continue your run?" card).
+- [ ] Q3 age-band pool gating (band limits pool vs never limits pool).
+- [ ] Q4 preview OAuth secret (remove/rotate vs move exchange server-side).
+- [ ] Share wording (CONDITIONAL): exact proposed strings in manifest §2
+      Item 4 await the owner's verbatim approval; no CONDITIONAL test written.
+
+## Pending
+
+> **Chair footprint waiver (2026-10-29, Wave 1 P0, branch `fix/wave1-p0`):** Manifest §3 cap +1200/−400 is waived to a revised cap of **+1900/−400** (production + test diff, excluding the manifest and `BRANCH_STATUS.md`). Verified actual at integrated tip `f28e074`: **+1855/−40**. Reason: the overrun is test-driven, not production sprawl — production is ~442 lines across all four items (pre-rebase set; the rebased tip ships three — see HELD-OUT record); the excess is the manifest-mandated gating E2E bulk (15-test discarded-notice, round-loop-a11y, idle-seam live-check). No trim preserves the manifest's gating tests. This waiver covers the cap number only. Constitution rules 1 and 3 are NOT lifted; no gate, panel approval, or merge authority is waived.
+>
+> Coverage rule: the `BRANCH_STATUS.md` commit itself needs no waiver coverage (the manifest already excludes `BRANCH_STATUS.md` and the manifest from the footprint count). Panel-cure commits are covered only if (1) they cure panel findings on the four already-built items only — no new feature, no new scope, no protected file touched — and (2) cumulative additions stay at or under the revised +1900 cap (45 lines of headroom over the verified +1855 — old-base accounting). Any cure exceeding +1900 or adding scope must return to the Chair for a new ruling before it lands.
+>
+> **Chair footprint waiver, amended (2026-10-29, Wave 1 P0, branch `fix/wave1-p0`):** Manifest §3 cap +1200/−400, previously waived to +1900/−400, is amended to a revised cap of **+2100/−400** (production + test diff, excluding the manifest and `BRANCH_STATUS.md`). Verified actual at the panel-cure worktree vs base `3aa16b56`: **+2005/−62** (rename-adjusted; +2005/−114 without rename detection, still inside −400). Reason: the +105 overrun over +1900 is the panel-mandated round-1 cure set on the four already-built items only — a real wrong-numbers bug fix (killIdleSession whole-session totals fallback), two a11y correctness fixes (HUD score-span `role="status"` removal; summary-done focus return via `landHomeFocusRef`), and test-honesty fixes (gap-view fail-loudly on missing hook, denied-set test pins, source-pin rename at 0 net) — not scope growth. No cure was trimmed to fit. This waiver covers the cap number only. Constitution rules 1 and 3 are NOT lifted; no gate, panel approval, E2E result, or merge authority is waived.
+>
+> Amended coverage: this ruling expressly covers committing the worktree cure set as verified (stage the rename pair together so the 0-net accounting applies). Further cure commits are covered only if (i) they cure panel round-1 or re-vote findings on the four built items only, no new feature/scope/protected file/CONDITIONAL change/Item 2 gate change, and (ii) cumulative additions stay ≤ +2100 (95 lines headroom over +2005, for commit-time accounting variance only — old-base accounting; on the rebased tip headroom is 330, see Footprint above). Anything beyond +2100 or adding scope returns to the Chair for a new ruling before it lands. Not waived: the two new E2E tests (1I(2)-boot, 3A-hit) remain UNVERIFIED until VM recovery — E2E reruns, full gates on the final head, and the panel re-vote are still owed before merge-ready. Rename accounting: rename detection is the correct method (moved file byte-identical, sha256 verified, 52 lines, 0 net); without it the count would be +2005/−114, still inside −400, so the waiver holds either way.
+- [ ] Full gates on the final tip (tsc, unit, worker, lint-cards,
+      build:pages, changed-surface E2E + core journey regression, visual
+      360×740 + 390×844). Non-E2E gates re-run per cure commit; E2E
+      reruns owed on VM recovery — see E2E environment caveats
+      (integrated tip `b1ca852` scope; rebased-tip gates: see the new
+      paragraph below).
+- [ ] Panel re-vote on the final tip (a pre-integration sign-off never counts).
+- [x] Item 2 disposition RESOLVED: HELD OUT (live check did not run; item not shipped — see HELD-OUT record in Done above).
+- [ ] Screen recording via parent browser delegation before any production claim.
+- [ ] PR (open only, owner merges; never merge from here).
+
+## E2E environment caveats
+
+- VM EPERM fault since ~01:00 UTC: browser runs fail with SIGTRAP, and
+  Playwright cache writes fail with EPERM (npm wrapper loads fail the
+  same way). That fault — not a code failure — is why E2E reruns stopped.
+- Per-suite tallies at the integrated tip `b1ca852` (code tip `f28e074`):
+  discarded-notice 15/15, round-loop-a11y 6/7 then 7/7 on rerun,
+  search-hidden 2/2, endgame-share 0/2 console-gate-only with functional
+  pass, gap-view-reveal 3/3, edition-drilldown 8/8, cleared-mode 11/11,
+  difficulty-picker 5/6 with zero clean reruns.
+- Gates 1–5 at the integrated tip are DONE (tsc, unit, worker, lint-cards,
+  build:pages green). E2E reruns are OWED, meaning: they must run on VM
+  recovery before the panel re-vote. OWED is not a waiver, not a pass,
+  and not deferred past merge-ready.
+
+- Rebased-tip gates (tip `ed2ff4b9`, base `45976699`): tsc 0, unit 1822/0,
+  worker 85/0, lint PASS, scripts suite 766/84 EPERM-only, build:pages +
+  E2E blocked by EPERM on `ed2ff4b9`, 0 ran. So on the rebased tip: tsc,
+  unit, worker, lint DONE; build:pages and E2E OWED (VM EPERM fault, not a
+  code failure) before the panel re-vote.
+- Rebase onto main `24f4d2a` (2026-10-30, VM EPERM cleared): 8 commits
+  replayed — manifest `033e9dc4→480f0fb`, item4 `d6394cc6→7a94796`,
+  item3 `67c3972a→1f58c28`, item1 `962852d3→d1916ab`, branch-record
+  `36dd0aec→55e4eec`, waiver `c20dbce9→db376b8`, cure `ed2ff4b9→e11f93a`,
+  docs `c2e7648b→2c083b3`. One conflict only, in this file (main's
+  Package C record vs this branch's record — both kept per the ledger).
+  No code file conflicted; Item 2 still absent (0 hits). Full gates +
+  Wave 1 suites + panel merge re-vote on the post-record tip owed; the
+  `ed2ff4b9` gates paragraph above is superseded for the new base.
+- Closed-tab limits: "Closed-tab notice covers inactivity/new-day only; a
+  closed tab's stale-scoring or challenges-off run cannot be derived from
+  the shadow, and a challenge-only closed tab leaves no shadow." The
+  challenges-off limb is mc1 only (mc2 challenges-off clears silently —
+  a follow-up, not this cure).
+- Item 1 demoted source-pin: not written. No such documentation file
+  exists; do not cite one. (Item 1's pin only — distinct from Item 3's
+  pin, which WAS written and renamed; see below. Do not conflate them.)
+- Panel round-1 cures (this commit): code delta +150/−22, taking
+  cap-relevant cumulative additions to +2005 vs the +1900 cap — 105 lines
+  over. AMENDED WAIVER GRANTED (Chair ruling, recorded verbatim below);
+  the cure commit lands under the amended cap. The Item 3
+  demoted source-pin file (Item 3's pin, not Item 1's) is renamed,
+  content-identical, from
+  `src/components/round-loop-a11y.test.ts` to
+  `src/components/round-loop-a11y.documentation.ts` (out of the npm test
+  glob; still non-gating documentation). Two new E2E tests are UNVERIFIED
+  until VM recovery: the 1I(2)-boot test in
+  `tests/e2e/discarded-notice.spec.ts` and the 3A-hit test in
+  `tests/e2e/round-loop-a11y.spec.ts`.
+
+- Same-day fresh closed-tab shadow left alone (no change in this branch;
+  not a shipped behaviour change).
+- Session-score failure is pre-existing on the base (not introduced by
+  this branch).
+
+## Integration notes
+
+- Patches applied in order Item 2 → Item 4 → Item 3 → Item 1. One
+  `playwright.config.ts` merge conflict (Item 3 vs Item 4 project entries),
+  resolved by keeping all three new project entries: `search-hidden`,
+  `round-loop-a11y`, `discarded-notice`. All other files applied cleanly.
+- Panel-accepted deviations (round-1 verdicts; Code Reviewer, Frontend
+  Developer, and Accessibility Auditor all accepted both): (1) 3C focus
+  returns to the home heading, not the End-game opener — the opener
+  unmounts with the game, so a literal return is impossible; (2) the
+  GameApp live-paragraph edit (~6390) sits outside the manifest's
+  "continue handlers ~5632" scoping — exactly-once is unsatisfiable
+  without touching the announcer paragraph. Honesty record: 3D/3E are
+  GUARDs, not RED evidence, on tested paths.
+- Panel question still carried to the re-vote: endgame-share spec fails
+  only on VM-egress beacon console errors (functional assertions pass;
+  rerun-when-quiet or panel call).
+
+## Rebase record (rebased tip `ed2ff4b9` on main `45976699`)
+
+- Rebased order: manifest → Item 4 → Item 3 → Item 1 → branch-record →
+  waiver → cure. Per-commit SHAs, old → rebased: manifest
+  `1fb73a01`→`033e9dc4`, Item 4 `f4b2a54`→`d6394cc6`, Item 3
+  `349a9ec`→`67c3972a`, Item 1 `2c9dcde`→`962852d3`, branch-record
+  `f28e074`→`36dd0aec`, waiver `b1ca852`→`c20dbce9`, cure→`ed2ff4b9`.
+  Item 2 commit `575e7e2` was SKIPPED (held out, not rebased).
+- The one resolved conflict: the cure's `session.test.ts` edits sat inside
+  Item 2's deleted block; deletion won.
+- Only `BRANCH_STATUS.md` overlapped main's 12-file move.
+- This commit itself: docs-only DevEx round-1 block fixes on `ed2ff4b9`;
+  its own SHA is the tip after this commit (verified post-push via the
+  ref check, not claimed here).
+
+## Fix round: PR #287 review findings (base main 5e5a440e, head c5d31d6)
+
+- Tier: T2 (Chair + C) per Dinesh's standing order. Council: Chair
+  APPROVED (rounds 1–2 + final decision), Councilor C challenged twice;
+  final Chair decision APPROVED + AUTH_RUN_TDD_IMPLEMENTATION. Manifest:
+  `~/workspace/meridian-wave1/fix-round-review/MANIFEST.md` (kept out of
+  the PR diff). Independent reviewer verifies afterwards; no merge word
+  is claimed here.
+- Scope: 2 Medium + 5 Low findings, one commit each, PR branch only.
+  Leave-alone (reported, not changed): endgame-share
+  `clickShareScoreWithRetry` (separate issue owed) + share-text origin
+  line (owner decision pending).
+- M1 (this commit): silent mc2 discard notices with the mc2 run's own
+  totals. Guard: `bootSavedRunBody(preserveNotice)` covers all 4 body
+  notice sites + `killIdleSession(skipNotice)` gates only its notice
+  set; shadow block skipped whole when preserving (defer, not consume).
+  Summary-phase mc2 clears silently in both branches. Out of scope by
+  Chair ruling: #c= mc1 displacement + unclean-shutdown breaker
+  (known limitation for the PR body). Tests: 1E-mc2, 1E-mc2-dual
+  (+boot-2 shadow pin), 1E-mc2-GUARD-aim, 1E-mc2-GUARD-mc1,
+  1E-mc2-summary-flagoff, 1E-mc2-summary-unresumable,
+  1E-mc2-unresumable. RED (pre-fix): basic/dual/unresumable failed
+  with predicted signatures; GUARDs + summary passed vacuously.
+  GUARD-mc1 note: mutating a played Nebraska run's regionId does NOT
+  resume (pool guard trips) — the test uses a real mc1 link instead.
+  GREEN-round root cause (found by probe, not by reading): the dual
+  test's boot 2 first failed because `clearSession()` unconditionally
+  cleared the shadow — the Dismiss click's pointerdown fired the idle
+  activity listener, which persisted a null session (no session ever
+  existed on that page), and `persist(null)` → `clearSession()` nuked
+  the preserved shadow before boot 2 read it. Fix (in this commit,
+  `src/game/session.ts`): `clearSession()` clears the shadow only when
+  a session was actually stored and removed; a no-op clear leaves an
+  unrelated preserved record alone. Scope note: session.ts entered
+  this commit because the Chair-required dual test (dismiss + reload
+  → shadow notice) cannot pass without it; the existing "clearing the
+  session clears a live shadow" unit test still passes, and a new unit
+  test pins the no-stored-session case. Probe spec + all probe logs
+  removed; the commit diff carries no probe trace.
+- M2 (this commit): vacuous gap-view test now asserts the beat really
+  runs. The single 300ms spot sample became a ~100ms poll: movement
+  observed → `expect(spotMoves).toBe(true)`; card appears first →
+  skip (same rule as the at-entry gate), never fail; neither within
+  4000ms (below the 6000ms reveal watchdog) → the assertion fails.
+  RED proof (temporary animation freeze in `src/map/zoom-space.ts`,
+  reverted before green, no trace in the diff): the skip test failed
+  at `expect(spotMoves).toBe(true)` with the ease frozen. Disclosed
+  residual (Chair-approved): a completes-but-motionless regression
+  would skip, not fail — recorded here and for the PR body.
+- L1 (this commit): discarded-notice Dismiss now lands focus on the
+  home heading via the existing landHomeFocusRef effect (same target
+  as summary-done), not <body>. Idle-notice Dismiss untouched (noted
+  follow-up). Test 1J (RED pre-fix: activeElement BODY; GREEN post-fix
+  in logs/l1-green.log).
+- L2 (this commit): visible discarded notice drops role="status"
+  (it mounted with text already present, so SRs could miss it); one
+  always-present sr-only region on home
+  (data-testid="discarded-notice-announcer", map-announcer pattern)
+  starts empty and is filled by a post-mount effect, cleared on
+  dismiss — so each notice is a real text change, announced exactly
+  once. Tests 1K (observer: exactly one announcement per notice) +
+  1K-repeat (dismiss clears the region; same notice announces again
+  next boot). Instrument note: the observer install defers until
+  documentElement exists — addInitScript runs when it is still null
+  and observe() throws (probed 2026-10-30); the first GREEN run
+  failed on the instrument, not the fix. Existing toHaveCount(0)
+  absence assertions unaffected (they key on data-testid).
+- L3 (this commit): shadows older than 24h now read as expired AND
+  clear the key (read-level, the single enforcement point — the only
+  production reader is the body boot's shadow block, so a stale
+  record never reaches the dateKey branch). Policy: no notice after
+  24h, even for a new-day discard. Boundary unit tests: 23:59:59 kept,
+  exactly-24h kept (strictly-older rule; ms-tick retry so the pin is
+  deterministic), 24:00:01 null + key removed, future kept, malformed
+  null, 25h new-day silent + cleared. Fixture refresh: the shadow
+  unit test + the M1 unit test now anchor at run-time Date.now() +
+  today's dateKey (a fixed 2023 timestamp reads expired). Full 1B
+  E2E suite green: whole discarded-notice spec 26/26 in
+  logs/l3-green.log (Chair constraint met).
+- L4 (this commit): 3B now asserts focus lands INSIDE .satellite-map
+  after Next (expect inMap true), not just "not BODY". The inMap
+  assertion is a GUARD (passes pre-fix, probe-verified map DIV); the
+  question proof stays the Tab-control + live-announcement
+  assertions. The UNVERIFIED label on commitHitObserved is REMOVED:
+  3A-hit passed in this gate run (21.0s), which is the condition the
+  label's removal was gated on. Gate run logs/l4-green.log: 7/8 —
+  3B/3A-hit/3C/3D/3E/3F/visual pass; 3A FAILS pre-existing (480s
+  timeout, Next-place button never stable for the click) in a test
+  L4 does not touch — reported for Step 5, not fixed here (out of
+  this finding's scope; one flake re-run owed there).
+- L5 (this commit): deleted `src/components/round-loop-a11y.documentation.ts`
+  (sole *.documentation.ts file; nothing imported it; `npm test` runs
+  only scripts/**/*.test.mjs + src/**/*.test.ts, so it never ran)
+  and wrote `docs/round-loop-a11y-design.md` as PROSE (design record
+  from the file header; the E2E observer suite is named as the gate;
+  prose is never cited as the gate). Deleted exactly the dead
+  `.hv5-icon-btn` block + its `[aria-disabled]` rule in home-v5.css
+  (16 lines); live nav rules + `.hv5-go` untouched; zero .tsx/.ts
+  references repo-wide. tsc clean.
+- Fix-round completion: all 7 findings committed + pushed, one commit
+  each (M1 0a1fb8f, M2 153bbd1, L1 8066262, L2 ced550f, L3 4e3b7d5,
+  L4 beb33f8, L5 this commit). Step 4 leave-alone items + Step 5
+  final gates + the report still owed at this commit; no merge word
+  is claimed here.
+
+## Fix round 2: PR #287 review findings (base main 5e5a440e, head b2af90b)
+
+- Tier: T2 (Chair + C) per Dinesh's standing order. Council: Chair
+  APPROVED (rounds 1–2 + final decision), Councilor C challenged twice;
+  final Chair decision APPROVED + AUTH_RUN_TDD_IMPLEMENTATION. Manifest:
+  `~/workspace/meridian-wave1/fix-round-2/MANIFEST.md` (kept out of
+  the PR diff). Independent reviewer verifies afterwards; no merge word
+  is claimed here.
+- Scope: 5 findings, one commit each, PR branch only. Leave-alone
+  (reported, not changed): endgame-share `clickShareScoreWithRetry` +
+  share-text origin line (owner decision pending).
+- Item 1 (this commit): M2 gap-view skip test asserts spotMoves on
+  EVERY path. The round-1 poll-path return (card appears during poll
+  → skip) is deleted: with the camera frozen, the card still lands
+  inside the 4000ms poll, so the mutant passed vacuously. The
+  at-entry return (card already up before polling) is kept: that is
+  the legitimate synchronous near-miss beat. Sampling reordered:
+  sample first, then card check, so a card appearing in the same
+  iteration as observed movement still passes. Mutant proof
+  (temporary __spotScreen freeze + diagnostic logs, all reverted, no
+  trace in the diff): entry cardAlreadyUp=0 (poll ran), frozen-check
+  {100,100}, end spotMoves=false → test FAILED as required. Note:
+  entry timing races the card attach — early runs took the at-entry
+  return (cardAlreadyUp=1); the proof run caught the poll path.
+  Normal run green pre-commit (skip test 33.3s).
+- Item 3 (this commit): 1K now requires the FIRST observed announcer
+  text to be empty. The observer's push recorded only non-empty text,
+  so it could not tell an announcer that mounts already filled from
+  one that mounts empty and then fills. Push now records the first
+  observed text unconditionally (log-empty + region-exists → push,
+  even ""); later pushes record only non-empty text distinct from the
+  last entry. 1K asserts ["", sentence]; 1K-repeat's two
+  toHaveLength(1) assertions become toEqual(["", sentence]) (shared
+  observer contract). An unconditional [""] seed at install was
+  rejected by Chair ruling (it would make mounts-filled pass too).
+  RED proof (old observer + new assertions, reverted): 1K failed with
+  the empty entry missing. GREEN: 1K + 1K-repeat pass (8.8s / 11.8s).
+- Item 4 (this commit): home nav overlap check waits for layout to
+  settle before measuring (the task-stated CI flake cause). New
+  helper `waitForNavLayoutSettled` in
+  tests/e2e/grownups-privacy-contact.desktop.spec.ts: 2 rAFs + two
+  identical consecutive nav bounding-box reads + document.fonts.ready
+  (best-effort, 1s race timeout so it cannot hang the test).
+  Called after setViewportSize + scrollTo AND after scrollBy inside
+  the viewport loop; post-click popover reads stay guarded by
+  toBeVisible; sections outside the loop unchanged. Cause label is
+  task-stated (no local repro captured): if the flake persists, the
+  wait was not the cause. GREEN: home UX polish test passes (9.9s).
+- Item 2 (this commit): PRODUCT bug, not test bug — a Zoom in press
+  during the 1200ms return beat settled BELOW the pre-return zoom
+  (3 < 4). Cause, traced in code: handleZoomIn called MapLibre zoomIn,
+  which reads the ANIMATED zoom (~2.2 mid-return) and its easeTo first
+  stops the return ease, so the press settled at ~3.2 → 3; the stop's
+  zoomend also announced the intermediate level (ZoomControls'
+  one-shot announceNext consumed by the 4 → 2 state change). Fix, in
+  src/map/satellite-map.tsx only (ZoomControls untouched — the
+  suppression fixes its announcement too): new zoomStepDuringReturn
+  helper, gated ONLY on controllerRef beatKind === "return"
+  (beatActive alone is also true during spin/narrow/reveal/relock;
+  reduced-motion return sets neither flag, so it takes the plain
+  path); captures the React zoom state BEFORE touching the camera
+  (settled 4, not animated ~2.2, not target 1.5); sets a
+  suppress-one-zoomend ref; map.stop() (vendored MapLibre _stop →
+  _onEaseEnd → _afterEase fires zoomend + moveend synchronously — the
+  moveend completes the return via the normal path); ref cleared
+  unconditionally after stop(); then map.zoomTo(captured ± 1). The
+  zoomend handler skips setZoom ONLY for the suppressed zoomend
+  (boundary band + controller notification still run). Keyboard +/-
+  call the same helper. Non-return zooming, uninterrupted return, and
+  reduced-motion jump-to untouched. Center omitted from zoomTo
+  (mid-return center kept; user zoom intent wins).
+  RED/GREEN proof (temporary diagnostic spec + page-clock auto-press
+  hook in beginReturn, both DELETED/reverted, no trace in the diff):
+  test-side timing cannot land inside the beat on this VM (click
+  1.7–4.5s, evaluate ~7s, beat 1200ms) — v1–v3 fixed-delay presses all
+  landed post-settle, so their "failures" were measurement artifacts,
+  not the bug (corrected here, not hidden). The v4 auto-press clicks
+  the real Zoom in button 600ms into the beat: GREEN 2/2 with the
+  fix (gate log beatKind=return zoom=4 → pass; zoom=3 → pass); RED
+  with the gate forced false (gate log beatKind=return zoom=4, the
+  press provably mid-beat) → FAIL before=4 after=3, the exact
+  reported signature. 3D passes 3/3 post-fix; full round-loop-a11y
+  file 8/8 (5.4m). CI: round-loop-a11y.spec.ts added after
+  endgame-share.spec.ts in node.js.yml + header comment records the
+  exception (3D guards a product a11y behavior; file green locally
+  first); YAML validated.
+- Item 5 (this commit): KEEP the clearSession hadStoredSession gate +
+  JUSTIFY it in the PR body + FIX the reset path. Decision evidence
+  (round-2 investigation + live experiment, recorded in the round-2
+  manifest appendix): the Dismiss pointerdown fires the idle-activity
+  listener, which persists a null session and therefore calls
+  clearSession(); the old code deleted the deferred shadow before boot
+  2, so the dual test's boot-2 `new day` 999/9 assertion failed
+  (revert experiment: 1 FAILED at spec:666, notice count 0; restore:
+  1 passed). Reverting alone is NOT an option — it breaks 1E-mc2-dual.
+  The narrower alternative (guard persist(null) in game-app) would be
+  a new change needing its own test, not a revert-alone. Fix: new
+  session.ts export clearDiscardedShadowFrom(storage) (remove +
+  verify, "" fallback mirroring clearSession, returns boolean, no
+  storage → true) and resetHistory gains step "discarded-shadow"
+  after "session", clearing from the INJECTED local storage, never
+  globals (global clearDiscardedShadow() cannot serve reset under
+  U-R6; raw-key removal in resetHistory would violate the module's
+  documented no-raw-key rule, exception: paused-run keys only).
+  U-R1's exact cleared list gains the entry (with justification
+  comment). New tests via injected FakeStorage: U-R9 shadow + no
+  session → shadow gone, "discarded-shadow" in cleared; U-R10 blocked
+  removal + blocked overwrite → in failed, value unchanged; U-R11
+  globally seeded shadow stays byte-identical (U-R6 respected).
+  clearSession and every existing session.ts function UNCHANGED. No
+  D4 re-read added for the shadow (the step's own boolean already
+  verifies by re-read; the D4 block exists for owner clears that do
+  not verify internally). GREEN: reset-history 13/13 + session suite
+  36/36 combined; dual E2E 1E-mc2-dual passes (10.7s) on the rebuilt
+  artifact. PR-body justification edit DONE via API (justification +
+  item-2 CI note appended, re-read verified, body 6761 → 8064 chars;
+  verified against head 84e12ab, which the body edit itself did not
+  move).
+
+## Fix round 3: PR #287 review findings (base main 5e5a440e, head 6c7917f)
+
+- Scope: tests only, two commits, zero `src/` changes. The return-beat
+  zoom gate in `src/map/satellite-map.tsx` is unchanged. Leave-alone:
+  endgame-share `clickShareScoreWithRetry` + share-text origin line.
+  Independent reviewer verifies afterwards; no merge word is claimed.
+- Item 1 (this commit): `round-loop-a11y.spec.ts` 3D is split in two.
+  3D(a) presses the real Zoom in button mid return beat from an
+  in-page timer (450 ms after the Next place click; the timer slips
+  under load). It records the press offset and fails loudly unless
+  the press landed inside the 1200 ms beat (offset < 1200, zero
+  data-zoom changes since Next, data-zoom still at the pre-return
+  level). It then asserts final zoom = pre-return + 1 and exactly one
+  "Zoom level N" announcement. The pre-return level is held in
+  [3, max-1] so a mis-step cannot hit pre+1 by chance. 3D(b) waits
+  for a stable zoom after the return settles, presses twice, and
+  asserts +1 and the announcement per press. The shared setup seeds
+  `meridian.firstWinCelebrated` (test-only, as in 3A-hit): one 3D(b)
+  run timed out when commitMissObserved's rare-hit retry raised the
+  first-win overlay over Next place.
+  Proof: 3D(a) 5/5 green (offsets 471–969 ms), 3D(b) 5/5 green. A
+  mutant in a separate worktree forcing the beatKind gate false fails
+  3D(a) 3/3 at the final-zoom assertion (zoom ends at pre, announces
+  pre-1); timing checks pass in all three.
+- Item 2 (this commit): `gap-view-reveal.desktop.spec.ts` skip test.
+  The Node-side `__spotScreen` poll (one evaluate per sample, ~2
+  samples before the card under a full-file run) is replaced by an
+  in-page requestAnimationFrame recorder. It starts at the Drop click
+  (capture phase; a retried commit restarts it), records the spot
+  point, card state and skip-tap time every frame, and is read once
+  after the card lands. spotMoves only counts frames before both the
+  card and the skip tap, so the skip's jump-to cannot supply it.
+  Proof: whole file 3x (9/9) green. A mutant freezing `__spotScreen`
+  at {x:100,y:100} fails 4/4 at the movement assertion. Noted, not
+  changed: in 1/3 head runs and 2/4 mutant runs, the Node-driven skip
+  tap landed after the card was already up, so those runs did not
+  exercise the skip itself.
+
+## Fix round 4: PR #287 review findings (base main 5e5a440e, start head eee6ba04)
+
+- Scope: tests and this file only; zero `src/` changes. Mutants were
+  built and run in a separate worktree only and are not in this
+  branch. Leave-alone kept: endgame-share `clickShareScoreWithRetry`
+  and the share-text origin line. No assertion, console gate or band
+  gate was relaxed. Independent review pending; no merge word claimed.
+- Item 1 (`gap-view-reveal.desktop.spec.ts` skip test): the commit is
+  retried (max 3) until an in-page gate sees the spot move before the
+  card, and the skip tap is sent the moment it moves. The old early
+  return when the card was already up is gone. The test fails unless
+  tapAt < 1200 ms after Drop and cardAt − tapAt < 300 ms. Bound: tap→card
+  measured 107–152 ms (median 130) in probes and 83–102 ms in the
+  whole-file 5x run; the unskipped beat runs ~1.8–2.0 s.
+  `clickNextPlace` (helpers.ts) now closes the first-win celebration
+  overlay if it is up: in 1 of the first 15 whole-file runs it covered
+  Next place in the untouched "miss: the gap view frames…" test.
+  Proof: whole file 5x after that fix = 15/15 green (skip tapAt
+  446–586 ms, tap→card 83–102 ms). Skip-handler no-op mutant fails 5/5
+  (tap→card 1795–2024 ms vs < 300). Frozen `__spotScreen` mutant fails
+  5/5 (gate moved:false, card first at ~2.3–2.5 s). Not proven: the
+  celebration close path did not trigger in the green 15/15 run.
+- Item 2 (`round-loop-a11y.spec.ts` 3D(a)): the press is no longer a
+  fixed timer. An in-page rAF loop (reaching the MapLibre map and the
+  choreography controller via the React fiber; no src hook) presses
+  Zoom in only on a frame where beatKind is "return" and the live zoom
+  is ≥ 0.6 below both the settled pre-return level and the zoom at
+  Next. It asserts the press landed in flight (offset < 1200 ms), final
+  zoom = pre + 1, the zoom trail is exactly [pre + 1], and the only
+  announcement is "Zoom level pre+1". Proof: head 3D(a)+3D(b) 5x each =
+  10/10 green (press offsets 556–818 ms). Mutant A fails 3D(a) 5/5
+  (final zoom = pre). Mutant B fails 3D(a) 5/5 (an intermediate level
+  shows up in the zoom trail and announcements).
+- Item 3 (`helpers.ts` commitHit, discarded-notice 1H(1) flake
+  "commitHit: no tappable spot in 10 attempts"): root cause was a stale
+  spot read. Instrumented runs showed the spot read the moment the
+  phase flipped to aim, while the previous place's camera move was
+  still running; the point at tap time was hundreds of px away (e.g.
+  read 568,438 vs 1208,591), so every attempt missed. The new
+  `settledSpotViewportPoint` waits for aria-hidden to lift and for the
+  spot projection to stay unchanged for 600 ms of animation frames
+  before commitHit judges or taps it. 1H(1) assertions unchanged.
+  Proof: 1H(1) --repeat-each=10 = 10/10 green; whole discarded-notice
+  file = 26/26 green.
+- Item 4: the visual-notice screenshots now go to
+  `test.info().outputPath()` and no longer to `tests/e2e/evidence/`;
+  the two untracked PNGs were deleted, not committed. `git status` is
+  clean after a full discarded-notice run.
+- Item 5: the Package C record carried from main had its heading
+  rewritten to fix/wave1-p0 in 2efcbb6, which no longer matched its
+  Branch line. The heading is restored to feat/challenge-mc2-package-c,
+  and the Wave 1 record below it gets its own fix/wave1-p0 heading.
