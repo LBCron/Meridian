@@ -57,6 +57,11 @@ import patagoniaUrl from "@/assets/home-v5/patagonia.webp";
 import archiveToolsUrl from "@/assets/home-v5/archive-tools.webp";
 import journalTreeUrl from "@/assets/home-v5/journal-tree.webp";
 import binocularsHatUrl from "@/assets/home-v5/binoculars-hat.webp";
+import {
+  VERDICT_GRANDPA_POSTER_URL,
+  VERDICT_GRANDPA_VIDEO_URL,
+} from "@/assets/verdict/grandpa-media";
+import { usePrefersReducedMotion } from "../hooks/use-prefers-reduced-motion";
 import { Compass, Contrast, Flag, Globe2, MapPin, MoreHorizontal, Volume2, VolumeX } from "lucide-react";
 import {
   initAudio,
@@ -5078,6 +5083,7 @@ function ChallengeVerdict({
   completion,
   regionCatalog,
   settled,
+  settledByGesture,
 }: {
   run: Run;
   winner: ChallengeWinner;
@@ -5087,6 +5093,11 @@ function ChallengeVerdict({
    * until then the late-arriving interactive elements are inert,
    * so nothing is focusable while invisible (A-291-3). */
   settled: boolean;
+  /** Settled by a player gesture (tap or keydown) rather than the
+   * auto-settle timer. The Grandpa clip's pause subscribes to THIS
+   * flag only (PR #295 cure round 2 — the timer carries no intent
+   * to stop motion); nothing else consumes it. */
+  settledByGesture: boolean;
 }) {
   const mine = run.results.reduce((s, r) => s + r.score, 0);
   const n = run.poolIds.length;
@@ -5132,7 +5143,43 @@ function ChallengeVerdict({
     farmingGuardBound: completion.minted.farmingGuardBound,
   });
   const [announce, setAnnounce] = useState("");
+  // The Grandpa clip at the top of the screen is decoration, so it
+  // follows the same reduced-motion rule as the rest of the verdict
+  // choreography: reduced motion gets the still keyframe, never a
+  // moving picture (see the render below).
+  const reducedMotion = usePrefersReducedMotion();
   const headingRef = useRef<HTMLHeadingElement | null>(null);
+  // WCAG 2.2.2 cure (panel BLOCK 2 on PR #295): the looping clip
+  // needs a stop mechanism beside the text kids read. Two of them,
+  // complementary: (1) when the player settles the choreography
+  // with a gesture — a tap or a keydown — the clip pauses and holds
+  // its frame; (2) the overlay toggle rendered with the video
+  // pauses/plays it at any moment, and is on its own the
+  // always-available stop 2.2.2 asks for. The auto-settle timer
+  // does NOT pause the clip (cure round 2, panel re-vote on
+  // PR #295): the timer is not a gesture and carries no intent to
+  // stop motion, so the clip keeps playing through the default
+  // reading dwell — this effect subscribes to ChallengeComplete's
+  // gesture latch, never to the undifferentiated settled flag.
+  // clipPaused is driven by the element's own play/pause events,
+  // so the toggle's label always matches what the clip is doing.
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [clipPaused, setClipPaused] = useState(false);
+  useEffect(() => {
+    if (settledByGesture) videoRef.current?.pause();
+  }, [settledByGesture]);
+  const toggleClip = () => {
+    const clip = videoRef.current;
+    if (!clip) return;
+    if (clip.paused) {
+      // A rejected play() (autoplay policy, interrupted load) must
+      // not surface as an unhandled rejection — the clip simply
+      // stays paused, and the toggle's label already says so.
+      clip.play().catch(() => {});
+    } else {
+      clip.pause();
+    }
+  };
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
     // The one aria-live sentence fires AT the verdict-word point
@@ -5160,6 +5207,78 @@ function ChallengeVerdict({
       <p className="sr-only" aria-live="polite">
         {announce}
       </p>
+      {/* "Grandpa Was Already There" (owner's dispatch, 2026-11-01):
+          the animated keyframe sits at the top of every verdict —
+          win, hold, near-miss, and loss alike. The clip itself is
+          decorative (aria-hidden, never focusable), so it cannot
+          disturb the aria-live announcement above or the focus
+          order. Two stop mechanisms keep the loop honest beside the
+          verdict text (WCAG 2.2.2, panel cure on PR #295): a tap or
+          keydown that settles the choreography pauses it (see the
+          effect above — the auto-settle timer deliberately does
+          not), and the corner toggle pauses/plays it at any time —
+          that toggle is a media control for this clip, not a
+          feature entry. Both
+          branches reserve the 3:2 box (aspect-[3/2]) so the headline
+          and score bar never shift when the media loads (CLS, panel
+          cure on PR #295). The poster shows until the clip can play,
+          and under reduced motion the still keyframe renders instead
+          of the video. The asset itself is swapped in
+          grandpa-media.ts, never here. */}
+      {reducedMotion ? (
+        <img
+          src={VERDICT_GRANDPA_POSTER_URL}
+          alt=""
+          aria-hidden="true"
+          data-testid="challenge-verdict-grandpa"
+          className="mb-4 aspect-[3/2] w-full max-w-md rounded-2xl"
+        />
+      ) : (
+        <div className="relative mb-4 w-full max-w-md">
+          <video
+            ref={videoRef}
+            src={VERDICT_GRANDPA_VIDEO_URL}
+            poster={VERDICT_GRANDPA_POSTER_URL}
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden="true"
+            data-testid="challenge-verdict-grandpa"
+            className="block aspect-[3/2] w-full rounded-2xl"
+            onPlay={() => setClipPaused(false)}
+            onPause={() => setClipPaused(true)}
+          />
+          <button
+            type="button"
+            onClick={toggleClip}
+            onKeyDown={(e) => {
+              // The activation key belongs to this control: without
+              // this, the screen's any-keydown settle would pause the
+              // clip in the same gesture, and the click that follows
+              // would read "paused" and play it again — the opposite
+              // of the press. Other keys still settle as designed.
+              if (e.key === " " || e.key === "Enter") e.stopPropagation();
+            }}
+            aria-pressed={clipPaused}
+            aria-label={clipPaused ? "Play the cartoon" : "Pause the cartoon"}
+            data-testid="challenge-verdict-grandpa-toggle"
+            className="absolute top-2 right-2 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/65 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            {clipPaused ? (
+              <span
+                aria-hidden="true"
+                className="ml-0.5 h-0 w-0 border-y-[7px] border-l-[11px] border-y-transparent border-l-white"
+              />
+            ) : (
+              <span aria-hidden="true" className="flex gap-1">
+                <span className="h-4 w-1 rounded-sm bg-current" />
+                <span className="h-4 w-1 rounded-sm bg-current" />
+              </span>
+            )}
+          </button>
+        </div>
+      )}
       <h1
         ref={headingRef}
         tabIndex={-1}
@@ -5363,6 +5482,21 @@ function ChallengeComplete({
   // (a sibling subtree, which a flag inside ChallengeVerdict could
   // never cover). Any tap on the screen settles the choreography.
   const [verdictSettled, setVerdictSettled] = useState(false);
+  // Cure round 2 on PR #295: a second latch records whether the
+  // settle came from a player gesture — the root's tap/keydown
+  // handlers below — rather than the auto-settle timer effect.
+  // The Grandpa clip's pause consumes THIS flag (media reads the
+  // gesture flag, not verdictSettled): the timer settles the
+  // choreography but carries no intent to stop motion, so it must
+  // not freeze the clip. Everything else — the CSS snap, the inert
+  // gates, data-verdict-settled — keeps consuming verdictSettled
+  // exactly as before, whichever way it was set.
+  const [verdictSettledByGesture, setVerdictSettledByGesture] =
+    useState(false);
+  const settleByGesture = () => {
+    setVerdictSettled(true);
+    setVerdictSettledByGesture(true);
+  };
   const incomingWinner = run.challengeWinner ?? null;
   // A-291-3: settling is not pointer-only. Any keydown settles (the
   // keydown fires before the focus move, so the first Tab lands on
@@ -5490,8 +5624,8 @@ function ChallengeComplete({
     <main
       className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center px-5 py-8"
       data-verdict-settled={incomingWinner ? verdictSettled : undefined}
-      onClick={incomingWinner ? () => setVerdictSettled(true) : undefined}
-      onKeyDown={incomingWinner ? () => setVerdictSettled(true) : undefined}
+      onClick={incomingWinner ? settleByGesture : undefined}
+      onKeyDown={incomingWinner ? settleByGesture : undefined}
     >
       <p className="text-sm tracking-wide text-muted uppercase">
         {isMc2 ? run.regionName : CHALLENGE_REGION_NAME}
@@ -5507,6 +5641,7 @@ function ChallengeComplete({
           completion={completion}
           regionCatalog={regionCatalog}
           settled={verdictSettled}
+          settledByGesture={verdictSettledByGesture}
         />
       ) : (
         <>
