@@ -31,6 +31,10 @@ import coldtrailStillUrl from "./coldtrail-still.webp";
  * match the film's first frame, the still must match its settled
  * composition, and for GeoDetective those are two different beats
  * of the story (top-down table map vs the detective at her desk).
+ * End axis: GeoDetective settles on the owner's image at the front
+ * angle, and Cold Trail settles on the wide trail scene with Jolly
+ * mid-trail, still walking the footprint trail toward the lit
+ * cabin, which is still distant.
  *
  * ── GeoDetective ──
  *
@@ -126,6 +130,14 @@ import coldtrailStillUrl from "./coldtrail-still.webp";
  *     82 (shipped 76,010 bytes).
  * A new take means re-deriving its poster from its own first
  * frame — never ship a poster from a different picture.
+ *
+ * Frame 0 of a shipped film, extracted and encoded as a poster
+ * (the two commands from the GeoDetective cure, verbatim):
+ *   ffmpeg -i src/assets/home-v5/geodetective-film.mp4 \
+ *     -vf "select=eq(n\,0)" -vframes 1 frame0.png
+ *   ffmpeg -i frame0.png -c:v libwebp -q:v 82 geodetective-poster.webp
+ * For the other card, substitute its film and poster filenames and
+ * write the output beside this module.
  *
  * One hard rule, same as the verdict clip: replacement takes must
  * be silent. The audio track is stripped on purpose — the home
