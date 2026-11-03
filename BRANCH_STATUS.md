@@ -1,167 +1,154 @@
-# BRANCH_STATUS — feat/home-card-films
+# Branch status: feat/capitals-pack
 
-- **Branch:** `feat/home-card-films`
-- **Base:** `main` @ `2a0527f` (#295 verdict Grandpa clip)
+Story packs (issue #319), integration branch. The Stacker integrated
+the four swarm slices into one branch and runs the review pipeline to
+READY. No merge. The owner's per-PR word gates merging.
+
+Base: main `193b57c` (PR #321 merged). PR #322 (Track A, card copy)
+is still open, now at cured head `cd6d47b`, so this branch stays based
+on `193b57c`. If #322 merges first, this branch rebases onto the new
+main before its own merge. The PR body records that debt.
 
 ## Task capsule
 
-TASK / requested outcome: Port the two owner-approved home-card
-designs into production: the GeoDetective card's `.hv5-pic` slot
-plays the round-2 reshoot FILM as-is, and the Cold Trail card's
-slot plays a NEW walking animation (owner correction, verbatim:
-"I want the avatar chasing the clue like walking not the zoom in
-and out of card" — the round-2 pull-back is superseded and was
-never shipped). One shared component + one swap-point media
-module govern both cards. Stop at PR-open; QA + panel are
-separate silos. NO MERGE without the owner's per-PR word.
+TASK / requested outcome: integrate swarm slices 1 to 4 (runtime core,
+capitals content, Cold Trail adapter, pack shelf) into one branch,
+resolve the six named seams, and run the full review pipeline to
+READY. No merge.
 
-Tier and rationale: Tier 1 execution of owner-decided designs
-(the films, casting, and motions were all decided 2026-11-02;
-the governance mirrors the shipped home-globe gates and the
-#295 verdict clip's stop semantics). No new design decisions.
+Interpretations considered and selected reading: (a) one shared
+selection blob for both editions — rejected, because each edition's
+dealer reads only its own progress store, so a shared blob would be a
+second source of truth one dealer never reads; (b) one selection
+store per edition, each dealer reading the store its chips write —
+selected (seam 1 below).
 
-Done condition / evidence: both cards render their film in the
-slot at desktop + mobile geometry with zero layout shift;
-locked band still renders LockedLoop; reduced motion shows the
-still with zero video fetch (proven by E2E + a headless probe
-with a request log); per-card media ≤ ~400 KB per film; repo
-gates green; PR opened with the full record. Evidence dir:
-~/workspace/meridian-card-port-evidence/
+Tier and rationale: Tier 2. A new content system across many files,
+with storage keys and a pack schema; the full review pipeline
+(Silo QA, 12-role panel, DevEx, benchmark) applies.
 
-Files and interfaces in scope: `src/components/game-app.tsx`
-(the two `.hv5-pic` sites + imports only), `src/components/
-home-v5.css` (film fill rules only — `.hv5-pic` box geometry
-untouched), NEW `src/components/card-film.tsx`, NEW
-`src/assets/home-v5/card-media.ts` + 6 media files, tests that
-pinned the old stills, README + this file. Out of scope
-(FORBIDDEN): the locked GeoDetective tile (LockedLoop branch —
-byte-identical), all card copy, the frozen PRs
-#297/#299/#302/#305/#307/#308/#309/#311/#312.
+Budget: Tier 2 default parent cap (400k tokens) covers this run and
+all its delegates. No token meter exists for the run, so no count is
+claimed here.
 
-## What shipped
+Approvals and checker: the owner approved the design and ordered the
+build on 2026-11-03 ("Approve design — build the capitals pack",
+"Pstack swarm"). Merge is NOT approved; it waits for the owner's
+per-PR word on the final tip. Checkers are independent of the
+builder: Silo QA (clean context) and the 12-role panel.
 
-- **GeoDetective film** — the reshoot, as-is (four beats, lands
-  on the owner's image; beat-4 ~1 s generation drift is
-  OWNER-ACCEPTED, disclosed before his build-as-is pick).
-  Encoded 1094×616, H.264, silent, faststart: **371,759 bytes**.
-  Poster = the film's own first frame (frame 0 of the shipped
-  film): 79,846. Still (reduced-motion/gated) = the owner's
-  image, centre-cropped to the slot: 90,376. Per-card total:
-  541,981.
-- **Panel cure (PR #321, Frontend seat BLOCK):** the first
-  shipped GeoDetective poster was the wide top-down desk plate
-  (from geo-table.webp), but the film's frame 0 is a tight crop
-  of the pinned map's centre — poster↔frame-0 MAD 102.4/255, a
-  hard visible pop at playback start, against card-media.ts's
-  own hard rule. Cured by re-deriving geodetective-poster.webp
-  from frame 0 of the shipped film (WebP quality 82, 1094×616,
-  79,846 bytes); MAD after = 1.29/255 at 547×308 (Cold Trail's
-  league: 1.97). One asset only; no code change. Evidence:
-  ~/workspace/meridian-card-port-evidence/cure/
-- **Cold Trail film** — NEW image-to-video take 1 of 3 from the
-  approved keyframe: Jolly steps up the footprint trail to the
-  cabin (legs alternating, new prints under its feet, frost over
-  the oldest print), the child tracker follows with her
-  flashlight, camera locked. Encoded 1094×616: **326,786
-  bytes**. Poster = the film's first frame: 58,354. Still =
-  the keyframe: 76,010. Per-card total: 461,150.
-- **Encode deviation, recorded honestly:** the brief's CRF
-  28–32 range cannot meet its own ~400 KB hard cap on these
-  sources (dark rainy grain / falling snow = per-frame noise):
-  CRF 32 veryslow measured 505,840 (Geo) / ~500 KB (Cold). Same
-  technique (H.264 CRF, -an, +faststart), CRF tuned past the
-  range — Geo CRF 35 (SSIM 0.932 vs CRF-10 reference; legible
-  and near-identical at the 547 px display size), Cold CRF 36.
-  Full sweep: evidence `logs/media-encode.txt`, and the record
-  lives in `card-media.ts` for the next re-cut.
-- **CardFilm component** — gates to the still (video never
-  fetched): prefers-reduced-motion (shared hook, live),
-  Save-Data, deviceMemory ≤ 2, video error. Lazy: video mounts
-  only near the viewport (IntersectionObserver, rootMargin
-  200px, preload="none"); poster fills the slot until then.
-  Plays once, muted, playsInline, no loop; holds the last
-  frame. WCAG 2.2.2: 44×44 pause/play toggle above the
-  stretched CTA, labels "Pause the cartoon" / "Play the
-  cartoon" driven by the video's own events; after the end the
-  toggle replays (gesture only). Video is decoration
-  (aria-hidden, tabIndex −1). Media absolutely fills the
-  existing `.hv5-pic` box — geometry untouched, zero CLS
-  (probe: card box identical at film start and after settle).
-- **Deleted:** `desert-ruins.webp` + `patagonia.webp` (the old
-  stills; no remaining references — grep-verified across src,
-  scripts, public, index.html).
+Slices and tips: swarm/runtime-core `093ec58`, swarm/capitals-content
+`c5ba2b8`, swarm/coldtrail-adapter `762cb0d`, swarm/pack-shelf
+`3f06576`. Integration commits: `6c7fce1`, `a103243`, `881a2fa`,
+`0b58447`, `902e65c`, `f776fd1`, then `0e24e96` (dealing-proof E2E).
 
-## Gates (code head 3659f23; build stamp 3659f23)
+Seams and how they closed:
+1. One selection store per edition. The GeoDetective loop store owns
+   its selection (`activeDeckId`); Cold Trail selection lives in the
+   shelf selection blob under its own key. One store per edition
+   because the two editions keep separate progress stores today, and
+   the dealer for each edition reads exactly the store its chips
+   write.
+2. Cold Trail pack progress key and shape match Slice 3's store.
+3. Pack manifest carries coldtrailFile; the composer covers all 72
+   cases, loopIndexes 387 to 458.
+4. Schema and composer accept Slice 2's three record additions
+   (schema field, directions array plus direction, target.aliases).
+   Both validators pass over all 72 on the integrated tree.
+5. Deck-correct dealing proven end to end in E2E for both editions
+   (pack-shelf spec, 6 of 6 under the flock).
+6. Screens pass the open case's real deck id as activeDeckId.
 
-- `npm run typecheck` — PASS (0 errors)
-- `npm test` — PASS: scripts 850 pass / 11 skipped; src
-  1896/1896 (incl. new card-film.test.ts)
-- `npm run test:worker` — PASS 85/85 (untouched surface, run
-  per repo gate list)
-- `node scripts/lint-cards.mjs` — GATE PASSED
-- `npm run build:pages` — PASS
-- `npm run perf:bundle` — entry JS 979,123 raw / 305,248 gzip
-  vs main's 977,196 / 304,649 (**+1,927 raw / +599 gzip** — the
-  component code only; films are separate URL assets, zero
-  media bytes in the entry chunk)
+Out of scope, recorded in the PR body: the Direction B2 loss-reveal
+credit (it depends on reverse-direction B1/B2 play being built
+first; no B2 case can be lost until B2 cases deal), the home card
+subtitle from DESIGN section 7 (Track A region), alias widening for
+the five repair-2 cases.
 
-## E2E (flock, --workers=1, Playwright-bundled Chromium)
+Frozen: PRs #297, #299, #302, #305, #307, #308, #309, #311, #312,
+#322. This branch does not edit, comment on, or rebase any of them.
 
-The VM's /opt/meta-chromium currently refuses every launch
-("Hatch WebGL domain policy is required") on branch AND main,
-so runs used the Playwright-bundled Chromium
-(PLAYWRIGHT_CHROMIUM_EXECUTABLE=~/.cache/ms-playwright/
-chromium-1243) — same browser for branch and controls.
+## Round-1 cure (2026-11-03, on tip f74b708's verdicts)
 
-- loading-orbs.desktop — **8/8 PASS** (incl. the rewritten
-  reduced-motion test: still shown, zero .mp4 requests; and
-  the film-error test: aborted .mp4 → Cold Trail still)
-- card-redesign.desktop — **11/11 PASS** (whole-card clicks,
-  focus stops incl. the new toggle stop, rings, badges)
-- home-visual-layout.desktop — **13/13 PASS**
-- home-badges-readaloud — **8/8 PASS**; badge-journey — **6/6 PASS**
-- grandpa-tasting-tour — 4 pass / 21 fail on branch; **control
-  on unmodified main fails identically from test #1** (tour
-  stuck at stage "compass", never reaches "walk" within 20 s):
-  environment class on this VM+browser, NOT a regression.
-  First-run card-redesign crashes ("Target crashed") had the
-  same disposition and a found cause: /tmp is a 512 MB tmpfs
-  that filled (ENOSPC in a main-control log); after cleanup
-  the full spec passes 11/11.
-- mobile-home-overlap — 6 pass / 20 fail on branch; failures
-  are storyteller-greeting elements never appearing within
-  20 s (same timing class as the tour); spot control on main
-  recorded in evidence logs.
-- Headless probe (temporary spec, deleted after the run):
-  toggle labels flip via the video's own events; both films
-  `ended` and hold; replay-by-toggle restarts Cold Trail
-  (currentTime 0.67 s and playing); reduced-motion slots have
-  NO video element and the request log shows **zero .mp4
-  requests**; locked band (seeded 5-7 profile): GeoDetective
-  card + film absent, LockedLoop renders, Cold Trail film
-  present. Screenshots: evidence `screenshots/` (desktop film
-  start / settled / reduced-motion / locked band, mobile
-  settled).
+Round 1 returned 7 panel BLOCKs, a DevEx FAIL, and 2 Silo QA
+defects. The cure is built on this branch in 12 commits
+(`414ddb6`..`aa0b7f4`); the full per-item record with evidence is
+`~/workspace/meridian-capitals-evidence/cure/CURE.md`. In short:
 
-## Redundancy audit (owner standing rule)
+- Code: edition-true Cold Trail pack total (60, not 72) end to end;
+  TrailScreen mount resume (an unrevealed case in exactly one deck
+  opens on that deck, ahead of the selection blob); deck-aware cycle
+  celebration (Capitals copy denominated in 72, core copy
+  byte-identical); 320px shelf second-row reserve; ride-alongs
+  (role="status", reset clears the shelf blob, manifest-validator
+  parity, missing-sidecar screen test).
+- Content: duplicate targets cured by swap — Nairobi and Ankara
+  (already core clues 74/218) replaced by Accra (Ghana) and Abu
+  Dhabi (UAE) at tier 3, authored to the full standard; 459 unique
+  targets restored, pack stays 72, Cold Trail deck stays 60 and now
+  teaches 51 anchor capitals. Indianapolis hook carries no
+  measurement string. Addis Ababa and Nashville giveaways rewritten
+  as capital-only role facts (Addis hook rung untouched).
+- Validators: all 72 records state Direction A only; the B2 subject
+  rule is stated in the same words in schema.mjs and
+  validate-pack.mjs, and validate-pack now calls schema's
+  validatePackRecord for the shared checks (equivalence test pins
+  both gates on a synthetic B2 record).
+- Docs: design vendored at docs/story-packs.md with the v1 truth
+  corrections; README passage; docs/geodetective.md updated (459
+  clue files, pack-owned indexes 387-458); Handbook ch05 records
+  the owner's 2026-11-02 packs-not-modes ruling; runbook at
+  scripts/packs/README.md plus packs:* npm scripts; the Cold Trail
+  generator's stale fallback header corrected.
 
-| Surface | Keep / remove | Reason |
-| :--- | :--- | :--- |
-| `LazyHomeImage` (component) | **Keep** | Still owns the four remaining home stills (`.hv5-art` ×3 + journal entries); only the two `.hv5-pic` sites left it. Removing it would orphan working surfaces. |
-| `desert-ruins.webp` | **Remove** (deleted) | The GeoDetective slot's old still; superseded by the film's poster+still pair; zero remaining references. |
-| `patagonia.webp` | **Remove** (deleted) | Same: Cold Trail's old still, superseded; zero remaining references. |
-| Layered-plates DOM approach (reshoot CONCEPT) | **Not ported** | The owner approved a FILM for GeoDetective ("Build this in production" on the reshoot video), not the layered-plates web build; a second rendering path for the same picture would duplicate the slot's job. |
-| Round-2 CSS-mirror prototype | **Not ported** | Prototype only; the production port is the film behind CardFilm, per the owner's build word. |
-| CardFilm toggle vs the cards' badge buttons | **Keep both** | Not a duplicate: badges toggle a blurb (GeoDetective only); the film toggle is the WCAG 2.2.2 stop for moving content, one per film, dealing from its own context (the #295 verdict toggle is the same pattern on a different screen). |
+Gates on the cured tip (all run unpiped, real exit codes):
+validate-pack --all exit 0 (72/72); composer re-run drift limited
+to generatedAt (restored); npm test exit 0 (scripts 953: 942 pass /
+11 skipped / 0 fail; src 1964 pass / 0 fail); test:worker exit 0
+(85/85); tsc --noEmit exit 0; lint-cards GATE PASSED; lint-content
+exit 0 (6 baselined, 0 new); build:pages exit 0; perf:bundle entry
+JS 982,696 raw / 306,177 gzip, CSS 130,790 raw / 26,137 gzip; E2E
+under the flock: pack-shelf desktop + new 320px mobile spec, 8/8.
 
-## Flags for the owner / panel
+## Verdict (2026-11-03, on cured tip `9062a7f`)
 
-- Cold Trail copy mismatch: the card still reads "A smuggler
-  moves between cities…" under a picture of Jolly and the
-  tracker. The copy is byte-locked for this diff; the mismatch
-  is the owner's open call — code does not decide it.
-- GeoDetective beat-4 drift (~1 s, robots morph / sign
-  garbles, then hands back to the owner's exact image):
-  owner-accepted as-is, 2026-11-02.
-- Panel approves the final tip; merge only on the owner's
-  per-PR word.
+Re-verification on the cured tip: Silo QA PASS (fresh clone, 10 of
+10 cure items, 11 of 11 gates unpiped); panel re-vote 1 APPROVE /
+11 APPROVE-WITH-NITS / 0 BLOCK; DevEx re-check PASS-WITH-NITS;
+benchmark PASS (entry JS +0.36% raw / +0.30% gzip against main).
+CI at verdict time on `9062a7f`: build (22.x) PASS, GitGuardian
+PASS, e2e PASS; Workers Builds fails as on every tip and is not a
+required check. The Boise and Addis Ababa hooks stand as ruled in
+round 1; both texts are byte-identical on the cured tip.
+
+This file's sync commit lands on top of the voted tip as a
+records-only change; the panel vote, the QA ledger entry, and the
+verdict all key to `9062a7f`. Remaining LOW nits from the re-vote
+are follow-ups in the PR body and the verdict record, not cures.
+The PR is at READY. Merge waits for the owner's per-PR word. If
+PR #322 merges first, this branch rebases; the overlap is this
+file only, and the panel re-votes only if that rebase touches code.
+
+## Status
+
+- [x] Integration clone created; branch cut at `193b57c`
+- [x] Slice 1 merged (runtime core)
+- [x] Slice 2 merged (capitals content)
+- [x] Slice 3 merged (Cold Trail adapter)
+- [x] Slice 4 merged (pack shelf)
+- [x] Seams 1 to 6 resolved
+- [x] Gates green on the integrated tree (validate-pack 72 of 72,
+  composer deterministic apart from generatedAt, typecheck clean,
+  worker tests 85 of 85, pack tests 85 of 85, lint-cards passed,
+  build:pages exit 0, pack-shelf E2E 6 of 6 under the flock).
+  Correction to this round-1 box: its "npm test exit 0" line was
+  wrong — that reading came from a piped command whose exit code
+  belonged to the pipe; the suite in fact failed on that tip (the
+  two defects the cure then fixed). The corrected record is in the
+  coordination ledger and the evidence folder.
+- [x] Round-1 cure built (12 commits, gates above)
+- [x] Silo QA pass on the final tip (`9062a7f`, re-check PASS)
+- [x] Panel verdict on the final tip (re-vote: 0 BLOCK, READY)
+- [x] DevEx recorded (re-check PASS-WITH-NITS)
+- [x] Benchmark recorded (cured tip, PASS — see the verdict section)
+- [x] PR open at READY (PR #323; merge waits for the owner's word)
