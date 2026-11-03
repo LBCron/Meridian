@@ -428,3 +428,14 @@ documented "caption text appears instantly" intent).
   dismiss visuals is a design call, not part of #289's fix. Filed as
   issue #306 at the panel's request, together with the audio-failure
   caption-growth facet the Level Architect seat found.
+
+---
+
+# Prior record preserved on merge: reserve caption slot (PR #310, fix/306-reserve-caption-slot)
+
+PR #310 was stacked on #305's `db381cc`. Its own commits (`793579a`,
+`20c5996`, `a08a2a5`) changed only `src/` and `tests/`; the branch's
+BRANCH_STATUS.md record at `a08a2a5` was #305's record, unchanged and
+byte-identical to the "share first tap (PR #305)" section above, so it
+is not repeated here. Merged with `main` @ `534e963` (#305 squash-merged)
+to bring #310 up to date without a force-push.

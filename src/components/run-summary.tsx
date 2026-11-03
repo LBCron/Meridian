@@ -11,11 +11,28 @@ import {
   type SessionSummary,
 } from "@/game/session";
 import { SHARE_URL, sessionShareText } from "@/game/share-action";
-import { STORYTELLER_LINES } from "./storyteller-lines";
 import { LEARNING_COPY, type GrowthSummary } from "@/game/learning";
 import { REVIEW_DECK_COPY } from "@/game/review-deck";
 import { Button } from "@/components/ui/button";
 import { ShareButton } from "./share-button";
+
+/**
+ * #306: the ONE height of the summary caption slot. The slot holds this
+ * box for the dialog's whole life — before the lazy chunk resolves, while
+ * the caption shows, when the audio-failure line (+ retry hint) is
+ * appended, and after the caption dismisses — so the score and stats
+ * below it never jump while being read. (The action buttons are pinned in
+ * the dialog footer, so they are independent of the caption either way;
+ * the slot is kept because it is cheap and stops the content jumping.)
+ * Sized (rem, so it tracks the root font size) to the tallest caption
+ * state: the line plus the longest failure text at the narrowest
+ * 320px viewport (measured 123.5px with the play-rejected retry hint;
+ * 8rem = 128px). tests/e2e/storyteller.spec.ts asserts the real caption
+ * plus failure line fits inside this slot and that Share score never
+ * moves, so a copy or metric change that outgrows it fails CI instead of
+ * silently shifting the content again.
+ */
+const STORYTELLER_SUMMARY_SLOT_HEIGHT = "8rem";
 
 /**
  * End-of-game summary (endless mode). Shown after the player explicitly ends
@@ -154,53 +171,76 @@ export function RunSummaryCard(props: {
   return (
     <div
       ref={modalRef}
-      className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-0 z-40 flex bg-black/60 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Game summary"
       tabIndex={-1}
       onKeyDown={onDialogKeyDown}
     >
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[rgba(10,12,16,0.95)] p-6 text-white shadow-2xl">
+      {/* #306: the card is taller than most viewports (~1000px). It is
+          capped to the viewport (max-h-full) and split in two: the
+          score / stats / caption content scrolls (keyboard-reachable:
+          tabIndex 0, the focus trap includes it), and the action buttons
+          sit in a pinned footer that is always fully on screen, so their
+          position never depends on the caption or on scrolling.
+          short-landscape (landscape, height <= 500px — phones on their
+          side): stacked, the ~240px footer left the scroll region ~45px at
+          568x320, so the caption was clipped and its box ran under Share.
+          There the card goes side by side instead: content (with the
+          caption slot) scrolls in the left column at the card's full
+          height, the actions sit in a fixed-width right column. Share
+          still never depends on the caption, and the two never overlap. */}
+      <div className="m-auto flex max-h-full w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-white/10 bg-[rgba(10,12,16,0.95)] text-white shadow-2xl short-landscape:max-w-2xl short-landscape:flex-row">
+        <div
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-6 pb-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white short-landscape:pb-6"
+          data-testid="summary-content"
+          role="region"
+          aria-label="Summary details"
+          tabIndex={0}
+        >
         {/* Storyteller narration (caption only — figure is banner-only per
             owner ruling 2026-10-10): the closing-chapter beat. One line,
             text-first + speaker. */}
-        {/* #289: the fallback reserves the caption's box while the lazy
-            narration chunk loads. With fallback={null} the caption mounted
-            late ABOVE the action buttons and pushed them down mid-tap: a
-            tap whose pointerdown landed before the mount and pointerup
-            after it dispatched its click to the card, not the button, so
-            the first tap (e.g. on "Share score") was silently lost. The
-            placeholder renders the same line in the same box metrics —
-            caption max-width/padding/border and the banner text size,
-            line-height and balance wrap — invisible and aria-hidden, so
-            the real caption swaps into identical space at any viewport
-            and nothing below it moves. KEEP IN SYNC: those box metrics
-            are hand-copied from the real caption (storyteller-mascot.css
-            + the BoundedText banner variant in storyteller.tsx) — if the
-            caption's width, padding, border, font size, line-height or
-            wrap ever changes, change them here too, or the reservation
-            silently desyncs and the #289 shift returns. (Panel note on
-            PR #305: extracting a shared constant/component for both is
-            the follow-up when the caption metrics next change.) */}
-        <Suspense
-          fallback={
-            <div aria-hidden="true" className="mb-2 flex justify-center">
-              <div className="invisible max-w-[260px] border border-transparent px-3 py-2.5 text-[0.9375rem] leading-[1.3] [text-wrap:balance]">
-                {STORYTELLER_LINES.summary.text}
-              </div>
-            </div>
-          }
+        {/* #306 (supersedes the #289 sized-fallback copy): a fixed-height
+            slot reserves the caption's box from the first frame to the
+            last. The lazy fallback, the caption itself, the appended
+            audio-failure line and the dismissed state all render INSIDE
+            it, so the content below never jumps — the late mount (#289)
+            and the dismissal collapse / failure growth (#306) were the
+            same layout bug. The action buttons live in the pinned footer
+            and never depend on this slot. Always reserved, whatever the caption is doing
+            (sound off, narration yielded to a celebration or the tour,
+            dismissed): the slot decides layout, never the caption. The
+            slot itself is pointer-events-none (the caption re-enables its
+            own taps); empty states render an aria-hidden, inert filler
+            (storyteller.tsx modal variant + this fallback), so the empty
+            box is never announced, focused or tapped. */}
+        <div
+          className="pointer-events-none mb-2"
+          data-testid="storyteller-slot"
+          style={{ height: STORYTELLER_SUMMARY_SLOT_HEIGHT }}
         >
-          <StorytellerNarration
-            screen="summary"
-            trigger="summary"
-            lineKey="summary"
-            showFigure={false}
-            variant="modal"
-            onDismiss={focusPlayAgain}
-          />
-        </Suspense>
+          <Suspense
+            fallback={
+              <div
+                aria-hidden="true"
+                inert
+                className="pointer-events-none h-full"
+                data-testid="storyteller-slot-empty"
+              />
+            }
+          >
+            <StorytellerNarration
+              screen="summary"
+              trigger="summary"
+              lineKey="summary"
+              showFigure={false}
+              variant="modal"
+              onDismiss={focusPlayAgain}
+            />
+          </Suspense>
+        </div>
         <p className="text-[11px] tracking-wider text-white/60 uppercase">{regionName}</p>
         <h2 className="mt-1 font-display text-2xl">Game over</h2>
 
@@ -352,7 +392,11 @@ export function RunSummaryCard(props: {
           </div>
         ) : null}
 
-        <div className="mt-6 flex flex-col gap-2">
+        </div>
+        <div
+          className="flex shrink-0 flex-col gap-2 border-t border-white/10 px-6 pt-4 pb-6 short-landscape:w-56 short-landscape:overflow-y-auto short-landscape:overscroll-contain short-landscape:border-t-0 short-landscape:border-l short-landscape:p-4"
+          data-testid="summary-actions"
+        >
           <ShareButton
             title="Meridian score"
             text={text}
