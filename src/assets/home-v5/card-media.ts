@@ -4,16 +4,118 @@ import geodetectiveStillUrl from "./geodetective-still.webp";
 import coldtrailVideoUrl from "./coldtrail-film.mp4";
 import coldtrailPosterUrl from "./coldtrail-poster.webp";
 import coldtrailStillUrl from "./coldtrail-still.webp";
+import reviewVideoUrl from "./review-film.mp4";
+import reviewPosterUrl from "./review-poster.webp";
+import reviewStillUrl from "./archive-tools.webp";
+import journalVideoUrl from "./journal-film.mp4";
+import journalPosterUrl from "./journal-poster.webp";
+import journalStillUrl from "./journal-tree.webp";
+import grownupsVideoUrl from "./grownups-film.mp4";
+import grownupsPosterUrl from "./grownups-poster.webp";
+import grownupsStillUrl from "./binoculars-hat.webp";
 
 /**
- * THE swap point for the two home game cards' animated pictures
- * (GeoDetective + Cold Trail, the `.hv5-pic` slots in game-app.tsx).
+ * THE swap point for the five home cards' animated pictures:
+ * GeoDetective + Cold Trail (the `.hv5-pic` slots in game-app.tsx)
+ * and Review, Journal, and Grown-ups (the `.hv5-art` slots).
  *
- * Both cards render through the one shared CardFilm component
+ * All five cards render through the one shared CardFilm component
  * (src/components/card-film.tsx), which imports each card's film,
  * poster, and still from here and nowhere else — so a re-animated
  * take ships by replacing the files beside this module, never by
- * editing component code. Keep it that way.
+ * editing component code. Keep it that way. There is one motion
+ * system on the home page, CardFilm; the CSS settling passes the
+ * three `.hv5-art` cards carried for one round were removed on the
+ * owner's ruling (2026-11-03) and must not come back.
+ *
+ * Smooth blend (feat/smooth-cards): on the `.hv5-pic` slots the
+ * picture feathers into the text area. A mask on the media in
+ * home-v5.css holds the scene at full opacity until 93% of the
+ * box height and fades its own alpha out by the bottom edge —
+ * a melt zone of about 7% of the box. No pigment is painted
+ * over the scene anywhere: the melt is a pure alpha feather,
+ * so the picture dissolves into the card surface it sits on
+ * (--hv5-card, #fdfbf3 — the ground the text zone sits on too;
+ * the full ground reasoning is in home-v5.css). The first build
+ * painted a cream ramp over the scene instead, clear at 64% and
+ * solid at 100%. The owner rejected it on 2026-11-03 as too
+ * harsh on the eyes. Three softer variants were captured for
+ * his pick. He could not tell them apart at capture size and
+ * asked for the gradient reduced even further, and on
+ * 2026-11-03 (10:25 CST) he ruled it very small and free of
+ * anything covering the text or the cartoon: the feather
+ * shrank from 84% to the last 7%, and the thin painted landing
+ * strip the rework had put on the wrapper's ::after was
+ * deleted entirely. The fade belongs to the `.hv5-pic` slots
+ * only. The `.hv5-art` slots are full-bleed banners now and
+ * carry no fade at all.
+ *
+ * ── The three spot illustrations (Review, Journal, Grown-ups) ──
+ *
+ * Added 2026-11-03 on the owner's ruling: the same film treatment
+ * as the game cards, by the same method. Each card's existing
+ * illustration is the animation's source image, the film's settle
+ * frame, and the still this module exports for it — the stillUrl
+ * imports above point at the original illustration files
+ * (archive-tools / journal-tree / binoculars-hat), not at copies.
+ * The films encode at sizes that hold up in the full-bleed
+ * banner slots the rework gave these cards: Review 800×538
+ * (400/269), Journal 720×720 (square), Grown-ups 800×800
+ * (square). Posters are each film's own first frame, as above.
+ *
+ * Beats, as generated (per-take notes with prompts, attempts, and
+ * frame evidence: ~/workspace/meridian-smooth-cards-evidence/
+ * takes/TAKE-NOTES.md):
+ *   Review — the magnifying glass sweeps over the satchel as if
+ *     checking the misses over, then returns and rests. Three raw
+ *     takes failed the identity/settle checks (no settle; layout
+ *     redrawn; the lens vanishing in the last frame), so the
+ *     first shipped film was take 1 edited there-and-back at its
+ *     apex (2.6 s). The rework replaced that edit with the
+ *     rewind cut below. The brief's "one card tips up under the
+ *     glass" beat has no card to act on. The illustration holds a
+ *     satchel, a compass, and the glass, so the sweep itself
+ *     carries the checking verb.
+ *   Journal — wind moves through the tree, light warms over the
+ *     hills. Take 1 of 1 shipped, retimed 10 s → 7.8 s. Disclosed
+ *     drift: the canopy ends a little more wind-blown than the
+ *     still (last frame vs still PSNR 16.6 dB at 360 px), the
+ *     light ends warmer, and a few tiny birds cross once mid-take.
+ *     Nothing morphs and no text exists to garble.
+ *   Grown-ups — the binoculars rise upright as if lifted to watch
+ *     over the kids, and the hat tips once. Take 2 of 2 shipped
+ *     (take 1 ended with the binoculars lying on their side).
+ *     Minor redraw drift at settle, disclosed in the take notes.
+ *
+ * ── Loop treatment (rework, 2026-11-03) ──
+ *
+ * All five films loop now, on the owner's autoloop order. The
+ * governance note lives in card-film.tsx, next to the code it
+ * governs. Each film joins its own tail to its own head in a
+ * different way, because each source allows a different join:
+ *   GeoDetective — file untouched. It opens and closes on
+ *     different scenes, and the cut reads as a replay.
+ *   Cold Trail — ping-pong, built from the original walk take.
+ *     The film plays forward, then the same frames run in
+ *     reverse, so Jolly walks out along the trail and the film
+ *     rewinds her walk back. 12.0 s, CRF 40, 389,320 bytes. Both
+ *     joins are the film's own frames. The poster was re-derived
+ *     from the new film's frame 0, per the standing rule below.
+ *   Review — loop-native by construction. The owner asked for a
+ *     new beat: something went wrong, so rewind it and rethink.
+ *     The film is an editorial build from take 1 raw, disclosed
+ *     here the way the earlier edit was. The glass sweeps and
+ *     overshoots, then settles in the wrong place at 4.8 s. A
+ *     0.4 s freeze holds that wrong beat. The film then rewinds
+ *     at 1.7 times speed back to frame 0, and a 1.3 s freeze
+ *     holds frame 0 as the rethink pause. The last frame is
+ *     frame 0, so the loop has no seam. 9.54 s, CRF 34, 179,821
+ *     bytes.
+ *   Journal — the shipped film with its last 0.8 s crossfaded
+ *     into its first 0.8 s (an xfade build). Duration stays
+ *     7.9 s, CRF 38. The content is otherwise untouched.
+ *   Grown-ups — the same treatment with a 0.4 s crossfade.
+ *     Duration stays 6.0 s, CRF 34.
  *
  * ── Poster vs still — these are DIFFERENT pictures, on purpose ──
  *
@@ -34,7 +136,9 @@ import coldtrailStillUrl from "./coldtrail-still.webp";
  * End axis: GeoDetective settles on the owner's image at the front
  * angle, and Cold Trail settles on the wide trail scene with Jolly
  * mid-trail, still walking the footprint trail toward the lit
- * cabin, which is still distant.
+ * cabin, which is still distant. The current file is that take
+ * played forward and then in reverse (the ping-pong build in
+ * the loop paragraph above), so the walk loops.
  *
  * ── GeoDetective ──
  *
@@ -112,7 +216,10 @@ import coldtrailStillUrl from "./coldtrail-still.webp";
  * cartoon colours hold up cleanly at display size). The full sweep
  * is in the evidence dir (logs/media-encode.txt). A replacement
  * take must stay in the same league: ≤ ~400 KB, H.264 in an .mp4,
- * 1094×616, silent.
+ * 1094×616, silent. The current Cold Trail file is the ping-pong
+ * build in the loop paragraph above (12.0 s at CRF 40 → 389,320
+ * bytes). The 6.0 s single-play encode it replaced is the one
+ * this paragraph measured.
  *
  * The .webp files — poster and still, both at 1094×616:
  *   GeoDetective poster: the shipped film's own first frame
@@ -125,7 +232,8 @@ import coldtrailStillUrl from "./coldtrail-still.webp";
  *     crop=1094:616:0:56 — so it matches the film's landing frame
  *     geometry exactly (shipped 90,376 bytes at quality 82).
  *   Cold Trail poster: the shipped film's own first frame
- *     (shipped 58,354 bytes at quality 82).
+ *     (59,952 bytes at quality 82; re-derived for the ping-pong
+ *     film, whose frame 0 is the same picture with CRF 40 grain).
  *   Cold Trail still: the keyframe itself, re-encoded at quality
  *     82 (shipped 76,010 bytes).
  * A new take means re-deriving its poster from its own first
@@ -154,4 +262,22 @@ export const COLDTRAIL_FILM = {
   videoUrl: coldtrailVideoUrl,
   posterUrl: coldtrailPosterUrl,
   stillUrl: coldtrailStillUrl,
+} as const;
+
+export const REVIEW_FILM = {
+  videoUrl: reviewVideoUrl,
+  posterUrl: reviewPosterUrl,
+  stillUrl: reviewStillUrl,
+} as const;
+
+export const JOURNAL_FILM = {
+  videoUrl: journalVideoUrl,
+  posterUrl: journalPosterUrl,
+  stillUrl: journalStillUrl,
+} as const;
+
+export const GROWNUPS_FILM = {
+  videoUrl: grownupsVideoUrl,
+  posterUrl: grownupsPosterUrl,
+  stillUrl: grownupsStillUrl,
 } as const;

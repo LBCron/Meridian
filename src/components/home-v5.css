@@ -1292,10 +1292,9 @@ body:has(.home-v5) {
    the .hv5-pic rules above and must not change here; the Grandpa
    tour measures these cards. The wrapper is position:relative so
    the media can absolutely fill the box (zero layout shift, the
-   box exists before any bytes arrive) and so the pause/play
-   toggle can sit in the slot's corner. The toggle rides above the
-   card's stretched CTA (z-index 2, the badge-row precedent) and
-   keeps the repo's 44px tap-target floor. */
+   box exists before any bytes arrive). The films loop on the
+   owner's autoloop order (2026-11-03) and render no control of
+   their own, so no rule here styles one. */
 .home-v5 .hv5-card-film {
   position: relative;
   overflow: hidden;
@@ -1309,47 +1308,124 @@ body:has(.home-v5) {
   height: 100%;
   object-fit: cover;
 }
-.home-v5 .hv5-card-film-toggle {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  cursor: pointer;
+/* Smooth cards (feat/smooth-cards): the picture feathers into
+   the text area instead of ending at a hard line. The mechanism
+   is a mask feather on the media itself, and nothing else: no
+   pigment is painted over the scene anywhere. The mask holds
+   the scene at full opacity until 93% of the box height, then
+   fades the scene's own alpha out by the bottom edge — a melt
+   zone of about 7% of the box, roughly 23px on the 332px
+   desktop box. Because the mask sits on the media elements,
+   the same feather covers every state the slot can be in: the
+   film while it plays, the poster before it mounts, the
+   reduced-motion still, and the error still. The box does not
+   grow, so the card geometry the Grandpa tour measures is
+   unchanged.
+   Owner, 2026-11-03 10:25 CST, verbatim: "use gradient that
+   belends into the bacground of the page, and it should be
+   very small not too big since its covering up the actual txt
+   and animation cartoon". Why the melt lands invisibly with
+   zero paint: the page ground is --hv5-parchment (#f6f1e3),
+   but these two pictures sit INSIDE their cards, so the
+   ground their bottom edge actually touches — and the ground
+   the text zone below them sits on — is the card surface,
+   --hv5-card (#fdfbf3). A pure alpha feather reveals exactly
+   that ground, so the melt is invisible against it, per card:
+   GeoDetective melts into its card ground, and Cold Trail
+   melts into its card ground. Painting the page's parchment
+   across the pale card instead would draw a visible warm band
+   on the card — a new hard edge, the opposite of the owner's
+   ask. The three spot banners carry no fade at all: their edge
+   is the crop, and the aspect cure in the art-film block below
+   shows the full cartoon, so no gradient ever eats the
+   cartoon.
+   History: the first build painted a cream ramp over the scene
+   (clear at 64%, solid at 100%) and the owner rejected it on
+   2026-11-03 as too harsh on the eyes, a white clouds gradient.
+   Three softer variants were captured for his pick; he could
+   not tell them apart at capture size and asked for the
+   gradient reduced even further. The rework shipped a mask
+   feather (84% to 100%) plus a thin painted landing strip on
+   the wrapper's ::after. The owner's 10:25 ruling above
+   shrinks the feather to the last 7% and deletes the painted
+   strip entirely — the ::after rule is gone, and the art
+   slots' content: none override below stays as a guard. The
+   research memos with the measurements live in the evidence
+   dir: ~/workspace/meridian-smooth-cards-evidence/research/. */
+.home-v5 .hv5-card-film.hv5-pic > img,
+.home-v5 .hv5-card-film.hv5-pic > video {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 93%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 93%,
+    transparent 100%
+  );
 }
-.home-v5 .hv5-card-film-toggle:hover {
-  background: rgba(0, 0, 0, 0.65);
+
+/* ---------- art films (feat/smooth-cards, Part 2 redo) ----------
+   The three spot-illustration cards (Review, Journal, Grown-ups)
+   render through CardFilm too, on the owner's ruling (2026-11-03):
+   one motion system for all five illustrated cards.
+   Rework (2026-11-03, the owner's autoloop + bigger orders): the
+   art slot is no longer a small corner illustration. It is a
+   full-bleed picture banner at the top of the card, built the
+   same way as the game cards' .hv5-pic banner (negative margins
+   that cancel the card padding, picture first in the DOM in
+   game-app.tsx). The owner found the corner slot too small to
+   read under the old cloud fade and play button. The films loop
+   now and carry no button, so the banner needs no control layer.
+   - The Part 1 fade stays on the .hv5-pic slots alone. The
+     banner's edge is its crop, so the art slots keep a
+     content: none guard on the wrapper's ::after (the painted
+     strip it once switched off is deleted entirely now), and
+     the radial mask the corner slot used is removed: the
+     banner's aspect ratio
+     is each film's native ratio (Review 400/269, Journal 1/1,
+     Grown-ups 1/1, set by the per-card rules above), so nothing
+     is cropped and no edge treatment is needed.
+   - The wrapper keeps pointer-events: none from the base
+     .hv5-spot .hv5-art rule. The banner is decoration over the
+     card, and the cards' stretched CTAs keep working as before.
+   - The text column returns to full width. The narrow columns
+     (62% / 56% / 57%) existed only to clear the corner
+     illustration, and the banner sits above the text now.
+   This block is appended last so its rules win the ties against
+   the .hv5-art layout rules above. */
+.home-v5 .hv5-card-film.hv5-art::after {
+  content: none;
 }
-/* The shared .home-v5 focus ring is deep brown, which can vanish
-   on a dark photo pixel; on the photo the toggle takes a cream
-   ring instead (the verdict toggle's treatment, PR #295). */
-.home-v5 .hv5-card-film-toggle:focus-visible {
-  outline: 2px solid #fbf7ea;
-  outline-offset: 2px;
+.home-v5 .hv5-card-film.hv5-art {
+  position: relative;
+  width: calc(100% + 56px);
+  max-width: none;
+  margin: -26px -28px 18px;
+  right: auto;
+  bottom: auto;
+  border-radius: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
-.home-v5 .hv5-film-icon-play {
-  margin-left: 2px;
-  width: 0;
-  height: 0;
-  border-top: 7px solid transparent;
-  border-bottom: 7px solid transparent;
-  border-left: 11px solid #fff;
+.home-v5 .hv5-spot .hv5-txt {
+  max-width: 100%;
 }
-.home-v5 .hv5-film-icon-pause {
-  display: flex;
-  gap: 4px;
-}
-.home-v5 .hv5-film-icon-pause > span {
-  width: 4px;
-  height: 16px;
-  border-radius: 2px;
-  background: #fff;
+/* Cure (PR #324 rework): the base .hv5-spot .hv5-txt rule above
+   sets height: 100%. That was written for the old corner layout,
+   where the art was absolutely positioned and out of flow. In
+   this banner layout the card is a flex column and the banner
+   sits in flow above the text column, so a 100%-tall text column
+   plus the banner's aspect-ratio height overflow the card, and
+   flex shrink takes the overflow out of the banner: the films
+   rendered in a squashed box and object-fit: cover cropped them
+   (measured at 1280px: Review 386x185.56 instead of 386x259.6,
+   Journal and Grown-ups 386x241.34 instead of 386x386). Height
+   auto lets the text column take its natural height, the banner
+   keeps its native aspect, and the card grows to fit both. */
+.home-v5 .hv5-spot .hv5-txt {
+  height: auto;
 }
