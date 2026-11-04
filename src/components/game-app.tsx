@@ -3951,6 +3951,7 @@ export function GameApp() {
           <PackDoorway
             onGeoDetective={() => void openLoopWithCapitalsPack()}
             onColdTrail={openTrailWithCapitalsPack}
+            density={homeVariantParam("doorway") === "about-slim" ? "compact" : "full"}
           />
         )
       }
@@ -4050,6 +4051,74 @@ function startNoticeTarget(
     : { label: target.regionId === "globe" ? "the Globe" : target.regionName, scope: "region" };
 }
 
+/**
+ * DESIGN VARIANTS (branch design/home-rework-variants — test harness,
+ * NOT production behaviour): the owner's 2026-11-04 home findings
+ * (hero has no perceptible motion; the Capitals & Flags doorway is
+ * off-theme and its placement should move beside the About card) are
+ * switchable via URL params so he can pick in place:
+ *   ?ui=1&hero=v1|v2&doorway=about|about-slim|map
+ * With no `ui` param the home page renders exactly as production.
+ */
+function homeVariantParam(name: string): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+/**
+ * Hero motion V1 — "the journey up": an SVG overlay that tracks the
+ * painted mountain art exactly (same 800×533 viewBox, sliced like the
+ * img's object-fit: cover / right-bottom) — a dotted trail whose dots
+ * march along the painted switchbacks, a gold pulse that climbs the
+ * trail to the summit, and a waving flag on the peak. Zero new assets.
+ * Under prefers-reduced-motion the pulse is never rendered and the
+ * CSS kills the march + wave, leaving a static dotted trail.
+ */
+function HeroTrailOverlay() {
+  const reduced =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const trail =
+    "M322 528 C 305 500, 345 480, 350 460 C 355 438, 300 432, 292 408 C 284 384, 312 362, 340 350 C 375 336, 415 340, 408 318 C 402 298, 380 285, 402 268 C 428 248, 486 240, 512 226 C 532 215, 500 200, 492 182 C 486 166, 498 148, 503 134";
+  return (
+    <svg
+      className="hv5-trail"
+      viewBox="0 0 800 533"
+      preserveAspectRatio="xMaxYMax slice"
+      aria-hidden="true"
+    >
+      <path
+        d={trail}
+        fill="none"
+        stroke="#7c5a1e"
+        strokeWidth="4.5"
+        strokeLinecap="round"
+        strokeDasharray="0.1 9"
+        className="hv5-trail-dots"
+        opacity="0.85"
+      />
+      {!reduced ? (
+        <circle r="5.5" fill="#b8932f" stroke="#fffdf6" strokeWidth="2">
+          <animateMotion dur="9s" repeatCount="indefinite" path={trail} />
+          <animate
+            attributeName="opacity"
+            values="0;1;1;0"
+            keyTimes="0;0.06;0.92;1"
+            dur="9s"
+            repeatCount="indefinite"
+          />
+        </circle>
+      ) : null}
+      <g transform="translate(20 6)">
+        <g className="hv5-trail-flag">
+          <line x1="503" y1="134" x2="503" y2="106" stroke="#4c3a14" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M503 107 L525 112 L503 118 Z" fill="#8a6d2f" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
 /** Kid-friendly hints for each learning path, shown under the picker. */
 const DIFFICULTY_HINTS: Record<PickerDifficulty, string> = {
   easy: "Famous places — the spots every explorer starts with.",
@@ -4130,6 +4199,25 @@ function Choose({
    * Expeditions Map card (issue #344). Null for bands where
    * GeoDetective is locked. */
   doorway?: ReactNode;}) {
+  // Design-variant harness (see homeVariantParam): defaults keep the
+  // production layout — doorway under the map card, hero as shipped.
+  const uiVariants = homeVariantParam("ui") === "1";
+  const heroVariant = uiVariants ? homeVariantParam("hero") : null;
+  const doorwayVariant = uiVariants ? homeVariantParam("doorway") : null;
+  const doorwayBesideAbout = doorwayVariant === "about" || doorwayVariant === "about-slim";
+  const variantHref = (hero: string, doorwaySpot: string) =>
+    `?ui=1&hero=${hero}&doorway=${doorwaySpot}`;
+  const variantBar = uiVariants ? (
+    <nav className="hv5-variant-bar" aria-label="Design variants (test harness)">
+      <span>Hero:</span>
+      <a href={variantHref("v1", doorwayVariant ?? "about")} aria-current={heroVariant === "v1"}>V1 trail</a>
+      <a href={variantHref("v2", doorwayVariant ?? "about")} aria-current={heroVariant === "v2"}>V2 drift</a>
+      <span>Doorway:</span>
+      <a href={variantHref(heroVariant ?? "v1", "about")} aria-current={doorwayVariant === "about"}>Beside About</a>
+      <a href={variantHref(heroVariant ?? "v1", "about-slim")} aria-current={doorwayVariant === "about-slim"}>Beside About · slim</a>
+      <a href={variantHref(heroVariant ?? "v1", "map")} aria-current={doorwayVariant === "map"}>Control · under map</a>
+    </nav>
+  ) : null;
   // GeoDetective progress for the edition card: the resume variant and the
   // streak line. Read on mount (the menu remounts when the loop screen
   // closes, so this is always fresh on return).
@@ -4224,6 +4312,24 @@ function Choose({
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
   };
+  // The About card, extracted so the design-variant harness can sit
+  // the Capitals & Flags doorway beside it (owner pick, 2026-11-04)
+  // without duplicating the card's markup.
+  const aboutSection = (
+    <section id="home-about" tabIndex={-1} className="hv5-card hv5-page" aria-labelledby="about-title">
+      <span className="hv5-label">About</span>
+      <h2 id="about-title">How a round works</h2>
+      <p>
+        A place name, then one pin on an unlabeled map. Right or wrong, the round opens a short
+        story about that place. Pick the globe, a country, or a state. Your score keeps adding
+        up until you end the game, or after 2 minutes with nothing tapped.
+      </p>
+      <p>
+        No account. The run stays in this browser. A coffee for Grandpa is optional and never
+        locks a game.
+      </p>
+    </section>
+  );
   return (
     <>
     <main className="atlas-home home-v5 relative mx-auto flex min-h-dvh w-full max-w-7xl flex-col px-5 py-8 md:px-9">
@@ -4277,6 +4383,7 @@ function Choose({
         </div>
       </header>
       {homeToast}
+      {variantBar}
 
       <div className="hv5-bento">
         <section className="hv5-hero home-rise" style={rise(2)} aria-label="Welcome to Meridian">
@@ -4383,7 +4490,18 @@ function Choose({
               <svg width="15" height="11" viewBox="0 0 15 11" aria-hidden="true"><path d="M1 5.5h12M9 1l4.5 4.5L9 10" stroke="currentColor" fill="none" strokeWidth="1.7" /></svg>
             </button>
           </div>
-          <img className="hv5-mountain" src={heroMountainUrl} alt="" aria-hidden="true" />
+          {heroVariant === "v1" || heroVariant === "v2" ? (
+            <div className="hv5-mtn-wrap" aria-hidden="true">
+              <img
+                className={`hv5-mtn-img${heroVariant === "v2" ? " hv5-mtn-v2" : ""}`}
+                src={heroMountainUrl}
+                alt=""
+              />
+              {heroVariant === "v1" ? <HeroTrailOverlay /> : null}
+            </div>
+          ) : (
+            <img className="hv5-mountain" src={heroMountainUrl} alt="" aria-hidden="true" />
+          )}
         </section>
         <div className="hv5-rail">
         <div className="hv5-globe-zone">
@@ -4459,8 +4577,11 @@ function Choose({
           ) : null}
         </div>
         {/* Capitals & Flags doorway: directly under the Expeditions
-            Map card, per the ratified design (issue #344). */}
-        {doorway}
+            Map card, per the ratified design (issue #344). The design
+            variants move it beside the About card instead (owner pick,
+            2026-11-04) — production placement renders when no variant
+            is requested. */}
+        {doorwayBesideAbout ? null : doorway}
         </div>
 
       <div className="hv5-grid2" id="home-cases" tabIndex={-1}>
@@ -4694,19 +4815,14 @@ function Choose({
       </div>
 
       <div className="hv5-pages">
-        <section id="home-about" tabIndex={-1} className="hv5-card hv5-page" aria-labelledby="about-title">
-          <span className="hv5-label">About</span>
-          <h2 id="about-title">How a round works</h2>
-          <p>
-            A place name, then one pin on an unlabeled map. Right or wrong, the round opens a short
-            story about that place. Pick the globe, a country, or a state. Your score keeps adding
-            up until you end the game, or after 2 minutes with nothing tapped.
-          </p>
-          <p>
-            No account. The run stays in this browser. A coffee for Grandpa is optional and never
-            locks a game.
-          </p>
-        </section>
+        {doorwayBesideAbout ? (
+          <div className="hv5-about-row">
+            {aboutSection}
+            {doorway}
+          </div>
+        ) : (
+          aboutSection
+        )}
         <section id="home-journal" tabIndex={-1} className="hv5-card hv5-page" aria-labelledby="journal-title" data-testid="journal-section">
           <span className="hv5-label">Journal</span>
           <h2 id="journal-title">What the land remembers</h2>

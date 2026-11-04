@@ -1,3 +1,28 @@
+# Branch status — design/home-rework-variants (Home rework variants — DESIGN PROTOTYPES, no PR)
+
+- **Branch:** `design/home-rework-variants`
+- **Base:** `main` @ `68ff2c7`
+- **Authority:** owner findings 2026-11-04 (screenshots + words): hero "doesnt have motion"; Capitals & Flags doorway "doesnt follow the theme"; doorway placement "should be beside about in my opinion… we dont want to make the UI over crowded."
+- **Scope:** presentation only. Doorway copy + both button handlers unchanged word-for-word/behaviour-for-behaviour. No PR, no merge — variants exist for the owner's in-place pick.
+
+## What is built
+
+- [x] Doorway restyled into the hv5 card language (badge + eyebrow label, display title, flag swatches with theme borders, hv5-btn-brown primary + ghost secondary) — applies in every placement.
+- [x] Placement (owner pick): beside the About card ("How a round works") as a two-column row inside the `.hv5-pages` About band; Journal band stays full-width below. Two densities: full card + compact slim (`density="compact"`). Control: restyled doorway in the current under-the-map spot.
+- [x] Hero motion V1 "the journey up": SVG overlay sliced exactly like the art (viewBox 800×533, `xMaxYMax slice`) — marching dotted trail, gold pulse climbing the painted switchbacks to the summit (SMIL animateMotion, 9s loop), waving summit flag. Reduced-motion: pulse unrendered, CSS stills march + wave.
+- [x] Hero motion V2 "the drift": the shipped Ken Burns retuned perceptible — 18s, scale 1.09, sideways drift (shipped: 26s / 1.055).
+- [x] Variant switcher (test harness): `?ui=1&hero=v1|v2&doorway=about|about-slim|map`, fixed bottom-left bar. No params = production rendering untouched.
+- [x] Captures (in `~/workspace/meridian-home-rework-evidence/`): `hero-v1.mp4` + `hero-v2.mp4` (10s each, framed on the peak via the control layout — see the layout note in the run report), `hero-v1-framing.png` (beside-About hero crop: foothills + lower trail only), doorway screenshots desktop 1440 + mobile 390 for beside-About full / slim / control. Verified by eye: pulse climbs the trail (t=2s mid-trail, t=8s looped to trailhead), doorway copy byte-identical, slim visibly tighter.
+- Gates on this branch: `npx tsc --noEmit` clean; `npm run build:pages` green (prebuild lint-cards + Flagstaff pass). Unit/E2E suites NOT run — design-prototype branch; doorway `data-testid`s, labels, and handlers are unchanged, so the shipped E2E selectors still match.
+
+## Surprises found while building
+
+- The hero DOES have a shipped animation (`hv5-kenburns`, 26s, scale 1→1.055, translateY −5px) — perceptually invisible, which matches the owner's "no motion" report.
+- At ≤1080px the mountain art is `display: none` entirely (home-v5.css) — no art, no motion, on tablet/phone widths in the hero.
+- `.hv5-pages` children span the full grid width by a cured band rule (About was deliberately un-paired from Journal to kill dead space) — beside-About is therefore a row INSIDE the About band, not a grid neighbour.
+
+---
+
 # Branch status — feat/capitals-flags-phase1 (Capitals & Flags, Phase 1)
 
 - **Branch:** `feat/capitals-flags-phase1`
