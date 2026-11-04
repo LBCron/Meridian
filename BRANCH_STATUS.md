@@ -54,6 +54,18 @@ header actually renders — confirmed by the red run's page snapshots.
       puzzle.guesses.length + 1` (the `finished` value already in
       scope on LoopGame; the neighbouring "— N left" suffix was
       already gated on it)
-- [ ] GREEN + gates on the tip (tsc · npm test · lint-cards ·
-      build:pages · E2E: new spec + geodetective.spec.ts)
-- [ ] PR opened against main — NO MERGE (owner's word only)
+- [x] GREEN + gates on the tip: `npx tsc --noEmit` exit 0 ·
+      `npm test` exit 0 (scripts 943 pass / 11 skip / 0 fail;
+      src 2016/2016) · `node scripts/lint-cards.mjs` GATE PASSED ·
+      `npm run build:pages` exit 0 · E2E under
+      `flock ~/workspace/.e2e.lock`, `--workers=1`: new spec 2/2 +
+      `geodetective.spec.ts` 19/19 = **21 passed** (the shipped
+      playing-state pins — "Guess 2 of 5" after one guess,
+      "Guess 1 of 5" on a fresh deal — stay green, so the fix did
+      not touch the playing state)
+- [x] Redundancy grep on the tip: line 1134 is the only
+      "Guess N of {cap}" render in `src/`; the only other
+      cap-denominated surface, the reveal's "Solved in X of Y
+      guesses." (line 1633), already counts actual guesses
+- [ ] PR opened against main — NO MERGE (owner's word only);
+      Silo QA + panel follow as separate silos on the final tip
