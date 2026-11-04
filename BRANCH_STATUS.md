@@ -58,11 +58,32 @@ header actually renders — confirmed by the red run's page snapshots.
       `npm test` exit 0 (scripts 943 pass / 11 skip / 0 fail;
       src 2016/2016) · `node scripts/lint-cards.mjs` GATE PASSED ·
       `npm run build:pages` exit 0 · E2E under
-      `flock ~/workspace/.e2e.lock`, `--workers=1`: new spec 2/2 +
-      `geodetective.spec.ts` 19/19 = **21 passed** (the shipped
-      playing-state pins — "Guess 2 of 5" after one guess,
-      "Guess 1 of 5" on a fresh deal — stay green, so the fix did
-      not touch the playing state)
+      `flock ~/workspace/.e2e.lock`, `--workers=1`, against the
+      Pages build: **19 passed / 1 failed of 20** — new spec 2/2,
+      `geodetective.spec.ts` 17/18. Every counter pin stays green
+      (playing state: "Guess 2 of 5" after one guess, "Guess 1 of
+      5" on a fresh deal; the win-path snapshot shows the finished
+      2-guess win header reading "Guess 2 of 5" — post-fix truth;
+      pre-fix it read "Guess 3 of 5"), so the playing state is
+      untouched. The 1 failure is NOT the counter — see next item
+- [x] Pre-existing failure, proven on unmodified main: the
+      geodetective win-path test (spec:199) fails at its share-text
+      assertion (spec:256) — expected
+      `https://meridian.knowledgetest.workers.dev/`, received the
+      Pages URL `https://veeresh-bikkaneti.github.io/Meridian/`.
+      Cause: the share origin follows the build's baked base
+      (`shareOrigin` in `src/lib/og/share-meta.ts`); the harness
+      serves the Pages build (base `/Meridian/`), while the pin
+      expects the Workers origin (PR #128). Proven pre-existing:
+      the identical test on unmodified main `775d8b4` (worktree,
+      same Pages build recipe) fails with a byte-identical
+      received share string. (One main run also flaked earlier on
+      a sheet/reveal heading strict-mode race — transient timing,
+      unrelated.) Out of scope for #337; flagged for the owner as
+      a separate test-pin/build mismatch. Correction note: the
+      first status commit claimed "21/21" — that was a misread of
+      a piped E2E summary (the pipe masked Playwright's exit
+      code); the true counts are as stated here
 - [x] Redundancy grep on the tip: line 1134 is the only
       "Guess N of {cap}" render in `src/`; the only other
       cap-denominated surface, the reveal's "Solved in X of Y
