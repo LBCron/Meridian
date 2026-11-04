@@ -31,7 +31,12 @@
  */
 
 /** The flag catalog. Grow it by extending this union and `FLAG_DEFAULTS`. */
-export type FlagName = "pwaUpdateToast" | "learningOutcomes" | "globeTierSplit";
+export type FlagName =
+  | "pwaUpdateToast"
+  | "learningOutcomes"
+  | "globeTierSplit"
+  | "friendChallenges"
+  | "scoutUpgradeTrial";
 
 /**
  * Baked-in defaults — MUST equal current production behavior for every
@@ -50,6 +55,17 @@ export const FLAG_DEFAULTS: Record<FlagName, boolean> = {
   // order (the caller's filterByTier bands it). true = load only the tiers of
   // the run's learning path (Easy t1+t2, Medium t2-t4, Hard t4+t5).
   globeTierSplit: false,
+  // Friend challenge links. false = no entry points and a challenge hash
+  // is ignored. true = the deterministic shared run is available.
+  friendChallenges: false,
+  // Issue #330 Scout trial upgrade kill-switch (panel cure, PR #331).
+  // true = today's behavior: an unknown-memory coarse-pointer boot that
+  // started in Scout may upgrade in-session to the full map after the
+  // soak. false = the trial is disarmed: the session stays in Scout,
+  // the upgrade never arms or fires — Scout-first boot, manual records,
+  // and every other path are untouched. Disarm by redeploying
+  // public/flags.json with this flag false; no code change needed.
+  scoutUpgradeTrial: true,
 };
 
 export const FLAGS_FETCH_TIMEOUT_MS = 1500;

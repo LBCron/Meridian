@@ -12,7 +12,7 @@ import {
   stampCleanExitDirty,
 } from "@/game/clean-exit";
 import type { Starter } from "@/game/starters";
-import { ADMIN1_BY_COUNTRY, COUNTRIES, greaterSideKm, type Region, type RegionBounds } from "@/game/regions";
+import { ADMIN1_BY_COUNTRY, COUNTRIES, findRegion, STATES, greaterSideKm, type Region, type RegionBounds } from "@/game/regions";
 import { rewriteStory } from "@/game/rewrite";
 import { shouldFireAiStory } from "@/game/story-ai";
 import { backfillDifficultyChoice, continueRun, dropPin, endRun, isResumable, resumeRun, startRun, type Edition, type Run, type RunPhase, type PlaceResult } from "@/game/run";
@@ -20,6 +20,7 @@ import { isPickerDifficulty, type PickerDifficulty } from "@/game/tier-filter";
 import { dealingPoolFor } from "@/game/easy-curation";
 import {
   bankPlace,
+  clearDiscardedShadow,
   clearSession,
   DIFFICULTY_LABELS,
   EDITION_LABELS,
@@ -30,6 +31,7 @@ import {
   idleWarnMsFor,
   isIdleExpired,
   isSessionLive,
+  readDiscardedShadow,
   readSession,
   seedSessionFromRun,
   startSession,
@@ -40,7 +42,7 @@ import {
   type SessionSummary,
 } from "@/game/session";
 import { scoreRingForEdition } from "@/game/score";
-import { scorePlace, type ScoredPlace } from "@/game/scoring";
+import { SCORING_VERSION, scorePlace, type Difficulty, type ScoredPlace } from "@/game/scoring";
 import { createDealer, poolForNewRun, seenStoreFor, mintSeed, wasClearedCelebrated, markClearedCelebrated, clearClearedMark, memorySeenStore, isBandCleared } from "@/game/trail";
 import { resolveRunPool } from "@/game/pool";
 import { loadedForKey, placesLoadKey, type LoadedFor } from "@/game/places-load-key";
@@ -50,12 +52,14 @@ import { BootSplash } from "./boot-splash";
 import "./home-v5.css";
 import heroMountainUrl from "@/assets/home-v5/hero-mountain.webp";
 import globeFallbackUrl from "@/assets/home-v5/globe-fallback.webp";
-import desertRuinsUrl from "@/assets/home-v5/desert-ruins.webp";
-import patagoniaUrl from "@/assets/home-v5/patagonia.webp";
-import archiveToolsUrl from "@/assets/home-v5/archive-tools.webp";
-import journalTreeUrl from "@/assets/home-v5/journal-tree.webp";
-import binocularsHatUrl from "@/assets/home-v5/binoculars-hat.webp";
-import { Compass, Flag, Globe2, MapPin, Volume2, VolumeX } from "lucide-react";
+import {
+  VERDICT_GRANDPA_POSTER_URL,
+  VERDICT_GRANDPA_VIDEO_URL,
+} from "@/assets/verdict/grandpa-media";
+import { GEODETECTIVE_FILM, GROWNUPS_FILM, JOURNAL_FILM, coldtrailMediaForBand, reviewMediaForBand } from "@/assets/home-v5/card-media";
+import { CardFilm } from "./card-film";
+import { usePrefersReducedMotion } from "../hooks/use-prefers-reduced-motion";
+import { Compass, Contrast, Flag, Globe2, MapPin, MoreHorizontal, Volume2, VolumeX } from "lucide-react";
 import {
   initAudio,
   isSoundEnabled,
@@ -67,7 +71,13 @@ import {
   setSoundEnabled,
 } from "@/game/audio/sfx";
 import { playCelebrationSound, safePlay, soundAudible } from "@/game/audio/play-guards";
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject } from "react";
+import {
+  applyPalettePreference,
+  isHighContrastEnabled,
+  setHighContrastEnabled,
+} from "@/game/palette-preference";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { RunStartNotice } from "@/components/run-start-notice";
@@ -77,6 +87,7 @@ import { directionalHint } from "./hint-logic";
 import { canUseHint } from "@/game/age-profile/run-config.ts";
 import { ResultCard } from "./result-card";
 import { RunSummaryCard } from "./run-summary";
+import { ShareButton } from "./share-button";
 import { ClearedCelebrationDialog, type ClearedInfo } from "./cleared-celebration";
 import { CometEmblem } from "./comet-emblem";
 import { GrandpaCoffeeRun } from "./grandpa-coffee-run";
@@ -142,7 +153,7 @@ function GlobeChunkFallback() {
   );
 }
 const HomeGlobe = lazy(() =>
-  import("./home-globe")
+  withChunkTimeout(import("./home-globe"), "the home globe")
     .then((m) => ({ default: m.HomeGlobe }))
     .catch(() => ({ default: GlobeChunkFallback })),
 );
@@ -165,6 +176,7 @@ import {
 } from "./reveal-watchdog";
 import { isEnabled, loadFlags, getObservabilityEndpoint } from "@/lib/flags";
 import { consumeChunkReloadNotice, installChunkLoadRecovery } from "@/lib/chunk-recovery";
+import { withChunkTimeout } from "@/lib/chunk-timeout";
 import { resolveGlobeTierSplit } from "@/lib/globe-tier-split";
 import {
   emitEvent,
@@ -187,6 +199,7 @@ import {
   writeStoredMapMode,
 } from "@/map/capability";
 import type { ScoutRestoreView } from "@/map/satellite-map";
+import { isCoarsePointer } from "@/map/map-options";
 import { SCOUT_COPY } from "./scout-copy.ts";
 import { TILE_FALLBACK_COPY } from "@/map/tile-fallback-copy.ts";
 import { MapModeToggle } from "./map-mode-toggle.tsx";
@@ -211,7 +224,21 @@ import {
   writeLearningStore,
   type LearningStore,
 } from "@/game/learning";
-import { readLoopOpen, writeLoopOpen, peekLoopProgress } from "@/game/loop/store";
+import {
+  readLoopOpen,
+  writeLoopOpen,
+  peekLoopProgress,
+  readLoopStoreV2,
+  loadLoopStore,
+  setActiveDeck,
+  writeLoopStoreV2,
+} from "@/game/loop/store";
+import { PackDoorway } from "./pack-doorway";
+import {
+  FIRST_PACK_ID,
+  fetchLoopDeckSize,
+  writeSelectedDeck,
+} from "./pack-shelf-data";
 import { readColdTrailOpen, writeColdTrailOpen } from "@/game/coldtrail/store";
 // F2 bundle split: GeoDetective (Loop) and Cold Trail are play-intent
 // screens — they render only when the player opens them (or when a saved
@@ -225,11 +252,19 @@ import { readColdTrailOpen, writeColdTrailOpen } from "@/game/coldtrail/store";
 // HomeGlobe idiom above).
 const loadLoopScreen = () => import("@/game/loop/LoopScreen");
 const loadTrailScreen = () => import("@/game/coldtrail/TrailScreen");
+// #209: each lazy load is raced against CHUNK_LOAD_TIMEOUT_MS (inside
+// withChunkTimeout) — a HUNG import never settles, so without the race
+// the Suspense fallback below would spin forever; with it, the race
+// rejection lands in MapErrorBoundary's recoverable card instead.
 const LoopScreen = lazy(() =>
-  loadLoopScreen().then((m) => ({ default: m.LoopScreen })),
+  withChunkTimeout(loadLoopScreen(), "GeoDetective screen").then((m) => ({
+    default: m.LoopScreen,
+  })),
 );
 const TrailScreen = lazy(() =>
-  loadTrailScreen().then((m) => ({ default: m.TrailScreen })),
+  withChunkTimeout(loadTrailScreen(), "Cold Trail screen").then((m) => ({
+    default: m.TrailScreen,
+  })),
 );
 /**
  * F2b intent prefetch for the edition + case cards: hovering, focusing,
@@ -247,9 +282,38 @@ const TrailScreen = lazy(() =>
  * keep by contrast: its loader evicts a failed load and retries on the
  * next call, and a miss degrades fail-closed at the readers instead of
  * surfacing an error card.
+ *
+ * #211 item 1: FOCUS is the weakest of the three intent signals — a
+ * keyboard or screen-reader user tabs PAST these cards on the way to
+ * somewhere else, and focus alone starts a ~206 KB (brotli) download.
+ * On a Save-Data connection that spend is exactly what the player
+ * asked the browser to avoid, so the focus-triggered prefetch is
+ * gated on the Save-Data signal (the home-globe precedent in
+ * home-globe.tsx reads the same `navigator.connection.saveData`).
+ * Pointer intent (hover / press) is deliberate and stays ungated;
+ * and nothing about play changes — a tap still awaits the load in
+ * openRun before the run commits.
  */
 function prefetchTerritoryData(): void {
   void preloadTerritory();
+}
+
+/** True when the browser reports the player's Save-Data preference. */
+function saveDataEnabled(): boolean {
+  try {
+    return Boolean(
+      (navigator as Navigator & { connection?: { saveData?: boolean } })
+        .connection?.saveData,
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** The focus-triggered variant: skipped entirely under Save-Data. */
+function prefetchTerritoryDataOnFocus(): void {
+  if (saveDataEnabled()) return;
+  prefetchTerritoryData();
 }
 import {
   REVIEW_DECK_COPY,
@@ -267,6 +331,7 @@ import {
   type DeckEntry,
   type DeckPlaceSnapshot,
 } from "@/game/review-deck";
+import { resetHistory, type ResetHistoryResult } from "@/game/reset-history";
 
 /**
  * Watched by the inline crash watchdog injected into _shell.html
@@ -287,8 +352,88 @@ declare global {
  * the no-repeat history of real regions and never bank into the session —
  * review is practice, not scoring.
  */
+import {
+  buildCreationSources,
+  buildFreshChallengeShareText,
+  CHALLENGE_BROKEN_LINK_COPY,
+  CHALLENGE_CHILD_COPY,
+  CHALLENGE_FAIRNESS_COPY,
+  CHALLENGE_GLOBE_RADIUS_KM,
+  CHALLENGE_LOAD_FAILURE_COPY,
+  CHALLENGE_MAX_PLACES,
+  CHALLENGE_MC3_PREFIX,
+  CHALLENGE_MIN_PLACES,
+  CHALLENGE_REGION_ID,
+  CHALLENGE_REGION_NAME,
+  CHALLENGE_REVIEW_LABEL,
+  CHALLENGE_SHARE_LABEL,
+  CHALLENGE_EXACT_SHARE_LABEL,
+  CHALLENGE_RESHARE_LABEL,
+  CHALLENGE_UNKNOWN_CONTENT_COPY,
+  CHALLENGE_UNKNOWN_REGION_COPY,
+  CHALLENGE_VERSION_COPY,
+  CHALLENGE_VERSION_LINE,
+  CHALLENGE_WELCOME_TITLE,
+  challengeFreshRouteLabel,
+  challengeMidRunLabel,
+  challengeRadiusOf,
+  challengeRevealLabel,
+  challengeRunFields,
+  createChallengeRoute,
+  dealChallenge,
+  decodeChallenge,
+  decodeChallengeLink,
+  encodeChallenge,
+  isLegalWinnerBlock,
+  playOrder,
+  resolveChallengeRoute,
+  routeCeiling,
+  type ChallengeCreation,
+  type ChallengeRoute,
+  type ChallengeWinner,
+} from "@/game/challenge";
+import {
+  challengeRouteTuple,
+  readRouteAttempts,
+  recordRouteCompletion,
+} from "@/game/challenge-attempts";
+import {
+  classifyVerdict,
+  exactRouteTargetShareText,
+  hitMaskFromResults,
+  maxAttainableRemaining,
+  mintWinnerBlock,
+  passAlongReceipt,
+  routeTierCeiling,
+  trailingStreak,
+  verdictAriaSentence,
+  verdictAttemptsFacts,
+  verdictDuelLine,
+  verdictMarginSentence,
+  verdictSubLine,
+  VERDICT_HEADLINES,
+  VERDICT_ICONS,
+  type VerdictClass,
+} from "@/game/challenge-verdict";
+
 function isReviewRun(run: Run): boolean {
   return run.regionId === REVIEW_DECK_REGION_ID;
+}
+
+/**
+ * A friend-challenge run is identified by its region id alone — the run
+ * carries no other marker. Every isolation guard in this file keys off
+ * this one check, so there is exactly one place to get it right:
+ * challenge runs never bank into the session, never write learning
+ * records or review-deck cards, and never touch the persistent
+ * no-repeat history (see the dealer, the flag effect, and onConfirm).
+ * Why isolate them? The places were chosen by a FRIEND, not dealt to
+ * this player — letting them into the player's own history, deck, or
+ * score would teach the game the wrong lessons about what this player
+ * has seen and how well they are doing.
+ */
+export function isChallengeRun(run: Run): boolean {
+  return run.regionId === CHALLENGE_REGION_ID;
 }
 
 /**
@@ -347,6 +492,61 @@ function SoundToggle({
 }
 
 /**
+ * High-contrast view toggle (manifest 2026-10-27): the SoundToggle
+ * pattern for the map palette — persisted under `meridian.palette`
+ * (PALETTE_STORAGE_KEY), default OFF (standard), one instance in the
+ * home hero and one in the game chrome, each reading the persisted
+ * value on mount. Flipping it repaints the map IN PLACE via the
+ * palette-preference module (data-palette attribute + the
+ * meridian:palette-change event): unlike the Scout Map switch it
+ * never ends a game and never navigates, because the palette is a
+ * paint choice, not a map-build input. A corrupt stored value fails
+ * closed to standard inside selectPalette — the toggle just shows
+ * OFF.
+ */
+function HighContrastToggle({
+  testId,
+  className,
+  style,
+  iconClassName = "size-5",
+}: {
+  testId: string;
+  className?: string;
+  style?: CSSProperties;
+  iconClassName?: string;
+}) {
+  const [highContrast, setHighContrast] = useState<boolean>(() => isHighContrastEnabled());
+  const toggleHighContrast = () => {
+    try {
+      const next = !highContrast;
+      setHighContrastEnabled(next);
+      setHighContrast(next);
+    } catch {
+      // The palette is enhancement-only; the toggle itself never throws.
+    }
+  };
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      aria-pressed={highContrast}
+      aria-label={highContrast ? "Turn high contrast off" : "Turn high contrast on"}
+      title={highContrast ? "High contrast on" : "High contrast off"}
+      onClick={toggleHighContrast}
+      // atlas-contrast-toggle: the dedicated class both hosts share, so
+      // styles.css can give [aria-pressed="true"] a VISIBLE pressed state
+      // (brass fill + filled icon, the .atlas-seg pattern) — aria-pressed
+      // alone is invisible to the sighted low-vision users this serves
+      // (panel BLOCK 3; manifest Scenarios 1–2: "I can see it pressed").
+      className={className ? `atlas-contrast-toggle ${className}` : "atlas-contrast-toggle"}
+      style={style}
+    >
+      <Contrast className={iconClassName} aria-hidden="true" />
+    </button>
+  );
+}
+
+/**
  * Snapshot a missed place's full question context for the deck: a review
  * card replays the exact question the player missed (same framing, same
  * hit radius, same label), with no region-chunk fetch at review time.
@@ -390,6 +590,25 @@ const STALE_REFRESH_KEY = "meridian.staleRefresh";
 const RUN_KEY = "meridian.run";
 
 /**
+ * Saved mc2 challenge runs live under their OWN key (manifest C8): a
+ * build from before mc2 existed never reads this key, so an mc2 save
+ * can never be reinterpreted as a globe run by an old build — it is
+ * simply invisible to it, and the old build boots whatever normal run
+ * it finds under RUN_KEY. mc1 challenge saves keep using RUN_KEY,
+ * exactly as the shipped build wrote them.
+ */
+const RUN_MC2_KEY = "meridian.run.mc2";
+
+/**
+ * Saved mc3 challenge runs live under their OWN key again (governing
+ * manifest §Q1-A4): a build from before mc3 existed never reads this
+ * key, so an mc3 save — winner block included — can never be picked
+ * up by an mc2-era build and silently re-shared with the winner
+ * block dropped. mc3 builds read mc3 → mc2 → mc1 slots, in order.
+ */
+const RUN_MC3_KEY = "meridian.run.mc3";
+
+/**
  * Persisted pin-drop for the in-progress place. `drop`/`revealDone` are
  * React state only, so a page reload during the result card used to strand
  * the run (phase "done"/"story" restored, but no card and no Next place).
@@ -413,7 +632,9 @@ const RUN_DROP_KEY = "meridian.drop";
  * document — only a reload genuinely re-fetches the chunk. The run is
  * restored from sessionStorage on boot, so the game survives the reload.
  */
-const SatelliteMap = lazy(() => import("@/map/satellite-map"));
+const SatelliteMap = lazy(() =>
+  withChunkTimeout(import("@/map/satellite-map"), "Satellite map"),
+);
 
 /**
  * Suspense fallback while the lazy satellite-map chunk downloads. Mirrors
@@ -494,7 +715,59 @@ function trailDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Wave 1 P0 Item 1: what the shared discarded-run notice shows. Totals
+ * are always whole-session totals (summarizeSession) or the discarded
+ * run's own results — never recomputed, never invented. A 0-place
+ * discard carries no numbers at all: the honest "nothing scored yet".
+ */
+type DiscardedNotice = {
+  reason: "inactivity" | "new-day" | "scoring" | "challenges";
+  totalScore: number;
+  placesPlayed: number;
+};
+
+function discardedNoticeText(notice: DiscardedNotice): string {
+  const reason =
+    notice.reason === "inactivity"
+      ? "Your game ended after 2 minutes of inactivity."
+      : notice.reason === "new-day"
+        ? "A new day started, so your saved game could not be resumed."
+        : notice.reason === "scoring"
+          ? "The scoring changed, so your saved game could not be resumed."
+          : "Friend challenges are switched off, so your saved game could not be resumed.";
+  const summary =
+    notice.placesPlayed === 0
+      ? "You had not scored anything yet."
+      : `You played ${notice.placesPlayed} ${notice.placesPlayed === 1 ? "place" : "places"} and scored ${notice.totalScore.toLocaleString("en-US")} points.`;
+  return `${reason} ${summary}`;
+}
+
+/** Sum a run's own results — the fallback when no session survives. */
+function runResultsTotals(run: Run | null): { totalScore: number; placesPlayed: number } {
+  const results = run?.results ?? [];
+  return {
+    totalScore: results.reduce((sum, r) => sum + r.score, 0),
+    placesPlayed: results.length,
+  };
+}
+
 function boundsFor(run: Run): RegionBounds {
+  if (run.regionId === CHALLENGE_REGION_ID) {
+    // A challenge run's sentinel regionId names no real place; its
+    // bounds are the REAL region's (the route's own region), so the
+    // map frames and the territory resolves for the place the route is
+    // actually about. Legacy mc1 saves carry no region: the globe.
+    const regionId = run.challengeRegionId ?? "globe";
+    if (run.edition === "state") {
+      const regions = Object.values(ADMIN1_BY_COUNTRY).flat();
+      return regions.find((region) => region.id === regionId)?.bounds ?? [0, 0, 0, 0];
+    }
+    if (run.edition === "country") {
+      return COUNTRIES.find((region) => region.id === regionId)?.bounds ?? [0, 0, 0, 0];
+    }
+    return [0, 0, 0, 0];
+  }
   if (run.edition === "state") {
     // States can drill from any country that maps subdivisions; look across all of them.
     const regions = Object.values(ADMIN1_BY_COUNTRY).flat();
@@ -546,10 +819,10 @@ function writeDifficultyChoice(choice: PickerDifficulty) {
   }
 }
 
-function readRun(): Run | null {
+function readRunFrom(key: string): Run | null {
   try {
     if (typeof sessionStorage === "undefined") return null;
-    const raw = sessionStorage.getItem(RUN_KEY);
+    const raw = sessionStorage.getItem(key);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
@@ -577,6 +850,21 @@ function readRun(): Run | null {
       !Number.isInteger(record.hits) ||
       record.hits < 0 ||
       record.hits > 20_000
+    ) {
+      return null;
+    }
+    // The winner block at the save boundary (governing manifest
+    // §Q1-A4): on an mc3 save it is either ABSENT (an open route) or
+    // COMPLETE and plausible for the saved route. A partial or
+    // implausible block discards the whole save — the block is never
+    // silently dropped while the run resumes underneath it.
+    if (
+      record.challengeOrigin === "mc3" &&
+      record.challengeWinner !== undefined &&
+      !isLegalWinnerBlock(
+        record.challengeWinner,
+        Array.isArray(record.poolIds) ? record.poolIds.length : 0,
+      )
     ) {
       return null;
     }
@@ -615,15 +903,155 @@ function readRun(): Run | null {
       // Runs saved before the persistent no-repeat history get no boundary
       // id (null disables the swap), preserving their exact deal order.
       prevLastId: typeof record.prevLastId === "string" ? record.prevLastId : null,
+      // Challenge fields (mc2): parsed back only when well-formed, so a
+      // tampered save degrades to the mc1 defaults instead of inventing
+      // a region or a radius. Absent on normal runs and legacy saves.
+      ...(typeof record.challengeRegionId === "string"
+        ? { challengeRegionId: record.challengeRegionId }
+        : {}),
+      ...(Number.isInteger(record.challengeRadiusKm) &&
+      // The decode-side envelopes, re-checked at the save boundary: a
+      // tampered slot must not widen the circle past what a link could
+      // legally pin (Globe exactly 750; state [25,160]; country
+      // [40,450]). Out-of-envelope degrades to the accessor default.
+      (record.edition === "globe"
+        ? record.challengeRadiusKm === CHALLENGE_GLOBE_RADIUS_KM
+        : record.edition === "state"
+          ? (record.challengeRadiusKm as number) >= 25 && (record.challengeRadiusKm as number) <= 160
+          : (record.challengeRadiusKm as number) >= 40 && (record.challengeRadiusKm as number) <= 450)
+        ? { challengeRadiusKm: record.challengeRadiusKm as number }
+        : {}),
+      ...(record.challengeOrigin === "mc1" ||
+      record.challengeOrigin === "mc2" ||
+      record.challengeOrigin === "mc3"
+        ? { challengeOrigin: record.challengeOrigin }
+        : {}),
+      // The winner block, carried only off an mc3 save whose block
+      // the pre-check above already validated complete-or-discard.
+      ...(record.challengeOrigin === "mc3" &&
+      record.challengeWinner !== undefined
+        ? { challengeWinner: record.challengeWinner as ChallengeWinner }
+        : {}),
     };
   } catch {
     return null;
   }
 }
 
+function readRun(): Run | null {
+  return readRunFrom(RUN_KEY);
+}
+
+/** The saved mc2 challenge run, if one is in progress (see RUN_MC2_KEY). */
+function readMc2Run(): Run | null {
+  return readRunFrom(RUN_MC2_KEY);
+}
+
+function clearMc2Run() {
+  try {
+    sessionStorage.removeItem(RUN_MC2_KEY);
+  } catch {
+    // Storage blocked; the in-memory state is dropped regardless.
+  }
+}
+
+/** The saved mc3 challenge run, if one is in progress (see RUN_MC3_KEY).
+ * A save whose winner block read as partial or implausible was already
+ * discarded by readRunFrom (§Q1-A4); the slot itself is removed here
+ * when its raw contents name an mc3 save that no longer validates, so
+ * the discarded save is never re-read on the next boot. */
+function readMc3Run(): Run | null {
+  const run = readRunFrom(RUN_MC3_KEY);
+  if (run) return run;
+  try {
+    const raw = sessionStorage.getItem(RUN_MC3_KEY);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        (parsed as Record<string, unknown>).challengeOrigin === "mc3" &&
+        (parsed as Record<string, unknown>).challengeWinner !== undefined &&
+        !isLegalWinnerBlock(
+          (parsed as Record<string, unknown>).challengeWinner,
+          Array.isArray((parsed as Record<string, unknown>).poolIds)
+            ? ((parsed as Record<string, unknown>).poolIds as unknown[]).length
+            : 0,
+        )
+      ) {
+        sessionStorage.removeItem(RUN_MC3_KEY);
+      }
+    }
+  } catch {
+    // Unreadable slot: boot falls through; the stale save is inert.
+  }
+  return null;
+}
+
+function clearMc3Run() {
+  try {
+    sessionStorage.removeItem(RUN_MC3_KEY);
+  } catch {
+    // Storage blocked; the in-memory state is dropped regardless.
+  }
+}
+
+/**
+ * Package B (§Q2-B3): record a challenge completion exactly once per
+ * run, however often the completion screen remounts or the tab
+ * reloads at it. The marker lives in sessionStorage — the same
+ * lifetime as the run slots themselves — keyed by the run's seed, so
+ * one play-through can never count twice and a retried route (a new
+ * run, a new seed) always counts again. Returns the player's
+ * completion count for the route INCLUDING this completion, and the
+ * winner block minted from their play (ratchet + farming guard live
+ * in challenge-verdict.ts). mc1 runs return null: that surface is
+ * frozen and carries no winner block.
+ */
+function recordChallengeCompletion(run: Run): {
+  attempts: number;
+  minted: ReturnType<typeof mintWinnerBlock>;
+} | null {
+  if (run.challengeOrigin !== "mc2" && run.challengeOrigin !== "mc3") return null;
+  const tuple = challengeRouteTuple({
+    scoringVersion: SCORING_VERSION,
+    edition: run.edition,
+    regionId: run.challengeRegionId ?? "globe",
+    ids: run.poolIds,
+  });
+  const markerKey = `meridian.challenge.recorded.${run.seed}`;
+  let attempts: number;
+  try {
+    if (sessionStorage.getItem(markerKey)) {
+      attempts = readRouteAttempts(tuple);
+    } else {
+      attempts = recordRouteCompletion(tuple);
+      sessionStorage.setItem(markerKey, tuple);
+    }
+  } catch {
+    attempts = readRouteAttempts(tuple) + 1;
+  }
+  const minted = mintWinnerBlock({
+    myScore: run.results.reduce((s, r) => s + r.score, 0),
+    myMask: hitMaskFromResults(run.results),
+    myAttempts: attempts,
+    incomingBest: run.challengeWinner?.bestScore ?? null,
+  });
+  return { attempts, minted };
+}
+
 function writeRun(run: Run) {
   try {
-    sessionStorage.setItem(RUN_KEY, JSON.stringify(run));
+    // Each challenge format persists to its OWN key (RUN_MC2_KEY,
+    // RUN_MC3_KEY) so a build from before that format existed never
+    // sees its saves (§Q1-A4); everything else keeps the shipped key.
+    const key =
+      run.challengeOrigin === "mc3"
+        ? RUN_MC3_KEY
+        : run.challengeOrigin === "mc2"
+          ? RUN_MC2_KEY
+          : RUN_KEY;
+    sessionStorage.setItem(key, JSON.stringify(run));
     // Crash-loop breaker: this page now holds unsaved-crash state. If the
     // process is killed without unloading, the next boot must not
     // auto-resume; `pagehide` clears this flag on every clean unload.
@@ -819,6 +1247,7 @@ async function revealStory(placeId: string, authored: string): Promise<string> {
 type Menu =
   | { kind: "countries" }
   | { kind: "states" }
+  | { kind: "challengeRegions" }
   | { kind: "admin1"; countryId: string; countryName: string; from: "countries" | "states" };
 
 /**
@@ -868,7 +1297,10 @@ function globeTierSplitFor(edition: Edition, regionId: string): Promise<boolean>
  * would go stale — and a stale "N cards due" with an empty queue would make
  * "Start review" silently no-op.
  */
-function useDeckStatus(run: Run | null): { enabled: boolean; due: number; total: number } {
+function useDeckStatus(
+  run: Run | null,
+  historyResetEpoch: number,
+): { enabled: boolean; due: number; total: number } {
   const [status, setStatus] = useState({ enabled: false, due: 0, total: 0 });
   const onPicker = run === null;
   useEffect(() => {
@@ -887,7 +1319,10 @@ function useDeckStatus(run: Run | null): { enabled: boolean; due: number; total:
     return () => {
       active = false;
     };
-  }, [onPicker]);
+    // historyResetEpoch (D14): a reset performed on the picker must
+    // re-read the deck in place — the picker never unmounted, so the
+    // onPicker edge alone would leave the stale due count on screen.
+  }, [onPicker, historyResetEpoch]);
   return status;
 }
 
@@ -926,6 +1361,14 @@ export function GameApp() {
       window.removeEventListener("pointerdown", boot);
       window.removeEventListener("keydown", boot);
     };
+  }, []);
+  // High-contrast view (manifest 2026-10-27, D7): apply the stored
+  // palette once at boot so a persisted "high-contrast" reaches the
+  // --map-* vars on every GameApp-hosted screen (home, the quiz
+  // editions, and GeoDetective's LoopScreen) without waiting for a
+  // toggle tap. Fail-closed inside the module: corrupt → standard.
+  useEffect(() => {
+    applyPalettePreference();
   }, []);
   const [ready, setReady] = useState(false);
   // Exactly-once guard for the crash-watchdog ready signal below.
@@ -986,6 +1429,87 @@ export function GameApp() {
    * taken over; the "picked for this device" note is stale).
    */
   const [autoScoutNote, setAutoScoutNote] = useState(false);
+  /**
+   * Issue #330: true only when this boot started in Scout SOLELY under
+   * the unknown-memory trial (capability source "unknown-memory") AND
+   * the `scoutUpgradeTrial` flag is on (the trial's kill-switch — the
+   * boot effect awaits the flags load before setting this; flag off =
+   * never set, so the upgrade never arms). The first Scout map mount
+   * may then upgrade the session to full after its stability soak.
+   * Session-only state: it is never persisted, and firing the upgrade
+   * clears it, so a later runtime fallback to Scout (tile failure,
+   * context loss) can never re-arm it.
+   */
+  const [scoutUpgradeEligible, setScoutUpgradeEligible] = useState(false);
+  /**
+   * Friend-challenge boot notice (cure round for PR #274): set by the
+   * boot effect when a `#c=` link was tapped with the friendChallenges
+   * flag ON but the challenge could not be loaded (broken link, unknown
+   * place, or the Globe catalog failed to load). Home then shows the
+   * child-friendly CHALLENGE_CHILD_COPY in a role="status" region for
+   * the rest of that boot — a tapped link must never fail silently for
+   * a kid, and there is no auto-dismiss, so a slow screen reader (or a
+   * grown-up helping) still sees it. Flag OFF never sets it: with the
+   * feature off there is nothing to explain.
+   *
+   * The notice is a TITLE plus an optional DETAIL line, because the
+   * failure classes have different titles (governing manifest
+   * §Q1-A6): a broken or unknown link titles itself with
+   * CHALLENGE_CHILD_COPY and details the remedy, while the version
+   * class — a well-formed link from a newer Meridian, or an mc3
+   * region this build's registry predates — titles itself with
+   * CHALLENGE_VERSION_COPY and carries no resend remedy (a resend
+   * from the same newer build would fail identically). Screen-reader
+   * users identify failures by their heading, so the classes must
+   * not share one.
+   */
+  const [challengeBootNotice, setChallengeBootNotice] = useState<{
+    title: string;
+    detail: string | null;
+  } | null>(null);
+
+  /**
+   * A validated mc2 challenge waiting on its welcome card (Package A):
+   * the boot decoded and membership-checked the route, but NOTHING is
+   * displaced yet — the player's saved run stays exactly where it was
+   * until they tap Start on the card (manifest C6). hasSavedRun drives
+   * the card's "your game is saved" line.
+   */
+  const [pendingChallenge, setPendingChallenge] = useState<{
+    route: ChallengeRoute;
+    hasSavedRun: boolean;
+  } | null>(null);
+
+  /**
+   * The welcome card's STAGED map pick. Flipping the card's switch
+   * only stages the choice here — nothing is written yet — because
+   * declining the card must commit nothing (the card's contract, and
+   * manifest C6: the bargain binds on Start). Start commits a staged
+   * pick that differs from the resolved mode via
+   * handleWelcomeMapMode; "Not now" just drops it.
+   */
+  const [welcomeMapPick, setWelcomeMapPick] = useState<MapMode | null>(null);
+
+  /** Home's friend-challenge entry points, flag-gated like every other
+   * challenge surface (PlayLoaded reads the same flag for its own). */
+  const [friendChallengesOn, setFriendChallengesOn] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void loadFlags().then(() => {
+      if (active) setFriendChallengesOn(isEnabled("friendChallenges"));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /** A minted challenge waiting on its preview sheet (picker flow). */
+  const [challengePreview, setChallengePreview] = useState<{
+    creation: ChallengeCreation;
+    edition: Edition;
+    regionId: string;
+  } | null>(null);
+  const [challengePickError, setChallengePickError] = useState<string | null>(null);
 
   /**
    * Apply a runtime auto-switch: persist (Q3) + stamp crash reports +
@@ -1026,13 +1550,16 @@ export function GameApp() {
    * - The switched notice RETIRES (here and in applyMapMode): its
    *   text names the mode the next game uses, and this switch just
    *   changed that mode.
-   * - The boot auto-switch note does NOT retire here: it can only be
-   *   standing when this boot itself auto-switched to Scout, and in
-   *   that state both runtime paths early-return (they fire only
-   *   from full) — so it is never standing when a runtime switch
-   *   runs. Its text would also remain TRUE after a switch to Scout.
-   *   (Manual flips clear it for a different reason: the player's own
-   *   choice supersedes the "picked for this device" framing.)
+   * - The boot auto-switch note does NOT retire here. The tile-
+   *   fallback path (the other runtime caller) fires only from full,
+   *   and its switch lands on Scout, where the note's text would
+   *   remain TRUE. The one path that DOES falsify the note is the
+   *   #330 trial upgrade: a trial boot leaves the note standing in
+   *   Scout, and the upgrade then moves the session to full — so
+   *   applyScoutUpgrade retires the note itself before delegating
+   *   here. (Manual flips clear it for a different reason: the
+   *   player's own choice supersedes the "picked for this device"
+   *   framing.)
    * - Nothing is ANNOUNCED: device-driven switches are silent (owner
    *   ruling, 2026-10-20), the announcer's texts are manual-switch
    *   wording ("back home; your next game…") that would be false
@@ -1043,6 +1570,24 @@ export function GameApp() {
     setMapMode(mode);
     setMapSwitchedNote(null);
   }, []);
+  /**
+   * Issue #330: the unknown-memory trial's upgrade. Session-only, like
+   * the tile fallback: no record is written, so if the upgraded full
+   * map kills the process, the next boot meets the prior-crash signal
+   * (session or durable marker) with no stored artifact in front of it
+   * and stays in Scout with no further upgrade. Silent, per the
+   * 2026-10-20 auto-switch ruling. Clears eligibility first so the
+   * upgrade fires at most once per boot.
+   */
+  const applyScoutUpgrade = useCallback(() => {
+    setScoutUpgradeEligible(false);
+    setReportMapMode("full");
+    // The trial boot left the auto-Scout note standing; this upgrade
+    // falsifies it (the session is no longer on Scout), so retire it
+    // here, mirroring the manual and home toggle paths.
+    setAutoScoutNote(false);
+    applySessionMapMode("full");
+  }, [applySessionMapMode]);
   // GeoDetective mounts its own screen outside the endless-run state
   // machine; it persists under meridian.loop.v2 and never touches the
   // run/drop keys. The open flag (meridian.loop.open) restores the screen
@@ -1074,6 +1619,17 @@ export function GameApp() {
     const id = window.setTimeout(() => setAgeToast(null), 3500);
     return () => window.clearTimeout(id);
   }, [ageToast]);
+  // "Start over" reset (manifest 2026-10-28): the success toast reuses
+  // the age-toast styling/lifetime, and historyResetEpoch is the
+  // refresh pin (D14) — bumping it remounts <Choose> (re-reading the
+  // mount-only home surfaces) and re-runs useDeckStatus in place.
+  const [resetToast, setResetToast] = useState<string | null>(null);
+  const [historyResetEpoch, setHistoryResetEpoch] = useState(0);
+  useEffect(() => {
+    if (resetToast === null) return;
+    const id = window.setTimeout(() => setResetToast(null), 3500);
+    return () => window.clearTimeout(id);
+  }, [resetToast]);
   // Invoking control for the age settings (footer "For grown-ups" link or
   // locked-tile grown-up link) — focus returns here when the settings close.
   const ageTriggerRef = useRef<HTMLElement | null>(null);
@@ -1194,6 +1750,29 @@ export function GameApp() {
   // on the home screen after the idle kill.
   const [idleWarn, setIdleWarn] = useState(false);
   const [idleEndedNote, setIdleEndedNote] = useState(false);
+  // Wave 1 P0 Item 1: the one shared discarded-run notice. Keyed to
+  // "live, non-ended run/session discarded at boot" — deliberate End
+  // game already ends the session and isResumable excludes phase
+  // "summary", so ended games never produce one (no clean-exit flag
+  // keying: a finished game killed without pagehide must not show a
+  // lost-game notice). One card for all four causes; the reason
+  // keyword + the played score/places travel together, and each
+  // cause's copy avoids the other causes' keywords.
+  const [discardedNotice, setDiscardedNotice] = useState<DiscardedNotice | null>(null);
+  // Fix round L2: the visible notice must not carry role="status" — it
+  // mounts with its text already present, so screen readers may never
+  // announce it. Instead this always-present (on home) sr-only region
+  // starts empty and is FILLED by the effect below after mount, so the
+  // text change is what announces. Cleared when the notice goes null,
+  // so a later identical notice announces again instead of landing on
+  // an unchanged region.
+  const [discardedNoticeAnnouncement, setDiscardedNoticeAnnouncement] =
+    useState("");
+  useEffect(() => {
+    setDiscardedNoticeAnnouncement(
+      discardedNotice ? discardedNoticeText(discardedNotice) : "",
+    );
+  }, [discardedNotice]);
   // First-run tutorial: null when inactive, otherwise the current beat
   // (1 = aim coachmark, 2 = reveal feedback, 3 = completion hook). Owned
   // by GameApp so the menu invitation, the run, and the cleanup paths all
@@ -1212,7 +1791,102 @@ export function GameApp() {
   const commit = useCallback((next: Run) => {
     writeRun(next);
     setRun(next);
+    // A new or continued run retires any boot discard notice: the
+    // notice describes a game that is gone, and returning home later
+    // (Editions) must not resurrect it beside the fresh game.
+    setDiscardedNotice(null);
   }, []);
+
+  /**
+   * The welcome card's Start tap — the moment a received mc2 challenge
+   * commits (manifest C6). The run is built from the validated route
+   * and persisted through commit/writeRun, which routes it to the mc2
+   * key; the player's saved normal run under RUN_KEY is never touched,
+   * so it survives underneath and is offered back when the challenge
+   * ends. The challenge never banks into the session (ensureSession is
+   * deliberately not called — the same isolation as mc1).
+   */
+
+  /**
+   * Commit the challenge welcome card's staged map pick (owner
+   * ruling, 2026-10-29): a received challenge's map is chosen WHEN
+   * THE CHALLENGE OPENS — before Start builds the run's map — never
+   * mid-challenge, where the only switch used to be the force-home
+   * toggle that killed the challenge. The mode the card shows is the
+   * one the boot already resolved (a stored manual record stands;
+   * otherwise the capability qualification — the same signals, no
+   * new probe). Flipping the card's switch only STAGES the pick;
+   * this commit runs on Start (startPendingChallenge, below) and is
+   * a manual choice exactly like the Home toggle's: write the manual
+   * record (manual records never decay — the pick is the player's
+   * saved map choice from then on, which the card's note says out
+   * loud), apply at once, retire the boot auto-switch note. "Not
+   * now" never reaches here, so declining commits nothing.
+   * Declared before startPendingChallenge, which calls it.
+   */
+  const handleWelcomeMapMode = useCallback((mode: MapMode) => {
+    writeStoredMapMode(mode, "manual");
+    setReportMapMode(mode);
+    setMapMode(mode);
+    setAutoScoutNote(false);
+    setMapSwitchedNote(null);
+  }, []);
+
+  const startPendingChallenge = useCallback((routeOverride?: ChallengeRoute) => {
+    // The welcome card's Start passes nothing (the pending route);
+    // the verdict screen's Retry passes the completed route to play
+    // it again at once — same commit path, no second welcome.
+    const route = routeOverride ?? pendingChallenge?.route;
+    if (!route) return;
+    // Commit the welcome card's staged map pick NOW, on Start — the
+    // moment the card's bargain binds. A flip followed by "Not now"
+    // never reaches this line, so declining still commits nothing.
+    if (welcomeMapPick && welcomeMapPick !== mapMode) {
+      handleWelcomeMapMode(welcomeMapPick);
+    }
+    setWelcomeMapPick(null);
+    const fields = challengeRunFields(route);
+    clearDrop();
+    // One challenge at a time across formats too: a saved challenge
+    // in the OTHER format's slot would shadow this run at the next
+    // boot (the read order is mc3 → mc2 → mc1), so starting here
+    // retires it — displacement, as ever, commits on Start.
+    if (fields.challengeOrigin === "mc3") clearMc2Run();
+    if (fields.challengeOrigin === "mc2") clearMc3Run();
+    // Cross-format displacement (manifest §3 persistence): if the
+    // normal slot holds a saved CHALLENGE (an mc1 run), starting this
+    // mc2 challenge displaces it — one challenge at a time, and the
+    // displacement commits here, on Start, never on arrival. A saved
+    // NORMAL run is not a challenge and is never touched: it survives
+    // underneath and is offered back on Done.
+    const savedNormal = readRun();
+    if (savedNormal && savedNormal.regionId === CHALLENGE_REGION_ID) {
+      sessionStorage.removeItem(RUN_KEY);
+    }
+    const run: Run = {
+      ...startRun(
+        {
+          edition: fields.edition,
+          regionId: fields.regionId,
+          regionName: fields.regionName,
+          dateKey: trailDate(),
+          difficultyChoice,
+        },
+        route.ids,
+        null,
+      ),
+      challengeRegionId: fields.challengeRegionId,
+      challengeRadiusKm: fields.challengeRadiusKm,
+      challengeOrigin: fields.challengeOrigin,
+      // The winner block rides the run verbatim (mc3 only; null on
+      // every other route): Package B's welcome goal and verdict read
+      // it, and a completion re-share carries it losslessly.
+      ...(route.winner ? { challengeWinner: route.winner } : {}),
+    };
+    commit(run);
+    setPendingChallenge(null);
+    setMenu(null);
+  }, [pendingChallenge, difficultyChoice, commit, welcomeMapPick, mapMode, handleWelcomeMapMode]);
 
   /**
    * Adopt the stored session when it is still live (same day, not ended),
@@ -1238,12 +1912,124 @@ export function GameApp() {
     [updateSession, idleTimeoutMs],
   );
 
-  /** Idle kill: end the session and return the player to the home screen. */
-  const killIdleSession = useCallback(() => {
+  /**
+   * A challenge's Done tap (mc2/mc3; manifest §2, contract 6): the
+   * challenge slots are cleared, and the normal run the challenge
+   * displaced is offered back — resumed in place when it is still
+   * resumable today. Nothing here touches the player's history: the
+   * challenge never wrote any.
+   */
+  const handleChallengeDone = useCallback(() => {
     setStartError(null);
     clearDrop();
+    clearMc2Run();
+    clearMc3Run();
+    setRun(null);
+    setMenu(null);
+    const saved = readRun();
+    if (
+      saved &&
+      saved.regionId !== CHALLENGE_REGION_ID &&
+      saved.regionId !== REVIEW_DECK_REGION_ID
+    ) {
+      const today = {
+        edition: saved.edition,
+        regionId: saved.regionId,
+        regionName: saved.regionName,
+        dateKey: trailDate(),
+        difficultyChoice: saved.difficultyChoice,
+      };
+      if (isResumable(saved, today)) {
+        const restored = resumeRun(saved, today);
+        commit(restored);
+        ensureSession(restored);
+      }
+    }
+  }, [commit, ensureSession]);
+
+  const challengeMenuHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  useEffect(() => {
+    if (menu?.kind === "challengeRegions") {
+      challengeMenuHeadingRef.current?.focus({ preventScroll: true });
+    }
+  }, [menu]);
+
+  /** Picker flow, step 1: open the challenge region list. */
+  const openChallengePicker = useCallback(() => {
+    setChallengePickError(null);
+    setMenu({ kind: "challengeRegions" });
+  }, []);
+
+  /**
+   * Picker flow, step 2: deal a fresh 5 for the tapped region and show
+   * the preview sheet. The catalog is the region's OWN places
+   * (fail-closed dealing), widened inside the region only when the
+   * band/seen steps run thin (buildCreationSources).
+   */
+  const pickChallengeRegion = useCallback(
+    async (edition: Edition, regionId: string) => {
+      setChallengePickError(null);
+      try {
+        const catalog = await placesFor(edition, regionId, undefined, false);
+        const seenIds = new Set(seenStoreFor(edition, regionId, difficultyChoice).read());
+        const sources = buildCreationSources({ catalog, choice: difficultyChoice, seenIds });
+        const creation = createChallengeRoute({
+          edition,
+          regionId,
+          scoringVersion: SCORING_VERSION,
+          mode: "fresh",
+          sources,
+          dealSeed: mintSeed(),
+        });
+        if (!creation) {
+          setChallengePickError("Not enough places there yet — pick another region.");
+          return;
+        }
+        setChallengePreview({ creation, edition, regionId });
+      } catch {
+        setChallengePickError("That region could not load — check your connection and try again.");
+      }
+    },
+    [difficultyChoice],
+  );
+
+  /** Idle kill: end the session and return the player to the home screen.
+   * skipNotice (fix round M1) suppresses ONLY the inactivity notice set:
+   * the kill, the session clear, and the shadow clear always run. The
+   * body boot passes it when an mc2 notice is preserved. */
+  const killIdleSession = useCallback((skipNotice = false) => {
+    setStartError(null);
+    clearDrop();
+    // Wave 1 P0 Item 1: capture what was played BEFORE dropping the
+    // session. Challenge runs never bank into the session (their score
+    // belongs to the shared route), so a challenge kill summarises the
+    // run itself; every other kill summarises the whole session, and
+    // only falls back to the run when no session survives.
+    const killedRun = readRun() ?? readMc2Run();
+    const killedIsChallenge =
+      !!killedRun &&
+      (killedRun.regionId === CHALLENGE_REGION_ID || killedRun.challengeOrigin === "mc2");
+    // Boot fallback: at boot the session ref is still null (useSessionState
+    // starts null with no hydration) while the persisted session survives
+    // in sessionStorage, so a reload-after-expiry kill must total the whole
+    // persisted session, not just the killed run. Challenge kills stay
+    // run-only (challenges never bank). Live play is unchanged: the ref
+    // is non-null during play, so the fallback never runs there.
+    const live = getSession() ?? (killedIsChallenge ? null : readSession());
+    const liveSummary = live && !killedIsChallenge ? summarizeSession(live) : null;
+    const totals = liveSummary
+      ? { totalScore: liveSummary.totalScore, placesPlayed: liveSummary.placesPlayed }
+      : runResultsTotals(killedRun);
+    if (!skipNotice) {
+      setDiscardedNotice({ reason: "inactivity", ...totals });
+    }
+    // The kill is the show: no durable record may re-fire it on a
+    // later boot (at most one notice per discarded game).
+    clearDiscardedShadow();
     try {
       sessionStorage.removeItem(RUN_KEY);
+      clearMc2Run();
+      clearMc3Run();
     } catch {
       // Storage blocked; the in-memory run is dropped below regardless.
     }
@@ -1253,7 +2039,13 @@ export function GameApp() {
     replaceSession(null);
     setIdleWarn(false);
     setIdleEndedNote(true);
-  }, [replaceSession]);
+    // #188: session end retires the switched notice too — the same
+    // lifecycle logic Block B applied to mode flips. Left standing, a
+    // "You switched to … Your score is kept." notice would sit beside
+    // the idle-ended notice above and read stale (the score it says
+    // was kept has just been dropped with the session).
+    setMapSwitchedNote(null);
+  }, [replaceSession, getSession]);
 
   useEffect(() => {
     // Observability boot — MUST run before the crash-loop breaker effect
@@ -1293,6 +2085,14 @@ export function GameApp() {
     // probes clean returns to full. (This replaced the boot choice
     // dialog; see planBootMapMode's docstring for the superseded
     // directive.)
+    // Issue #330 exception: an "unknown-memory" decision (Safari reports
+    // no deviceMemory; coarse pointer) is a trial, not a verdict — it
+    // persists NOTHING and instead arms the in-session Scout → full
+    // upgrade (applyScoutUpgrade), so no stored artifact can ever stand
+    // in front of a later prior-crash check. The arming itself is gated
+    // by the `scoutUpgradeTrial` flag (see the unknown-memory branch
+    // below): flag off, the boot still starts in Scout and the upgrade
+    // simply never arms.
     // There is deliberately NO test bypass here (issue #154 item 1):
     // the E2E harness used to set a window flag to suppress this
     // auto-switch on its SwiftShader VM, which reads as a weak device.
@@ -1306,16 +2106,36 @@ export function GameApp() {
         setReportMapMode(stored.mode);
         setMapMode(stored.mode);
       } else {
-        const plan = planBootMapMode(
-          qualifyMapMode({
-            priorMapCrash: wasMapAttributedCrash(),
-            webglProbeOk: probeWebGL(),
-            deviceMemoryGB: readDeviceMemoryGB(),
-          }),
-        );
+        const decision = qualifyMapMode({
+          priorMapCrash: wasMapAttributedCrash(),
+          webglProbeOk: probeWebGL(),
+          deviceMemoryGB: readDeviceMemoryGB(),
+          coarsePointer: isCoarsePointer(),
+        });
+        const plan = planBootMapMode(decision);
         if (plan.mode === "scout") {
           if (plan.persistSource !== null) {
             writeStoredMapMode("scout", plan.persistSource);
+          }
+          if (decision.source === "unknown-memory") {
+            // Issue #330 trial: nothing was persisted above (the plan's
+            // persistSource is null for this source) — arm the in-session
+            // upgrade the first Scout map may fire after its soak.
+            // Flag gate (PR #331 panel cure — the trial's kill-switch):
+            // eligibility is set only when the `scoutUpgradeTrial` flag
+            // is on. Kill-switches await the shared flags load before
+            // checking (src/lib/flags.ts), so a remote `false` in
+            // flags.json wins the boot-time race deterministically and
+            // the upgrade never arms; the baked-in default is true, so
+            // an unreachable flags.json keeps the shipped behavior.
+            // The manual re-check mirrors Play's fire-time guard: a
+            // manual choice that landed while the load was in flight
+            // stands over the trial and must not be re-armed over.
+            void loadFlags().then(() => {
+              if (!isEnabled("scoutUpgradeTrial")) return;
+              if (readStoredMapMode()?.source === "manual") return;
+              setScoutUpgradeEligible(true);
+            });
           }
           setReportMapMode("scout");
           setMapMode("scout");
@@ -1372,6 +2192,15 @@ export function GameApp() {
    * and hiding the notice.
    */
   const handleManualMapMode = useCallback((mode: MapMode) => {
+    // A challenge run is NEVER ended by the map switch (owner ruling,
+    // 2026-10-29): the force-home below would kill the challenge AND
+    // delete the player's preserved normal run under RUN_KEY — the run
+    // the challenge promised to keep safe underneath. A challenge's
+    // map is picked at challenge open (the welcome card), and the
+    // in-challenge toggle renders its challenge context with no switch
+    // at all; this guard is the choke-point backstop so no present or
+    // future caller can force-home out of a challenge either.
+    if (run && isChallengeRun(run)) return;
     // BLOCK-A: cancel any in-flight run start. Bumping the generation
     // makes the parked openRun stale, so when its chunk load resolves
     // it bails instead of committing the run this exit just ended.
@@ -1398,6 +2227,9 @@ export function GameApp() {
     // BLOCK-1: retire this boot's auto-switch note — the switched
     // notice set above supersedes it (see the docstring).
     setAutoScoutNote(false);
+    // #330 cure: an explicit manual choice disarms any pending trial
+    // upgrade — the upgrade must never override the player's pick.
+    setScoutUpgradeEligible(false);
     // BLOCK-4: close every other full-screen state so the render
     // precedence below cannot hand the landing to a lurking flag
     // (see the docstring). writeLoopOpen mirrors LoopScreen's own
@@ -1407,7 +2239,7 @@ export function GameApp() {
     writeColdTrailOpen(false);
     setColdTrailOpen(false);
     setStarting(null);
-  }, []);
+  }, [run]);
 
   /**
    * The same toggle, hosted on Home (Block C cure): the player can
@@ -1434,6 +2266,9 @@ export function GameApp() {
       mode === "scout" ? SCOUT_COPY.homeAnnounceOn : SCOUT_COPY.homeAnnounceOff,
     );
     setAutoScoutNote(false);
+    // #330 cure: an explicit manual choice disarms any pending trial
+    // upgrade — the upgrade must never override the player's pick.
+    setScoutUpgradeEligible(false);
     // BLOCK-2: this flip supersedes any earlier switched notice.
     setMapSwitchedNote(null);
   }, []);
@@ -1497,10 +2332,335 @@ export function GameApp() {
     // before.
     if (isUncleanShutdown()) {
       clearRunAfterUncleanShutdown(RUN_KEY);
+      clearRunAfterUncleanShutdown(RUN_MC2_KEY);
+      clearRunAfterUncleanShutdown(RUN_MC3_KEY);
       setReady(true);
       return;
     }
+    // Friend-challenge links arrive as a `#c=…` URL fragment. The
+    // fragment is stripped from the address bar FIRST, synchronously,
+    // before anything async happens — a challenge link should never
+    // sit in the URL where a screenshot or a share could leak it, and
+    // stripping must not wait on the flag fetch below. What happens
+    // next depends on the friendChallenges flag, but every failure exit
+    // FALLS THROUGH to bootSavedRun() — the ordinary saved-run boot
+    // defined below — instead of ending the boot itself: a player who
+    // taps a friend's link (broken or not, feature on or off) must
+    // never lose the run they already had in progress. With the flag
+    // off this makes the `#c=` boot exactly the boot main would have
+    // run if the link had never been tapped.
+    const rawHash = window.location.hash;
+    if (rawHash.startsWith("#c=") || rawHash === "#c") {
+      try {
+        window.history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search,
+        );
+      } catch {
+        // History API blocked; proceed fail-closed.
+      }
+      void loadFlags().then(async () => {
+        if (!isEnabled("friendChallenges")) {
+          // Flag off: the feature does not exist for this player, so
+          // the boot must be indistinguishable from main's — fall
+          // through to the saved-run boot (which also clears a saved
+          // CHALLENGE run, exactly as it does without a hash).
+          bootSavedRun();
+          return;
+        }
+        const mcVersionPrefix = /^#c=mc(\d+)\./.exec(rawHash);
+        if (mcVersionPrefix && Number(mcVersionPrefix[1]) !== 1) {
+          // mc2 and mc3 links take their own receive path (welcome
+          // card, no displacement until Start). So does a link from a
+          // NEWER format this build does not know (delta §3.6): the
+          // receive path's dispatcher answers it with the version
+          // signal, and the failure mapping below turns that into the
+          // newest-Meridian remedy instead of a resend line. The mc1
+          // prefix itself stays on the frozen path below, untouched.
+          void receiveMc2Challenge(rawHash);
+          return;
+        }
+        const decoded = decodeChallenge(rawHash, SCORING_VERSION);
+        if (!decoded.ok) {
+          // Flag on, but the link is broken (corrupt, or made by a
+          // different scoring version): tell the player on Home via
+          // the boot notice, then fall through — a saved run, if one
+          // exists, still resumes underneath the notice.
+          setChallengeBootNotice({ title: CHALLENGE_CHILD_COPY, detail: null });
+          bootSavedRun();
+          return;
+        }
+        try {
+          const [globePlaces] = await Promise.all([
+            placesFor("globe", "globe", undefined, false),
+            preloadTerritory(),
+          ]);
+          const validIds = new Set(globePlaces.map((p) => p.id));
+          if (!decoded.ids.every((id) => validIds.has(id))) {
+            // The link names a place this build's Globe catalog does
+            // not have (an old link, or a hand-edited one). Same
+            // child-facing failure as a corrupt link: notice + fall
+            // through to the saved-run boot.
+            setChallengeBootNotice({ title: CHALLENGE_CHILD_COPY, detail: null });
+            bootSavedRun();
+            return;
+          }
+          const orderedIds = playOrder(decoded);
+          clearDrop();
+          const challengeRun = startRun(
+            {
+              edition: "globe",
+              regionId: CHALLENGE_REGION_ID,
+              regionName: CHALLENGE_REGION_NAME,
+              dateKey: trailDate(),
+              difficultyChoice,
+            },
+            orderedIds,
+            null,
+          );
+          commit(challengeRun);
+          // The mc1 boot is its commit point: a saved mc2/mc3
+          // challenge is displaced now (a saved challenge is
+          // displaceable only on a new challenge's start — manifest
+          // §3 persistence; one challenge at a time, so the newer
+          // slots must not shadow this run at the next boot). The
+          // normal slot now holds THIS challenge; nothing else is
+          // touched.
+          clearMc2Run();
+          clearMc3Run();
+          setMenu(null);
+        } catch {
+          // The Globe catalog could not load, so the challenge cannot
+          // start. From the player's side this is the same failure as
+          // a broken link — show the same notice and fall through to
+          // the saved-run boot instead of stranding them on Home.
+          setChallengeBootNotice({ title: CHALLENGE_CHILD_COPY, detail: null });
+          bootSavedRun();
+          return;
+        }
+        setReady(true);
+      });
+      return;
+    }
+    // The ordinary saved-run boot: everything a hash-less boot does —
+    // challenge-run resume/clear, review and tutorial retirement,
+    // idle-expiry, and the resumable-run restore. It is a named
+    // function (declared here, hoisted within this effect) because the
+    // `#c=` branch above falls through to it on every failure exit;
+    // the hash-less path simply calls it directly. The body below is
+    // the pre-challenge boot, unchanged — if you are changing resume
+    // behaviour, change it here so BOTH entry points get it.
+    function bootSavedRun() {
+    // Challenge saves take precedence over the normal slot, newest
+    // format first (governing manifest §Q1-A4 read order: mc3 → mc2
+    // → mc1): a player who left a challenge mid-route comes back to
+    // the challenge. With the flag off the challenge save is cleared
+    // and the ordinary boot continues underneath — a saved normal run
+    // is never collateral (manifest C7's guard table). A newer
+    // format's save also shadows the older slots (and a stale mc1
+    // save in the normal slot) until it completes or is cleared.
+    const mc3Saved = readMc3Run();
+    if (mc3Saved) {
+      void loadFlags().then(async () => {
+        if (!isEnabled("friendChallenges")) {
+          clearMc3Run();
+          bootMc2OrBody();
+          return;
+        }
+        const today = {
+          edition: mc3Saved.edition,
+          regionId: mc3Saved.regionId,
+          regionName: mc3Saved.regionName,
+          dateKey: trailDate(),
+          difficultyChoice: mc3Saved.difficultyChoice,
+        };
+        if (isResumable(mc3Saved, today)) {
+          const restored = resumeRun(mc3Saved, today);
+          await preloadTerritory();
+          commit(restored);
+          setReady(true);
+          return;
+        }
+        clearMc3Run();
+        bootMc2OrBody();
+      });
+      return;
+    }
+    bootMc2OrBody();
+    }
+
+    function bootMc2OrBody() {
+    const mc2Saved = readMc2Run();
+    if (mc2Saved) {
+      void loadFlags().then(async () => {
+        // Fix round M1: a dropped mc2 run notices instead of landing on
+        // silent home. The notice is set BEFORE the clear, and the body
+        // boot runs preserving it (see bootSavedRunBody's preserveNotice
+        // guard). A finished (summary-phase) challenge is not a lost
+        // game: it clears silently, matching the body's own summary
+        // exclusion. Challenge runs never bank into the session, so the
+        // summary is the mc2 run's own results — never another game's
+        // session totals.
+        const noticeMc2Discard = () => {
+          if (mc2Saved.phase !== "summary") {
+            setDiscardedNotice({ reason: "challenges", ...runResultsTotals(mc2Saved) });
+          }
+        };
+        if (!isEnabled("friendChallenges")) {
+          noticeMc2Discard();
+          clearMc2Run();
+          bootSavedRunBody(true);
+          return;
+        }
+        const today = {
+          edition: mc2Saved.edition,
+          regionId: mc2Saved.regionId,
+          regionName: mc2Saved.regionName,
+          dateKey: trailDate(),
+          difficultyChoice: mc2Saved.difficultyChoice,
+        };
+        if (isResumable(mc2Saved, today)) {
+          const restored = resumeRun(mc2Saved, today);
+          await preloadTerritory();
+          commit(restored);
+          setReady(true);
+          return;
+        }
+        noticeMc2Discard();
+        clearMc2Run();
+        bootSavedRunBody(true);
+      });
+      return;
+    }
+    bootSavedRunBody();
+    }
+
+    /**
+     * The mc2/mc3 receive path (Package A; mc3 added by the 2026-10-31
+     * delta): decode and bind the link, load the named region's
+     * catalog, check membership — fail-closed at every step with the
+     * manifest's three failure classes — and only then show the
+     * welcome card. The saved run is NOT touched here: displacement
+     * commits on the card's Start tap, never on arrival.
+     */
+    async function receiveMc2Challenge(hash: string) {
+      const link = decodeChallengeLink(hash, SCORING_VERSION);
+      if (!link.ok) {
+        // The failure classes (governing manifest §Q1-A6), told apart
+        // by their TITLE line (see challengeBootNotice):
+        // - VERSION class: the link is well-formed but from a newer
+        //   Meridian than this build — either its prefix names an
+        //   unknown version (the dispatcher only raises "version" for
+        //   that shape, canonical body included), or it is an mc3
+        //   link whose REGION failure means registry skew: the seal
+        //   already passed, so the link is intact and simply names a
+        //   region this build's registry predates. Title is the
+        //   newest-Meridian line; no resend remedy, because a resend
+        //   from the same newer build fails identically.
+        // - REGION class: an mc1/mc2 link naming a region this build
+        //   does not have.
+        // - CORRUPT class: everything else, malformed mc3 included.
+        //   A "version" raised from INSIDE a known format (an mc2
+        //   payload with v ≠ 2, an mc3 with reserved bits set) lands
+        //   here and keeps the ordinary resend line.
+        const prefixVersion = /^#c=mc(\d+)\./.exec(hash);
+        const unknownVersionPrefix =
+          prefixVersion !== null && ![1, 2, 3].includes(Number(prefixVersion[1]));
+        const versionClass =
+          (link.reason === "version" && unknownVersionPrefix) ||
+          (hash.startsWith(CHALLENGE_MC3_PREFIX) && link.reason === "region");
+        setChallengeBootNotice(
+          versionClass
+            ? { title: CHALLENGE_VERSION_COPY, detail: null }
+            : link.reason === "region"
+              ? { title: CHALLENGE_CHILD_COPY, detail: CHALLENGE_UNKNOWN_REGION_COPY }
+              : { title: CHALLENGE_CHILD_COPY, detail: CHALLENGE_BROKEN_LINK_COPY },
+        );
+        bootSavedRun();
+        return;
+      }
+      try {
+        const [places] = await Promise.all([
+          placesFor(link.route.edition, link.route.regionId, undefined, false),
+          preloadTerritory(),
+        ]);
+        const resolved = resolveChallengeRoute(hash, SCORING_VERSION, places.map((p) => p.id));
+        if (!resolved.ok) {
+          // Class 2 (place arm): a named place is not in this build's
+          // catalog for the named region.
+          setChallengeBootNotice({
+            title: CHALLENGE_CHILD_COPY,
+            detail: CHALLENGE_UNKNOWN_CONTENT_COPY,
+          });
+          bootSavedRun();
+          return;
+        }
+        const saved = readRun();
+        setPendingChallenge({
+          route: resolved.route,
+          hasSavedRun:
+            !!saved &&
+            saved.regionId !== CHALLENGE_REGION_ID &&
+            saved.regionId !== REVIEW_DECK_REGION_ID,
+        });
+        setMenu(null);
+        setReady(true);
+      } catch {
+        // Class 3: the link may be perfect, but the region chunk did
+        // not load, so membership could not be checked.
+        setChallengeBootNotice({
+          title: CHALLENGE_CHILD_COPY,
+          detail: CHALLENGE_LOAD_FAILURE_COPY,
+        });
+        bootSavedRun();
+      }
+    }
+
+    // preserveNotice: when an mc2 discard notice already stands, the
+    // body boot must not overwrite it with its own discard notice.
+    // Every notice site below is guarded; the shadow block is skipped
+    // whole, so a preserved shadow survives for a later boot instead of
+    // being silently consumed. A resumed run still retires the notice
+    // via commit() — that is the retire rule, not an overwrite.
+    function bootSavedRunBody(preserveNotice = false) {
     const saved = readRun();
+    if (saved && saved.regionId === CHALLENGE_REGION_ID) {
+      void loadFlags().then(async () => {
+        if (!isEnabled("friendChallenges")) {
+          // Wave 1 P0 Item 1E: the flag-off deletion notices instead of
+          // landing on silent home. Challenge runs never bank into the
+          // session, so the summary is the challenge run's own results
+          // — never another game's session totals.
+          clearDrop();
+          const challengeTotals = runResultsTotals(saved);
+          if (!preserveNotice) {
+            setDiscardedNotice({ reason: "challenges", ...challengeTotals });
+          }
+          try {
+            sessionStorage.removeItem(RUN_KEY);
+          } catch {
+            // Storage blocked.
+          }
+          setReady(true);
+          return;
+        }
+        const today = {
+          edition: saved.edition,
+          regionId: saved.regionId,
+          regionName: saved.regionName,
+          dateKey: trailDate(),
+          difficultyChoice: saved.difficultyChoice,
+        };
+        if (isResumable(saved, today)) {
+          const restored = resumeRun(saved, today);
+          await preloadTerritory();
+          commit(restored);
+        }
+        setReady(true);
+      });
+      return;
+    }
     // Review sessions never resume across reloads: the deck (localStorage)
     // is the durable state; the session queue is rebuilt fresh on every
     // start. Fail closed to the edition picker.
@@ -1533,8 +2693,10 @@ export function GameApp() {
     const savedSession = readSession();
     // A session that idled out while the tab was closed counts as expired:
     // kill it (and the run it banked) instead of silently resuming.
+    // The kill's own inactivity notice is skipped when an mc2 notice is
+    // preserved (skipNotice gates only that set, never the kill itself).
     if (savedSession && isSessionLive(savedSession, dateKey) && isIdleExpired(savedSession, now, idleTimeoutMs)) {
-      killIdleSession();
+      killIdleSession(preserveNotice);
       setReady(true);
       return;
     }
@@ -1553,7 +2715,17 @@ export function GameApp() {
       // restored. (The old `restored === saved` check could never pass:
       // resumeRun always returns a new object, so reloads silently dropped
       // to the menu instead of resuming.)
+      // The literal `if (isResumable(...))` shape is pinned by
+      // territory-lazy-boundary.test.ts (Core F-2); the discard block
+      // below keys off didRestore instead of an else branch (the
+      // predicate would narrow an else branch to never).
+      let didRestore = false;
       if (isResumable(resumable, today)) {
+        didRestore = true;
+        // Wave 1 P0 Item 1B: a successful resume consumes any pending
+        // discarded record, so it cannot fire later. (The resumed
+        // session's own persists below write a fresh live shadow.)
+        clearDiscardedShadow();
         const restored = resumeRun(resumable, today);
         if (restored.phase === "aim") {
           // Core F-2: an aim-phase restore resumes straight into
@@ -1564,6 +2736,9 @@ export function GameApp() {
           // rejects (a failed load fails closed at the readers), so
           // deferring the commit on it cannot strand the boot; the
           // splash stays up until it lands, then ready is set.
+          // (#209: the preload is timeout-bounded in territory.ts,
+          // so this deferral always settles — a hung import can no
+          // longer hold the splash up forever.)
           void preloadTerritory().then(() => {
             commit(restored);
             ensureSession(restored);
@@ -1580,8 +2755,78 @@ export function GameApp() {
         commit(restored);
         ensureSession(restored);
       }
+      if (!didRestore && resumable.phase !== "summary") {
+        // Wave 1 P0 Item 1: a live, non-ended run that cannot resume
+        // notices instead of landing on silent home. Only the two
+        // classifiable causes notice here — a new UTC day, or a retired
+        // scoring version (stored scores are never recomputed). The
+        // summary-phase run is deliberately excluded: End game already
+        // ended that session, and its reload must show plain home.
+        // Anything else unclassified (e.g. a band change) keeps today's
+        // silent fall-through.
+        const staleScoring =
+          resumable.results.length > 0 &&
+          resumable.results.some((r) => r.scoringVersion !== SCORING_VERSION);
+        const reason: DiscardedNotice["reason"] | null =
+          savedSession && savedSession.dateKey !== dateKey
+            ? "new-day"
+            : staleScoring
+              ? "scoring"
+              : null;
+        if (reason) {
+          const sessionSummary = savedSession ? summarizeSession(savedSession) : null;
+          const totals = sessionSummary
+            ? { totalScore: sessionSummary.totalScore, placesPlayed: sessionSummary.placesPlayed }
+            : runResultsTotals(resumable);
+          if (!preserveNotice) {
+            setDiscardedNotice({ reason, ...totals });
+          }
+          clearDrop();
+          try {
+            sessionStorage.removeItem(RUN_KEY);
+          } catch {
+            // Storage blocked; the in-memory run is dropped regardless.
+          }
+          replaceSession(null);
+          clearDiscardedShadow();
+          setReady(true);
+          return;
+        }
+      }
     }
-    setReady(true);
+    if (!saved) {
+      // Wave 1 P0 Item 1B: no sessionStorage run survived (a closed tab
+      // kills sessionStorage), but the localStorage shadow may have.
+      // A shadow from a previous UTC day is a new-day discard; an
+      // expired shadow is an inactivity discard. A fresh shadow is
+      // left alone — the game may still be open in another tab, and
+      // a later expired boot still notices. Showing consumes the
+      // record at first show: dismiss and reload alike show nothing.
+      const shadow = readDiscardedShadow();
+      // Fix round M1: when an mc2 notice is preserved, the shadow block
+      // is skipped whole — neither shown nor consumed — so the shadow
+      // survives for a later boot (defer, not silent loss).
+      if (shadow && !preserveNotice) {
+        if (shadow.dateKey !== dateKey) {
+          setDiscardedNotice({
+            reason: "new-day",
+            totalScore: shadow.totalScore,
+            placesPlayed: shadow.placesPlayed,
+          });
+          clearDiscardedShadow();
+        } else if (now - shadow.lastActivityAt > idleTimeoutMs) {
+          setDiscardedNotice({
+            reason: "inactivity",
+            totalScore: shadow.totalScore,
+            placesPlayed: shadow.placesPlayed,
+          });
+          clearDiscardedShadow();
+        }
+      }
+    }
+      setReady(true);
+    }
+    bootSavedRun();
   }, [commit, ensureSession, killIdleSession, idleTimeoutMs, difficultyChoice]);
 
   const refreshForNewBuild = useCallback(() => {
@@ -1652,10 +2897,18 @@ export function GameApp() {
         // so a run must never start ahead of it. preloadTerritory never
         // rejects (a failed load fails closed at the readers), so this
         // await cannot fail the start.
-        const [places] = await Promise.all([
-          placesFor(edition, regionId, choice, tierSplit),
-          preloadTerritory(),
-        ]);
+        // #209: the pair is raced against CHUNK_LOAD_TIMEOUT_MS — a
+        // HUNG places import never settles, and without the bound the
+        // "Fetching this region's places…" state would spin forever.
+        // A timeout lands in the catch below like any other load
+        // failure: fail-closed, recoverable, stale-probed.
+        const [places] = await withChunkTimeout(
+          Promise.all([
+            placesFor(edition, regionId, choice, tierSplit),
+            preloadTerritory(),
+          ]),
+          `places for ${regionName}`,
+        );
         if (gen !== runStartGenRef.current) return; // stale (BLOCK-A)
         recordMilestone("data_loaded", { edition, regionId, chunkId: regionId });
         const dateKey = trailDate();
@@ -1814,7 +3067,48 @@ export function GameApp() {
 
   // Review-deck status for the picker entry (flag-gated; re-read whenever
   // the app returns to the picker — see useDeckStatus).
-  const deckStatus = useDeckStatus(run);
+  const deckStatus = useDeckStatus(run, historyResetEpoch);
+
+  /**
+   * The "Start over" reset flow (manifest 2026-10-28, D4/D6/D13/D15):
+   * wipe the history stores via resetHistory(); only on a fully clean
+   * result (failed empty) drop the in-memory session, notify listeners,
+   * bump the epoch that remounts the home surfaces, and show the
+   * success toast. The run/drop pair is already gone at that point —
+   * resetHistory clears it from sessionStorage (D13), so a paused run
+   * can never re-seed a session after the wipe. A partial failure
+   * changes nothing on screen: the dialog stays open with its retry.
+   */
+  const handleResetHistory = useCallback((): ResetHistoryResult => {
+    const result = resetHistory();
+    if (result.failed.length === 0) {
+      replaceSession(null);
+      window.dispatchEvent(new CustomEvent("meridian:history-reset"));
+      setHistoryResetEpoch((n) => n + 1);
+      setResetToast(RESET_HISTORY_SUCCESS_TOAST);
+    }
+    return result;
+  }, [replaceSession]);
+
+  /**
+   * "Challenge a friend — pick a map" from the review-complete screen
+   * (manifest §1(e)). The review is finished, so the tap first runs
+   * the same exit as the screen's Editions button (clear the drop,
+   * end the run — the SESSION is untouched, no summary is fabricated:
+   * review answers never banked into one), then opens the shipped
+   * challenge-region mini-picker instead of the plain menu. The
+   * friendChallenges flag is re-read at tap time (click-atomic, the
+   * Package B precedent): if it flipped off after the screen booted,
+   * the tap degrades to the plain exit — never a trap, never a
+   * half-open picker. One state batch: Play unmounts and the menu
+   * branch mounts in the same commit, so there is no home flash.
+   */
+  const handleReviewChallenge = useCallback(() => {
+    setStartError(null);
+    clearDrop();
+    setRun(null);
+    setMenu(isEnabled("friendChallenges") ? { kind: "challengeRegions" } : null);
+  }, []);
 
   /**
    * Start a review session over the currently-due deck cards. The session is
@@ -1855,6 +3149,10 @@ export function GameApp() {
     clearDrop();
     setRun(null);
     setMenu(null);
+    // #188: the review session replaces the ended one — retire the
+    // switched notice here too, or it would resurface when the
+    // review lands back on Home.
+    setMapSwitchedNote(null);
     startReview();
   }, [startReview]);
 
@@ -1939,6 +3237,10 @@ export function GameApp() {
   // End game: the session's totals (not the run's) become the summary, and
   // the session ends — the next game starts a fresh one.
   const handleEndGame = useCallback((): SessionSummary | null => {
+    // Wave 1 P0 Item 1: a deliberate end never leaves a discarded-game
+    // record — the ended session is finished, not lost. (The ended
+    // write below clears the shadow too; this is belt-and-braces.)
+    clearDiscardedShadow();
     const dateKey = trailDate();
     const now = Date.now();
     let summary: SessionSummary | null = null;
@@ -2008,6 +3310,13 @@ export function GameApp() {
     };
   }, [getSession, killIdleSession, idleTimeoutMs, idleWarnMs]);
 
+  // Reset success toast: rendered in the run branch (ReviewComplete is
+  // a Play surface) and the home branch alike, like idleToast below.
+  const resetToastEl = resetToast ? (
+    <div className="agep-toast" role="status" data-testid="reset-history-toast">
+      {resetToast}
+    </div>
+  ) : null;
   // Non-blocking idle warning. Rendered on EVERY screen where a session
   // can be live — in-game and the edition picker alike — so the 2-minute
   // kick never surprises. (The "Editions" button leaves the run while the
@@ -2086,25 +3395,43 @@ export function GameApp() {
             setRun(null);
             setMenu(null);
           }}
+          onChallengeDone={handleChallengeDone}
+          onChallengeRetry={(route) => startPendingChallenge(route)}
           onSummaryDone={() => {
             // End game already ended the session; drop it and go home.
+            // 3C focus return rides the landHomeFocusRef effect: the flag
+            // below arms it, and the effect retries after every commit,
+            // clearing only once the home heading actually takes focus —
+            // so the return survives Choose mounting after this commit.
+            landHomeFocusRef.current = true;
             setStartError(null);
             clearDrop();
             setRun(null);
             setMenu(null);
             replaceSession(null);
+            // #188: session end retires the switched notice (same
+            // lifecycle rule as killIdleSession) — it must not carry
+            // into the fresh session the player starts from Home.
+            setMapSwitchedNote(null);
           }}
           onReplayed={() => {
             // Play again after End game: the old session ended with the
             // summary, so the replay starts a brand-new session.
             replaceSession(startSession(trailDate(), Date.now()));
+            // #188: a fresh session never inherits the old session's
+            // switched notice — same retirement as summary-done.
+            setMapSwitchedNote(null);
           }}
           onReviewDeck={handleReviewDeck}
+          onResetHistory={handleResetHistory}
+          onReviewChallenge={handleReviewChallenge}
           onCleared={(info) => setCleared(info)}
           mapMode={mapMode}
           onManualMapMode={handleManualMapMode}
           applyMapMode={applyMapMode}
           applySessionMapMode={applySessionMapMode}
+          scoutUpgradeEligible={scoutUpgradeEligible}
+          onScoutUpgrade={applyScoutUpgrade}
           celebrationOpen={cleared !== null}
           ageBand={ageBand}
         />
@@ -2140,6 +3467,7 @@ export function GameApp() {
         ) : null}
         {celebrationOverlay}
         {runStartNotice}
+        {resetToastEl}
         {idleToast}
       </>
     );
@@ -2152,7 +3480,7 @@ export function GameApp() {
     return (
       <>
         {mapModeAnnouncer}
-        <MapErrorBoundary>
+        <MapErrorBoundary surface="GeoDetective">
           <Suspense fallback={<SessionLoadingFallback label="Loading GeoDetective…" />}>
             <LoopScreen
               onLeave={() => { writeLoopOpen(false); setLoopOpen(false); }}
@@ -2173,7 +3501,7 @@ export function GameApp() {
     return (
       <>
         {mapModeAnnouncer}
-        <MapErrorBoundary>
+        <MapErrorBoundary surface="Cold Trail">
           <Suspense fallback={<SessionLoadingFallback label="Loading Cold Trail…" />}>
             <TrailScreen onLeave={() => { writeColdTrailOpen(false); setColdTrailOpen(false); }} />
           </Suspense>
@@ -2221,8 +3549,47 @@ export function GameApp() {
     )
   ) : null;
 
+  // Wave 1 P0 Item 1: the one shared discarded-run notice. When it is
+  // present it IS the idle card too (the inactivity copy keeps the old
+  // sentence verbatim, plus the played summary), so the old card is
+  // suppressed while it stands — home shows one notice, never two.
+  const discardedNoticeEl = discardedNotice ? (
+    <div
+      data-testid="discarded-notice"
+      className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4 text-sm text-fg"
+    >
+      <p>{discardedNoticeText(discardedNotice)}</p>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => {
+          setDiscardedNotice(null);
+          setIdleEndedNote(false);
+          // Fix round L1: dismissing the discarded notice lands focus
+          // on the home heading (the landHomeFocusRef target), not
+          // <body>. The idle notice's own Dismiss is untouched.
+          landHomeFocusRef.current = true;
+        }}
+      >
+        Dismiss
+      </Button>
+    </div>
+  ) : null;
+
+  // Fix round L2: the discarded notice's sole live region. Always
+  // rendered on home (never conditional on the notice), mirroring the
+  // map-mode announcer: the effect near the discardedNotice state
+  // fills it after mount and clears it on dismiss, so each notice is
+  // a real text change. The visible notice carries no live role, so
+  // this text is announced exactly once per notice, never twice.
+  const discardedNoticeAnnouncer = (
+    <p className="sr-only" role="status" data-testid="discarded-notice-announcer">
+      {discardedNoticeAnnouncement}
+    </p>
+  );
+
   // Shown once on the home screen after the idle kill.
-  const idleNotice = idleEndedNote ? (
+  const idleNotice = idleEndedNote && !discardedNotice ? (
     <div
       role="status"
       className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4 text-sm text-fg"
@@ -2277,6 +3644,158 @@ export function GameApp() {
     </div>
   ) : null;
 
+  // Friend-challenge boot notice: shown on Home when this boot followed
+  // a tapped `#c=` link that could not be loaded with the flag on (see
+  // challengeBootNotice above). role="status" makes it a live region, so
+  // a screen reader announces it as Home appears; it stays for the whole
+  // boot (no dismiss, no timer) because the link is already gone from
+  // the URL — this notice is the only record the failure happened.
+  const challengeBootNoticeEl = challengeBootNotice !== null ? (
+    <div
+      role="status"
+      data-testid="challenge-boot-notice"
+      className="mb-4 rounded-xl border border-line bg-surface p-4 text-base text-fg"
+    >
+      <p>{challengeBootNotice.title}</p>
+      {challengeBootNotice.detail ? (
+        <p className="mt-1">{challengeBootNotice.detail}</p>
+      ) : null}
+    </div>
+  ) : null;
+
+  // The received-challenge welcome card: an overlay on Home, shown
+  // only between a validated mc2 boot and the player's Start tap.
+  const challengeWelcomeEl = pendingChallenge ? (
+    <ChallengeWelcome
+      route={pendingChallenge.route}
+      hasSavedRun={pendingChallenge.hasSavedRun}
+      mapMode={welcomeMapPick ?? mapMode}
+      onMapModeSelect={setWelcomeMapPick}
+      onStart={() => startPendingChallenge()}
+      onDismiss={() => {
+        setWelcomeMapPick(null);
+        setPendingChallenge(null);
+      }}
+    />
+  ) : null;
+
+  // The creation preview sheet: what the friend will get, stated before
+  // anything is shared (the route is exact, so the sheet discloses it).
+  const challengePreviewEl = challengePreview ? (() => {
+    const { creation } = challengePreview;
+    const url = `${window.location.origin}${window.location.pathname}${creation.fragment}`;
+    const text = buildFreshChallengeShareText({
+      placeCount: creation.placeCount,
+      regionName: creation.regionName,
+      radiusKm: creation.radiusKm,
+      url,
+    });
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Challenge a friend"
+        data-testid="challenge-preview"
+      >
+        <div className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-2xl">
+          <h2 className="font-display text-2xl text-fg">Challenge a friend</h2>
+          <p className="mt-3 text-base text-fg">
+            {creation.placeCount} places in {creation.regionName}
+          </p>
+          <p className="mt-1 text-base text-muted">
+            Get inside the {creation.radiusKm} km circle — closer is better!
+          </p>
+          <p className="mt-2 text-base text-muted">{CHALLENGE_FAIRNESS_COPY}</p>
+          <p className="mt-2 text-base text-muted">
+            Your friend gets this exact route — the same {creation.placeCount} places, in this order.
+          </p>
+          <div className="mt-5 flex flex-col gap-2">
+            <div data-testid="challenge-share-container" data-challenge-url={url}>
+              <ShareButton
+                title="Meridian friend challenge"
+                text={text}
+                url={url}
+                label={CHALLENGE_SHARE_LABEL}
+                className="w-full"
+                failureFallback={
+                  <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap wrap-anywhere rounded-lg border border-line bg-bg px-4 py-3 font-sans text-sm leading-relaxed text-fg">
+                    {text}
+                  </pre>
+                }
+              />
+            </div>
+            <Button variant="secondary" onClick={() => setChallengePreview(null)}>
+              Back
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  })() : null;
+
+  if (menu?.kind === "challengeRegions") {
+    // The challenge region picker: every playable region with at least
+    // CHALLENGE_MIN_PLACES catalog places, grouped by edition. A state
+    // row deals THAT state; a country row deals THAT country — region
+    // fidelity is the whole point of mc2.
+    const globeCount = poolSizeFor("globe", "globe");
+    const countries = COUNTRIES.filter((c) => poolSizeFor("country", c.id) >= CHALLENGE_MIN_PLACES);
+    const states = STATES.filter((s) => poolSizeFor("state", s.id) >= CHALLENGE_MIN_PLACES);
+    const rowClass =
+      "flex min-h-11 items-center justify-between rounded-xl border border-line bg-surface px-4 py-3 text-left text-base text-fg";
+    const regionRow = (edition: Edition, region: Region) => (
+      <button
+        key={`${edition}:${region.id}`}
+        type="button"
+        className={rowClass}
+        onClick={withCardTap(region.id, () => void pickChallengeRegion(edition, region.id))}
+      >
+        <span>{region.name}</span>
+        <span className="text-sm text-muted">{poolSizeFor(edition, region.id)} places</span>
+      </button>
+    );
+    return (
+      <>
+        {mapModeAnnouncer}
+        <main className="mx-auto w-full max-w-3xl px-5 py-8">
+          <Button variant="secondary" onClick={() => setMenu(null)}>
+            Back
+          </Button>
+          <h1
+            ref={challengeMenuHeadingRef}
+            tabIndex={-1}
+            className="mt-4 font-display text-3xl text-fg"
+          >
+            Challenge a friend
+          </h1>
+          <p className="mt-2 text-base text-muted">
+            Pick a region. We deal {CHALLENGE_MIN_PLACES} places from it, and your friend plays
+            the same route.
+          </p>
+          {challengeBootNoticeEl}
+          {challengePickError ? (
+            <p role="status" className="mt-3 text-base text-fg">
+              {challengePickError}
+            </p>
+          ) : null}
+          <div className="mt-6 flex flex-col gap-2">
+            {globeCount >= CHALLENGE_MIN_PLACES
+              ? regionRow("globe", { id: "globe", name: "Globe", bounds: [0, 0, 0, 0] })
+              : null}
+            <h2 className="mt-4 text-sm tracking-wide text-muted uppercase">Countries</h2>
+            {countries.map((region) => regionRow("country", region))}
+            <h2 className="mt-4 text-sm tracking-wide text-muted uppercase">US states</h2>
+            {states.map((region) => regionRow("state", region))}
+          </div>
+        </main>
+        {celebrationOverlay}
+        {idleToast}
+        {challengePreviewEl}
+      </>
+    );
+  }
+
   if (menu?.kind === "countries") {
     // Only countries with a playable pool — never a dead end.
     const regions = COUNTRIES.filter((country) => poolSizeFor("country", country.id) > 0);
@@ -2287,7 +3806,7 @@ export function GameApp() {
         title="Country"
         subtitle="Play a country whole — or drill into its states where available."
         regions={regions}
-        notice={loadNotice}
+        notice={<>{challengeBootNoticeEl}{loadNotice}</>}
         onBack={() => setMenu(null)}
         onChoose={(region) => {
           const subdivisions = ADMIN1_BY_COUNTRY[region.id] ?? [];
@@ -2342,7 +3861,7 @@ export function GameApp() {
         title={menu.countryName}
         subtitle={`Play the whole ${menu.countryName}, or pick a state.`}
         regions={regions}
-        notice={loadNotice}
+        notice={<>{challengeBootNoticeEl}{loadNotice}</>}
         headerAction={{
           label: `Play entire ${menu.countryName}`,
           onClick: () => openRun("country", menu.countryId, menu.countryName, difficultyChoice),
@@ -2360,14 +3879,52 @@ export function GameApp() {
   // menu only. It never blocks play — every edition button stays one tap
   // away — and it appears at most once ever (the seen-flag persists).
   const showTutorialInvite = !inviteDismissed && !hasSeenTutorial();
+
+  // Capitals & Flags doorway (issue #344): each door opens its mode
+  // with the pack already selected, so the strip is a real entrance,
+  // not a signpost to the shelf. GeoDetective's selection lives in the
+  // loop store's active deck; Cold Trail reads the shared shelf
+  // selection at deal time. If the GeoDetective store cannot be
+  // prepared (no store yet and the manifest is unreachable), the door
+  // still opens GeoDetective — the shelf inside offers the pack.
+  const openLoopWithCapitalsPack = async () => {
+    if (isLoopLocked(ageBand, "geodetective")) return;
+    try {
+      const stored = readLoopStoreV2();
+      if (stored) {
+        writeLoopStoreV2(setActiveDeck(stored, FIRST_PACK_ID));
+      } else {
+        const size = await fetchLoopDeckSize();
+        if (size !== null) {
+          writeLoopStoreV2(setActiveDeck(loadLoopStore(size), FIRST_PACK_ID));
+        }
+      }
+    } catch {
+      // Selection is a convenience; opening the mode never waits on it.
+    }
+    window.dispatchEvent(
+      new CustomEvent("meridian:storyteller-sendoff", {
+        detail: { loop: "geodetective" },
+      }),
+    );
+    writeLoopOpen(true);
+    setLoopOpen(true);
+  };
+  const openTrailWithCapitalsPack = () => {
+    writeSelectedDeck("coldtrail", FIRST_PACK_ID);
+    writeColdTrailOpen(true);
+    setColdTrailOpen(true);
+  };
   return (
     <>
     {mapModeAnnouncer}
+    {challengeWelcomeEl}
     {/* While the grown-up gate/picker is open it is a full-viewport overlay:
         the home page underneath (incl. Comet's banner and the footer link)
         is inert — non-interactive and removed from the tab order. */}
     <div inert={ageSettingsOpen || undefined}>
     <Choose
+      key={historyResetEpoch}
       onState={withCardTap("State", () => setMenu({ kind: "states" }))}
       onCountry={withCardTap("Country", () => setMenu({ kind: "countries" }))}
       onGlobe={withCardTap("Globe", () => openRun("globe", "globe", "Globe", difficultyChoice))}
@@ -2389,6 +3946,17 @@ export function GameApp() {
         setLoopOpen(true);
       })}
       onColdTrail={withCardTap("coldtrail", () => { writeColdTrailOpen(true); setColdTrailOpen(true); })}      onReview={startReview}
+      doorway={
+        isLoopLocked(ageBand, "geodetective") ? null : (
+          <PackDoorway
+            onGeoDetective={() => void openLoopWithCapitalsPack()}
+            onColdTrail={openTrailWithCapitalsPack}
+          />
+        )
+      }
+      challengeEnabled={friendChallengesOn}
+      onChallenge={withCardTap("challenge", openChallengePicker)}
+      onResetHistory={handleResetHistory}
       deck={deckStatus}
       difficultyChoice={difficultyChoice}
       onDifficultyChoice={setDifficultyChoice}
@@ -2403,20 +3971,17 @@ export function GameApp() {
       onGrownUpOpen={openAgeSettings}
       headingRef={homeHeadingRef}
       mapModeControl={
-        // Block C: the map-mode control lives on Home too, beside a
-        // visible indicator of the current mode — Scout is seeable and
-        // reversible without starting (and discarding) a game.
-        <span className="inline-flex items-center gap-2">
-          <MapModeToggle context="home" mapMode={mapMode} onSelect={handleHomeMapMode} />
-          <span className="hv5-pill" data-testid="map-mode-indicator" data-mode={mapMode}>
-            {mapMode === "scout" ? "Scout Map" : "Full map"}
-          </span>
-        </span>
+        // Block C: the map-mode control lives on Home as a single unified
+        // pill button showing both the Layers icon and current mode label.
+        <MapModeToggle context="home" mapMode={mapMode} onSelect={handleHomeMapMode} />
       }
       notice={
         <>
+          {challengeBootNoticeEl}
           {mapSwitchedNotice}
           {autoScoutNotice}
+          {discardedNoticeAnnouncer}
+          {discardedNoticeEl}
           {idleNotice}
           {loadNotice}
         </>
@@ -2456,6 +4021,7 @@ export function GameApp() {
         {ageToast}
       </div>
     ) : null}
+    {resetToastEl}
     {celebrationOverlay}
     {idleToast}
     </>
@@ -2500,6 +4066,9 @@ function Choose({
   onLoop,
   onColdTrail,
   onReview,
+  onResetHistory,
+  challengeEnabled,
+  onChallenge,
   deck,
   notice,
   homeToast,
@@ -2512,6 +4081,7 @@ function Choose({
   onGrownUpOpen,
   headingRef,
   mapModeControl,
+  doorway,
 }: {
   onState: (e: ReactMouseEvent) => void;
   onCountry: (e: ReactMouseEvent) => void;
@@ -2526,6 +4096,12 @@ function Choose({
   onColdTrail: (e: ReactMouseEvent) => void;
   /** Start a review session over the due deck cards. */
   onReview: () => void;
+  /** Run the "Start over" history reset (GameApp owns the flow). */
+  onResetHistory: () => ResetHistoryResult;
+  /** Friend challenges on (flag): show the "Challenge a friend" entry. */
+  challengeEnabled?: boolean;
+  /** Open the challenge region picker. */
+  onChallenge?: (e: ReactMouseEvent) => void;
   /** Deck entry status (flag-gated; see useDeckStatus). */
   deck: { enabled: boolean; due: number; total: number };
   notice?: ReactNode;
@@ -2549,7 +4125,11 @@ function Choose({
   /** The map-mode toggle + current-mode indicator, hosted in the
    * hero's top row (Block C cure). GameApp owns the mode state and
    * the handlers; Choose only places the control. */
-  mapModeControl?: ReactNode;}) {
+  mapModeControl?: ReactNode;
+  /** Capitals & Flags doorway strip, rendered directly under the
+   * Expeditions Map card (issue #344). Null for bands where
+   * GeoDetective is locked. */
+  doorway?: ReactNode;}) {
   // GeoDetective progress for the edition card: the resume variant and the
   // streak line. Read on mount (the menu remounts when the loop screen
   // closes, so this is always fresh on return).
@@ -2660,11 +4240,8 @@ function Choose({
       {notice}
       {tutorialInvite}
       {/* v5 top nav. ABOUT and JOURNAL jump to the sections at the bottom
-          of the home page. Search has no surface yet. */}
+          of the home page. */}
       <header className="hv5-nav home-rise" style={rise(0)}>
-        <span id="hv5-unmapped-note" className="sr-only">
-          Not yet available
-        </span>
         <button
           type="button"
           className="hv5-brand"
@@ -2684,8 +4261,9 @@ function Choose({
             <svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true"><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" fill="none" strokeWidth="1.5" /></svg>
           </button>
           <button type="button" onClick={() => scrollTo("home-about")}>ABOUT</button>
+          <Link to="/contact" data-testid="nav-contact-link">CONTACT</Link>
           <button type="button" onClick={() => scrollTo("home-journal")}>JOURNAL</button>
-          <button type="button" onClick={() => scrollTo("home-involved")}>GET INVOLVED</button>
+          <button type="button" onClick={() => scrollTo("home-grownups")}>GET INVOLVED</button>
         </nav>
         <div className="hv5-actions">
           <button
@@ -2695,9 +4273,6 @@ function Choose({
           >
             JOIN THE JOURNEY
             <svg width="15" height="11" viewBox="0 0 15 11" aria-hidden="true"><path d="M1 5.5h12M9 1l4.5 4.5L9 10" stroke="currentColor" fill="none" strokeWidth="1.7" /></svg>
-          </button>
-          <button type="button" className="hv5-icon-btn" aria-label="Search" aria-disabled="true" aria-describedby="hv5-unmapped-note">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#33302A" strokeWidth="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5L21 21" strokeLinecap="round" /></svg>
           </button>
         </div>
       </header>
@@ -2722,6 +4297,7 @@ function Choose({
             </p>
             <CometEmblem />
             <SoundToggle testId="sound-toggle" className="atlas-sound-toggle" />
+            <HighContrastToggle testId="high-contrast-toggle" className="atlas-sound-toggle" />
             {mapModeControl}
             {/* Storyteller banner host (owner directive 2026-10-09): the
                 figure sits in the hero beside the branding — always visible,
@@ -2852,26 +4428,39 @@ function Choose({
             <path d="M248 97 C244 97 242 100 242 102.4 C242 106 248 110.6 248 110.6 C248 110.6 254 106 254 102.4 C254 100 252 97 248 97 Z" fill="#EFEAD6" />
           </svg>
           <div className="hv5-editions">
-            <button type="button" className="hv5-edition" onClick={onState} onPointerEnter={prefetchTerritoryData} onPointerDown={prefetchTerritoryData} onFocus={prefetchTerritoryData}>
+            <button type="button" className="hv5-edition" onClick={onState} onPointerEnter={prefetchTerritoryData} onPointerDown={prefetchTerritoryData} onFocus={prefetchTerritoryDataOnFocus}>
               <span className="hv5-idx">N° 01</span>
               <MapPin className="size-5" aria-hidden="true" />
               <span className="hv5-etitle">State</span>
               <span className="hv5-eaction">Choose a state</span>
             </button>
-            <button type="button" className="hv5-edition" onClick={onCountry} onPointerEnter={prefetchTerritoryData} onPointerDown={prefetchTerritoryData} onFocus={prefetchTerritoryData}>
+            <button type="button" className="hv5-edition" onClick={onCountry} onPointerEnter={prefetchTerritoryData} onPointerDown={prefetchTerritoryData} onFocus={prefetchTerritoryDataOnFocus}>
               <span className="hv5-idx">N° 02</span>
               <Flag className="size-5" aria-hidden="true" />
               <span className="hv5-etitle">Country</span>
               <span className="hv5-eaction">Choose a country</span>
             </button>
-            <button type="button" className="hv5-edition" onClick={onGlobe} onPointerEnter={prefetchTerritoryData} onPointerDown={prefetchTerritoryData} onFocus={prefetchTerritoryData}>
+            <button type="button" className="hv5-edition" onClick={onGlobe} onPointerEnter={prefetchTerritoryData} onPointerDown={prefetchTerritoryData} onFocus={prefetchTerritoryDataOnFocus}>
               <span className="hv5-idx">N° 03</span>
               <Globe2 className="size-5" aria-hidden="true" />
               <span className="hv5-etitle">Globe</span>
               <span className="hv5-eaction">Play the globe</span>
             </button>
           </div>
+          {challengeEnabled ? (
+            <Button
+              variant="secondary"
+              className="mt-3 w-full"
+              onClick={onChallenge}
+              data-testid="challenge-a-friend"
+            >
+              Challenge a friend
+            </Button>
+          ) : null}
         </div>
+        {/* Capitals & Flags doorway: directly under the Expeditions
+            Map card, per the ratified design (issue #344). */}
+        {doorway}
         </div>
 
       <div className="hv5-grid2" id="home-cases" tabIndex={-1}>
@@ -2892,7 +4481,11 @@ function Choose({
               with the image. The card action is the stretched CTA below
               (Form S): the card itself cannot be the <button> because
               EarnedBadgeRow renders real badge <button>s inside it. */}
-          <LazyHomeImage className="hv5-pic" src={desertRuinsUrl} alt="" ariaHidden />
+          {/* Card film (feat/home-card-films): the slot now plays the
+              GeoDetective reshoot film once, governed by CardFilm
+              (reduced-motion / Save-Data / low-memory / error all land
+              on the owner's still image). Media: card-media.ts. */}
+          <CardFilm className="hv5-pic" media={GEODETECTIVE_FILM} testId="card-film-geodetective" />
           <div className="hv5-txt">
             <div className="hv5-head">
               <span className="hv5-badge">
@@ -2919,7 +4512,7 @@ function Choose({
               onClick={onLoop}
               onPointerEnter={prefetchTerritoryData}
               onPointerDown={prefetchTerritoryData}
-              onFocus={prefetchTerritoryData}
+              onFocus={prefetchTerritoryDataOnFocus}
               aria-label={loopProgress.inProgress ? "GeoDetective: Resume your case" : "GeoDetective: Solve a mystery"}
             >
               {loopProgress.inProgress ? (
@@ -2940,7 +4533,11 @@ function Choose({
           {/* Variant A, same as GeoDetective: image first in DOM order;
               whole-card action via the stretched CTA (Form S, shared form
               so both game cards behave identically). */}
-          <LazyHomeImage className="hv5-pic" src={patagoniaUrl} alt="" ariaHidden />
+          {/* Card film, same shared component as GeoDetective: Jolly
+              walks the footprint trail (character motion, not a camera
+              move — the owner's 2026-11-02 correction). Media:
+              card-media.ts. */}
+          <CardFilm className="hv5-pic" media={coldtrailMediaForBand(ageBand)} testId="card-film-coldtrail" />
           <div className="hv5-txt">
             <div className="hv5-head">
               <span className="hv5-badge">
@@ -2952,8 +4549,8 @@ function Choose({
               Cold Trail<span className="hv5-chip">New</span>
             </h2>
             <p>
-              A smuggler moves between cities. Three sightings, three rings — tap where
-              they cross to make the interception.
+              Jolly was spotted in the snow. Three sightings, three rings — tap where
+              they cross to reach Jolly before the trail freezes.
             </p>
             <button
               type="button"
@@ -2961,7 +4558,7 @@ function Choose({
               onClick={onColdTrail}
               onPointerEnter={prefetchTerritoryData}
               onPointerDown={prefetchTerritoryData}
-              onFocus={prefetchTerritoryData}
+              onFocus={prefetchTerritoryDataOnFocus}
               aria-label="Cold Trail: Start the trail"
             >
               <span aria-hidden="true">❄️</span>{" "}Start the trail
@@ -2980,6 +4577,7 @@ function Choose({
             data-testid="tour-stop-review"
             id="home-review"
           >
+            <CardFilm className="hv5-art" media={reviewMediaForBand(ageBand)} testId="card-film-review" />
             <div className="hv5-txt">
               <div className="hv5-head">
                 <span className="hv5-badge">
@@ -2994,22 +4592,53 @@ function Choose({
                   <p style={{ fontWeight: 700, color: "var(--hv5-ink)" }} data-testid="deck-due-count">
                     {deck.due} {deck.due === 1 ? "card" : "cards"} due
                   </p>
-                  {/* Whole-card action (Form S): the CTA stretches over
-                      the card via .hv5-stretch; the REVIEW → pill is the
-                      visible discoverability cue (aria-hidden, pointer-
-                      events none — taps pass through to the CTA). */}
-                  <button type="button" className="hv5-go hv5-stretch" onClick={onReview} aria-label="Review my misses: Start review">
-                    {REVIEW_DECK_COPY.startReview}
-                  </button>
-                  <span className="hv5-review-cue" aria-hidden="true">REVIEW →</span>
+                  {/* Action stack (action-model manifest 2026-10-29;
+                      redundancy addendum 2026-10-29): the card is NOT
+                      a whole-card button any more. Two explicit
+                      controls in DOM = visual = tab order: the filled
+                      primary, then Start over in the danger footer.
+                      The card's former challenge pill was REMOVED by
+                      the owner's redundancy ruling — it merely
+                      re-opened the generic picker, whose own full
+                      "Challenge a friend" button (above, in the
+                      Expeditions section) is the canonical entry;
+                      the contextual entries (summary route, mid-run,
+                      reveal, review-complete, pass-along) stay. */}
+                  <div className="hv5-review-stack">
+                    <div className="hv5-review-actions">
+                      <button type="button" className="hv5-btn hv5-btn-brown" onClick={onReview} aria-label="Review my misses: Start review">
+                        {REVIEW_DECK_COPY.startReview}
+                      </button>
+                    </div>
+                    {/* "Start over" reset entry (manifest 2026-10-28
+                        D10): renders whenever the deck holds any card
+                        (due OR caught-up). Last on the card, alone in
+                        a hairline-separated danger footer — the
+                        destructive action shares neither a row nor a
+                        look with play/share. */}
+                    <div className="hv5-review-danger">
+                      <ResetHistoryControl onReset={onResetHistory} />
+                    </div>
+                  </div>
                 </>
               ) : deck.total > 0 ? (
-                <p>{REVIEW_DECK_COPY.pickerCaughtUp}</p>
+                <>
+                  <p>{REVIEW_DECK_COPY.pickerCaughtUp}</p>
+                  {/* Caught-up carries no play action; the stack is
+                      the danger footer alone (Start over, D10). The
+                      challenge pill that used to sit above it was
+                      removed with the due state's by the owner's
+                      redundancy ruling (addendum 2026-10-29). */}
+                  <div className="hv5-review-stack">
+                    <div className="hv5-review-danger">
+                      <ResetHistoryControl onReset={onResetHistory} />
+                    </div>
+                  </div>
+                </>
               ) : (
                 <p>{REVIEW_DECK_COPY.pickerEmpty}</p>
               )}
             </div>
-            <LazyHomeImage className="hv5-art" src={archiveToolsUrl} alt="" ariaHidden />
           </section>
         ) : (
           <div aria-hidden="true" />
@@ -3019,6 +4648,7 @@ function Choose({
             deferred while focus is inside this card or the journal
             section (spec §6). */}
         <article className="hv5-card hv5-spot hv5-journal home-rise" style={rise(7)} data-testid="journal-card">
+          <CardFilm className="hv5-art" media={JOURNAL_FILM} testId="card-film-journal" />
           <div className="hv5-txt">
             <div className="hv5-head">
               <span className="hv5-badge">
@@ -3035,13 +4665,13 @@ function Choose({
                   : `Now showing: ${journalEntry.geography} · ${journalEntry.notes.length} field notes`}
               </p>
             ) : null}
-            <button type="button" className="hv5-go" data-testid="journal-open" onClick={() => scrollTo("home-journal")}>
+            <button type="button" className="hv5-go hv5-stretch" data-testid="journal-open" onClick={() => scrollTo("home-journal")}>
               READ THE ENTRY
             </button>
           </div>
-          <LazyHomeImage className="hv5-art" src={journalTreeUrl} alt="" ariaHidden />
         </article>
-        <article className="hv5-card hv5-spot hv5-involved home-rise" style={rise(7)}>
+        <article id="home-grownups" tabIndex={-1} className="hv5-card hv5-spot hv5-involved home-rise" style={rise(7)} data-testid="grownups-card">
+          <CardFilm className="hv5-art" media={GROWNUPS_FILM} testId="card-film-grownups" />
           <div className="hv5-txt">
             <div className="hv5-head">
               <span className="hv5-badge">
@@ -3055,12 +4685,11 @@ function Choose({
               Read our <Link to="/privacy">privacy notice</Link> or{" "}
               <Link to="/contact">contact us</Link>.
             </p>
-            <button type="button" className="hv5-btn hv5-btn-brown" onClick={onGrownUpOpen}>
+            <button type="button" className="hv5-btn hv5-btn-brown hv5-stretch" data-testid="grownups-card-open" onClick={onGrownUpOpen}>
               JOIN US
               <svg width="14" height="10" viewBox="0 0 15 11" aria-hidden="true"><path d="M1 5.5h12M9 1l4.5 4.5L9 10" stroke="currentColor" fill="none" strokeWidth="1.7" /></svg>
             </button>
           </div>
-          <LazyHomeImage className="hv5-art" src={binocularsHatUrl} alt="" ariaHidden />
         </article>
       </div>
 
@@ -3213,6 +4842,140 @@ function AtlasBackdrop() {
 }
 
 /**
+ * Locked player-facing copy for the "Start over" reset (manifest
+ * 2026-10-28 §4 — byte-exact; do not paraphrase, punctuate, or
+ * re-wrap in code or tests).
+ */
+const RESET_HISTORY_COPY = {
+  opener: "Start over",
+  title: "Start over?",
+  sub: "This clears your misses to practise again, every place you have seen or cleared, your learning growth, your GeoDetective streaks and solved cases, your Cold Trail case and stars, any game you left in the middle, and your score for today. Your badges stay. Your grown-up choices stay. This cannot be undone.",
+  confirm: "Yes, start over",
+  cancel: "Keep my history",
+  partial: "Some things could not be cleared. Try again.",
+} as const;
+
+/** The reset success toast (manifest 2026-10-28 §4, locked). */
+const RESET_HISTORY_SUCCESS_TOAST = "All cleared. You are starting fresh.";
+
+/**
+ * The reset entry point shared by both surfaces (home Review card and
+ * ReviewComplete): an opener button plus ONE role="alertdialog" confirm
+ * mirroring AgeProfileSettings — focus moves into the dialog on open,
+ * Esc means "no change", and focus returns to the opener on a
+ * no-change close. Nothing is deleted before the confirm. A partial
+ * failure keeps the dialog open with the locked partial line and the
+ * danger button becomes the retry; on success the opener unmounts with
+ * the wiped surface, so there is no focus return (the host shows the
+ * success toast instead).
+ */
+function ResetHistoryControl({
+  onReset,
+}: {
+  /** Run the reset; the result decides close-vs-retry. */
+  onReset: () => ResetHistoryResult;
+}) {
+  const [open, setOpen] = useState(false);
+  const [partial, setPartial] = useState(false);
+  const openerRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  // Focus moves into the dialog when it opens (the AgeProfileSettings
+  // pattern) — this is also what lets the dialog's Esc handler fire.
+  useEffect(() => {
+    if (open) dialogRef.current?.focus({ preventScroll: true });
+  }, [open ]);
+
+  const closeWithoutChange = useCallback(() => {
+    setOpen(false);
+    setPartial(false);
+    const opener = openerRef.current;
+    if (opener && document.contains(opener)) {
+      // The dialog unmounts on the next paint — return focus after
+      // that, without scrolling the page (closeAgeSettings pattern).
+      requestAnimationFrame(() => {
+        if (document.contains(opener)) opener.focus({ preventScroll: true });
+      });
+    }
+  }, []);
+
+  const confirm = useCallback(() => {
+    const result = onReset();
+    if (result.failed.length > 0) {
+      // Honest partial failure (D4): stay open, name it, offer retry.
+      setPartial(true);
+      return;
+    }
+    setOpen(false);
+    setPartial(false);
+  }, [onReset]);
+
+  return (
+    <>
+      <button
+        type="button"
+        ref={openerRef}
+        className="reset-history-open"
+        data-testid="reset-history-open"
+        onClick={() => setOpen(true)}
+      >
+        {RESET_HISTORY_COPY.opener}
+      </button>
+      {/* The dialog renders through a portal at the document root (the
+          AgeProfileSettings placement): inside the review card, the
+          text column is a flex item with z-index 1, which caps the
+          dialog's own z-index below the sibling cards' stretch layers
+          — their buttons would paint and hit-test over the dialog. */}
+      {open
+        ? createPortal(
+            <div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="reset-history-title"
+              className="agep-screen"
+              data-testid="reset-history-confirm"
+              ref={dialogRef}
+              tabIndex={-1}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") closeWithoutChange();
+              }}
+            >
+              <h1 id="reset-history-title" className="agep-h1">
+                {RESET_HISTORY_COPY.title}
+              </h1>
+              <p className="agep-sub">{RESET_HISTORY_COPY.sub}</p>
+              {partial ? (
+                <p className="agep-note" role="alert">
+                  {RESET_HISTORY_COPY.partial}
+                </p>
+              ) : null}
+              <div className="agep-actions">
+                <button
+                  type="button"
+                  className="agep-danger"
+                  data-testid="reset-history-confirm-clear"
+                  onClick={confirm}
+                >
+                  {RESET_HISTORY_COPY.confirm}
+                </button>
+                <button
+                  type="button"
+                  className="agep-ghost"
+                  data-testid="reset-history-cancel"
+                  onClick={closeWithoutChange}
+                >
+                  {RESET_HISTORY_COPY.cancel}
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+/**
  * End of a review session: the due queue is exhausted. Bounded and
  * completable by design (ADHD-friendly). Cards answered correctly come
  * back later — further out every time; missed cards are due again right
@@ -3222,10 +4985,19 @@ function ReviewComplete({
   results,
   total,
   onDone,
+  onResetHistory,
+  onChallengeFriend,
 }: {
   results: PlaceResult[];
   total: number;
   onDone: () => void;
+  /** Present only when the deck still holds cards (fresh read, D16). */
+  onResetHistory?: () => ResetHistoryResult;
+  /** Present only while the friendChallenges flag is on (manifest
+   * §1(e)): the review-surface challenge entry. Unlike the reset
+   * entry it is NOT deck-gated — it deals fresh from the picked
+   * region, never from the deck, so an empty deck is fine here. */
+  onChallengeFriend?: () => void;
 }) {
   const remembered = results.filter((r) => r.hit).length;
   return (
@@ -3245,8 +5017,866 @@ function ReviewComplete({
             ? "Each card comes back later — further out every time you get it right."
             : "The ones you missed are due again right away. One more round locks them in."}
       </p>
-      <div className="mt-6">
+      <div className="mt-6 flex flex-col items-start gap-3">
         <Button onClick={onDone}>{REVIEW_DECK_COPY.backToEditions}</Button>
+        {/* "Challenge a friend — pick a map" (manifest §1(e)): the
+            review is finished, so this door leaves it — the GameApp
+            handler runs the Editions exit and opens the shipped
+            region mini-picker in one act. Secondary beside the
+            primary exit: the review's own flow stays the headline. */}
+        {onChallengeFriend ? (
+          <Button
+            variant="secondary"
+            onClick={onChallengeFriend}
+            data-testid="review-challenge-a-friend"
+          >
+            {CHALLENGE_REVIEW_LABEL}
+          </Button>
+        ) : null}
+        {onResetHistory ? <ResetHistoryControl onReset={onResetHistory} /> : null}
+      </div>
+    </main>
+  );
+}
+
+/**
+ * The mc2 welcome card (Package A): shown on Home after a challenge
+ * link validates, BEFORE anything is displaced. It states the route
+ * (places + region), the circle, the fairness line, and — when the
+ * player has a game in progress — that their game is saved and waiting.
+ * One action: Start. The displacement commits on that tap, never on
+ * the link's arrival (manifest C6).
+ */
+function ChallengeWelcome({
+  route,
+  hasSavedRun,
+  mapMode,
+  onMapModeSelect,
+  onStart,
+  onDismiss,
+}: {
+  route: ChallengeRoute;
+  hasSavedRun: boolean;
+  /** The map this challenge will be played on, resolved before the
+   * card showed (stored manual record, else the boot capability
+   * qualification) — or the player's staged flip of it. Flipping
+   * here, at challenge open, is the one moment a switch costs
+   * nothing (owner ruling, 2026-10-29); the pick is staged, and
+   * Start commits it as the player's saved manual map choice. */
+  mapMode: MapMode;
+  onMapModeSelect: (mode: MapMode) => void;
+  onStart: () => void;
+  /** Declining is free: nothing is committed, no save is touched — the
+   * displacement bargain (C6) binds only the Start tap. */
+  onDismiss: () => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    dialogRef.current?.focus({ preventScroll: true });
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onDismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onDismiss]);
+  const scout = mapMode === "scout";
+  const flipMap = useCallback(() => {
+    onMapModeSelect(scout ? "full" : "scout");
+  }, [scout, onMapModeSelect]);
+  const onMapSwitchKey = useCallback(
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        flipMap();
+      }
+    },
+    [flipMap],
+  );
+  return (
+    <div
+      ref={dialogRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={CHALLENGE_WELCOME_TITLE}
+      data-testid="challenge-welcome"
+    >
+      <div className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-2xl">
+        <h2 className="font-display text-2xl text-fg">{CHALLENGE_WELCOME_TITLE}</h2>
+        {/* Grouped blocks (governing manifest §Q3): Context first —
+            title, then the locked fairness line, then the task — then
+            the Stakes goal card (Package B, when the link carries a
+            winner block), then the Action block: map row, disclosure,
+            Start / Not now. */}
+        <p className="mt-3 text-base text-muted">{CHALLENGE_FAIRNESS_COPY}</p>
+        <p className="mt-2 text-base text-fg">
+          Find {route.ids.length} places in {route.regionName}. Get inside the{" "}
+          {route.radiusKm} km circle — closer is better!
+        </p>
+        {hasSavedRun ? (
+          <p className="mt-2 text-base text-muted">
+            Your game in progress is saved — it will be waiting when you finish.
+          </p>
+        ) : null}
+        {/* Stakes (governing manifest §Q3, Package B): one goal card
+            when the link carries a winner block. The bar is always
+            bestScore; the sender's own score nests under it only when
+            someone else set the mark. Attempts appears NOWHERE on
+            this card (§Q4's display ruling). */}
+        {route.winner ? (
+          <div
+            className="mt-4 rounded-xl border border-line px-3 py-2.5"
+            data-testid="challenge-welcome-goal"
+          >
+            <p className="text-base font-semibold text-fg">
+              🎯 Beat {route.winner.bestScore.toLocaleString("en-US")} — the best score
+              yet on this route.
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {route.winner.senderScore < route.winner.bestScore
+                ? `Your friend scored ${route.winner.senderScore.toLocaleString("en-US")} on this one.`
+                : "Your friend set it."}
+            </p>
+          </div>
+        ) : null}
+        {/* The map pick (owner ruling, 2026-10-29): the mode the boot
+            resolved for this device, shown before Start — and the one
+            place a challenge receiver can change it, because the
+            in-challenge toggle can no longer switch (it used to force
+            home and kill the challenge). Flipping only stages the
+            pick; Start commits it, "Not now" drops it — declining
+            commits nothing. The switch's hit area is at least 44px
+            tall (the accessibility floor) even though the visual
+            track is 24px. */}
+        <div className="mt-4 rounded-xl border border-line px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-base text-fg">
+              {SCOUT_COPY.welcome.label}:{" "}
+              <span data-testid="challenge-welcome-map-mode" data-mode={mapMode}>
+                {scout ? "Scout Map" : "Full map"}
+              </span>
+            </span>
+            <div
+              role="switch"
+              aria-checked={scout}
+              aria-label={SCOUT_COPY.toggle.label}
+              tabIndex={0}
+              data-testid="challenge-welcome-map-switch"
+              onClick={flipMap}
+              onKeyDown={onMapSwitchKey}
+              className="flex min-h-[44px] min-w-[44px] shrink-0 cursor-pointer items-center justify-end gap-2 rounded-lg px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg"
+            >
+              <span className="text-sm font-medium text-muted">{scout ? "On" : "Off"}</span>
+              <span
+                aria-hidden="true"
+                className={`flex h-6 w-11 items-center rounded-full px-0.5 transition-colors ${scout ? "justify-end bg-[#f2c14e]" : "justify-start bg-black/15"}`}
+              >
+                <span className="h-5 w-5 rounded-full bg-white shadow" />
+              </span>
+            </div>
+          </div>
+          <p className="mt-1.5 text-sm text-muted">{SCOUT_COPY.welcome.note}</p>
+        </div>
+        {/* The honesty disclosure (§Q3): last before the buttons,
+            only when a score is being attested. The number in a link
+            is the sender's word — the game cannot check it, and says
+            so before the receiver commits to the chase. */}
+        {route.winner ? (
+          <p className="mt-3 text-sm text-muted" data-testid="challenge-welcome-disclosure">
+            One honest note: this score is your friend's word — Meridian can't check
+            scores sent in links.
+          </p>
+        ) : null}
+        <Button className="mt-5 w-full" onClick={onStart} data-testid="challenge-start">
+          Start
+        </Button>
+        <Button
+          variant="secondary"
+          className="mt-2 w-full"
+          onClick={onDismiss}
+          data-testid="challenge-not-now"
+        >
+          Not now
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The verdict (governing manifest §Q4, Package B) — shown when the
+ * completed route carried a winner block. Presentation only: the
+ * taxonomy, copy, and mint were decided by challenge-verdict.ts and
+ * ChallengeComplete; this component renders them under the veto-
+ * rewritten motion spec (final scores at frame 0, no count-up ever;
+ * the bar sweeps by transform; the verdict word fades at ~650 ms;
+ * reduced motion = every final state, static; a tap, any keydown,
+ * or the settle timer settles — late interactive elements are inert
+ * until then, so nothing is focusable while invisible (A-291-3);
+ * focus goes to the heading on mount and never moves again).
+ */
+function ChallengeVerdict({
+  run,
+  winner,
+  completion,
+  regionCatalog,
+  settled,
+  settledByGesture,
+}: {
+  run: Run;
+  winner: ChallengeWinner;
+  completion: { attempts: number; minted: ReturnType<typeof mintWinnerBlock> };
+  regionCatalog?: readonly Starter[] | null;
+  /** Choreography settled (tap, any key, or the settle timer) —
+   * until then the late-arriving interactive elements are inert,
+   * so nothing is focusable while invisible (A-291-3). */
+  settled: boolean;
+  /** Settled by a player gesture (tap or keydown) rather than the
+   * auto-settle timer. The Grandpa clip's pause subscribes to THIS
+   * flag only (PR #295 cure round 2 — the timer carries no intent
+   * to stop motion); nothing else consumes it. */
+  settledByGesture: boolean;
+}) {
+  const mine = run.results.reduce((s, r) => s + r.score, 0);
+  const n = run.poolIds.length;
+  // The quoted ceiling is the route's REAL max (owner D2 amendment,
+  // 2026-11-01): each stop at its own tier, summed in play order —
+  // the tier-blind codec bound (routeCeiling) would quote a
+  // "possible" no perfect run could reach on an easy route. When a
+  // place's tier can't be resolved from the catalog, the codec bound
+  // stands for the whole route (never a fabricated per-stop number).
+  const routeDifficulties = run.poolIds.map(
+    (id) => regionCatalog?.find((p) => p.id === id)?.difficulty ?? null,
+  );
+  const ceiling = routeDifficulties.every((d) => d !== null)
+    ? routeTierCeiling(routeDifficulties as Difficulty[])
+    : routeCeiling(n);
+  const cls = classifyVerdict(mine, winner.bestScore);
+  const myHits = run.results.filter((r) => r.hit).length;
+  const theirHits = run.poolIds.reduce(
+    (count, _id, i) => count + (((winner.senderMask >> (15 - i)) & 1) === 1 ? 1 : 0),
+    0,
+  );
+  // Place names for the strip: every dot carries its place's name
+  // (aria always; visible on tap/focus). If any name can't be
+  // resolved, the strip ships as header counts only — the manifest's
+  // own fallback — rather than naming some stops and not others.
+  const names = run.poolIds.map(
+    (id) => regionCatalog?.find((p) => p.id === id)?.name ?? null,
+  );
+  const stripNames = names.every((name) => name !== null) ? (names as string[]) : null;
+  const bothMissed = stripNames
+    ? run.poolIds
+        .map((_id, i) => ({ i, name: stripNames[i]! }))
+        .filter(
+          ({ i }) =>
+            !run.results[i]?.hit && ((winner.senderMask >> (15 - i)) & 1) === 0,
+        )
+        .map(({ name }) => name)
+    : [];
+  const duelLine = verdictDuelLine(mine, winner);
+  const facts = verdictAttemptsFacts({
+    winner,
+    ownCompletions: completion.attempts,
+    farmingGuardBound: completion.minted.farmingGuardBound,
+  });
+  const [announce, setAnnounce] = useState("");
+  // The Grandpa clip at the top of the screen is decoration, so it
+  // follows the same reduced-motion rule as the rest of the verdict
+  // choreography: reduced motion gets the still keyframe, never a
+  // moving picture (see the render below).
+  const reducedMotion = usePrefersReducedMotion();
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  // WCAG 2.2.2 cure (panel BLOCK 2 on PR #295): the looping clip
+  // needs a stop mechanism beside the text kids read. Two of them,
+  // complementary: (1) when the player settles the choreography
+  // with a gesture — a tap or a keydown — the clip pauses and holds
+  // its frame; (2) the overlay toggle rendered with the video
+  // pauses/plays it at any moment, and is on its own the
+  // always-available stop 2.2.2 asks for. The auto-settle timer
+  // does NOT pause the clip (cure round 2, panel re-vote on
+  // PR #295): the timer is not a gesture and carries no intent to
+  // stop motion, so the clip keeps playing through the default
+  // reading dwell — this effect subscribes to ChallengeComplete's
+  // gesture latch, never to the undifferentiated settled flag.
+  // clipPaused is driven by the element's own play/pause events,
+  // so the toggle's label always matches what the clip is doing.
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [clipPaused, setClipPaused] = useState(false);
+  useEffect(() => {
+    if (settledByGesture) videoRef.current?.pause();
+  }, [settledByGesture]);
+  const toggleClip = () => {
+    const clip = videoRef.current;
+    if (!clip) return;
+    if (clip.paused) {
+      // A rejected play() (autoplay policy, interrupted load) must
+      // not surface as an unhandled rejection — the clip simply
+      // stays paused, and the toggle's label already says so.
+      clip.play().catch(() => {});
+    } else {
+      clip.pause();
+    }
+  };
+  useEffect(() => {
+    headingRef.current?.focus({ preventScroll: true });
+    // The one aria-live sentence fires AT the verdict-word point
+    // (~650 ms in full motion; immediately under reduced motion).
+    const sentence = verdictAriaSentence({
+      cls, mine, best: winner.bestScore, myHits, placeCount: n, ceiling,
+    });
+    const reduced =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      setAnnounce(sentence);
+      return;
+    }
+    const t = setTimeout(() => setAnnounce(sentence), 650);
+    return () => clearTimeout(t);
+    // Mount-only: the verdict is computed once, from the finished run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const fillPct = Math.min(100, (mine / ceiling) * 100);
+  const tickPct = Math.min(100, (winner.bestScore / ceiling) * 100);
+  return (
+    <div>
+      <p className="sr-only" aria-live="polite">
+        {announce}
+      </p>
+      {/* "Grandpa Was Already There" (owner's dispatch, 2026-11-01):
+          the animated keyframe sits at the top of every verdict —
+          win, hold, near-miss, and loss alike. The clip itself is
+          decorative (aria-hidden, never focusable), so it cannot
+          disturb the aria-live announcement above or the focus
+          order. Two stop mechanisms keep the loop honest beside the
+          verdict text (WCAG 2.2.2, panel cure on PR #295): a tap or
+          keydown that settles the choreography pauses it (see the
+          effect above — the auto-settle timer deliberately does
+          not), and the corner toggle pauses/plays it at any time —
+          that toggle is a media control for this clip, not a
+          feature entry. Both
+          branches reserve the 3:2 box (aspect-[3/2]) so the headline
+          and score bar never shift when the media loads (CLS, panel
+          cure on PR #295). The poster shows until the clip can play,
+          and under reduced motion the still keyframe renders instead
+          of the video. The asset itself is swapped in
+          grandpa-media.ts, never here. */}
+      {reducedMotion ? (
+        <img
+          src={VERDICT_GRANDPA_POSTER_URL}
+          alt=""
+          aria-hidden="true"
+          data-testid="challenge-verdict-grandpa"
+          className="mb-4 aspect-[3/2] w-full max-w-md rounded-2xl"
+        />
+      ) : (
+        <div className="relative mb-4 w-full max-w-md">
+          <video
+            ref={videoRef}
+            src={VERDICT_GRANDPA_VIDEO_URL}
+            poster={VERDICT_GRANDPA_POSTER_URL}
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden="true"
+            data-testid="challenge-verdict-grandpa"
+            className="block aspect-[3/2] w-full rounded-2xl"
+            onPlay={() => setClipPaused(false)}
+            onPause={() => setClipPaused(true)}
+          />
+          <button
+            type="button"
+            onClick={toggleClip}
+            onKeyDown={(e) => {
+              // The activation key belongs to this control: without
+              // this, the screen's any-keydown settle would pause the
+              // clip in the same gesture, and the click that follows
+              // would read "paused" and play it again — the opposite
+              // of the press. Other keys still settle as designed.
+              if (e.key === " " || e.key === "Enter") e.stopPropagation();
+            }}
+            aria-pressed={clipPaused}
+            aria-label={clipPaused ? "Play the cartoon" : "Pause the cartoon"}
+            data-testid="challenge-verdict-grandpa-toggle"
+            className="absolute top-2 right-2 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/65 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            {clipPaused ? (
+              <span
+                aria-hidden="true"
+                className="ml-0.5 h-0 w-0 border-y-[7px] border-l-[11px] border-y-transparent border-l-white"
+              />
+            ) : (
+              <span aria-hidden="true" className="flex gap-1">
+                <span className="h-4 w-1 rounded-sm bg-current" />
+                <span className="h-4 w-1 rounded-sm bg-current" />
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="verdict-word mt-2 font-display text-4xl text-fg outline-none"
+        data-testid="challenge-complete"
+      >
+        <span aria-hidden="true" className="mr-2 inline-block min-w-6 text-center">
+          {VERDICT_ICONS[cls]}
+        </span>
+        {VERDICT_HEADLINES[cls]}
+      </h1>
+      <p className="mt-3 text-lg text-fg">{verdictSubLine(mine, ceiling)}</p>
+      <div className="relative mt-6 max-w-md pb-6">
+        <div
+          className="relative h-3 overflow-visible rounded-full bg-black/10"
+          role="img"
+          aria-label={`Your score ${mine} of ${ceiling} possible. The target was ${winner.bestScore}.`}
+        >
+          <div
+            className="verdict-bar-fill absolute inset-y-0 left-0 rounded-full bg-fg"
+            style={{ width: `${fillPct}%` }}
+          />
+          <div
+            className="absolute -inset-y-0.5 w-1 rounded"
+            style={{
+              left: `calc(${tickPct}% - 2px)`,
+              // F-291-2 cure: raw gold measured 1.19:1 on the light
+              // track and 1.52:1 on the dark theme's near-white fill.
+              // The theme-aware gold (--gold-ink) carries ≥3:1 against
+              // track and page where it is defined — the light media
+              // block and the paper theme. It is NOT defined in the
+              // default :root (dark) — the #f2c14e value lives only
+              // in the dormant [data-theme="night"] block and no code
+              // sets data-theme — so the fallback IS the default-dark
+              // colour (and the night colour, if that theme ever
+              // ships): #f2c14e, 11.2:1 on the dark page. A 1px ring
+              // in the page colour separates the tick from the fg
+              // fill (≥13:1) where the fill reaches it. (The fallback
+              // was added in the panel cure-2 round: without it the
+              // tick was transparent — invisible — in default dark.)
+              background: "var(--gold-ink, #f2c14e)",
+              boxShadow: "0 0 0 1px var(--bg)",
+            }}
+            aria-hidden="true"
+          />
+          <span
+            className="absolute -top-6 text-xs font-semibold whitespace-nowrap text-muted"
+            style={{
+              left: `calc(${tickPct}% - 2px)`,
+              // Near the right edge the label would run past the bar
+              // (and the phone): flip it to end at the tick instead.
+              transform: tickPct > 80 ? "translateX(-100%)" : undefined,
+            }}
+          >
+            TARGET {winner.bestScore.toLocaleString("en-US")}
+          </span>
+          {cls === "win" ? (
+            <span
+              className="verdict-pulse absolute top-4 rounded bg-[#f2c14e] px-1.5 py-0.5 text-xs font-bold whitespace-nowrap text-black"
+              style={{
+                left: `calc(${tickPct}% - 2px)`,
+                transform: tickPct > 80 ? "translateX(-100%)" : undefined,
+              }}
+            >
+              ✓ PASSED
+            </span>
+          ) : null}
+        </div>
+      </div>
+      <p className="text-xl font-semibold text-fg">
+        {verdictMarginSentence(cls, mine, winner.bestScore)}
+      </p>
+      {duelLine ? (
+        <p className="verdict-late mt-2 text-base text-muted">{duelLine}</p>
+      ) : null}
+      {/* A-291-3: the strip's dots fade in from ~850 ms — until the
+          choreography settles they are inert, so a keyboard user can
+          never tab onto an invisible dot. Visuals are untouched. */}
+      <div className="mt-5" data-testid="challenge-verdict-strip" inert={!settled}>
+        <p className="text-base font-semibold text-fg">
+          Stop by stop — you landed {myHits}, they landed {theirHits}.
+        </p>
+        {stripNames ? (
+          <>
+            <div className="mt-2 flex items-center gap-1.5" aria-label="Your stops">
+              {stripNames.map((name, i) => {
+                const hit = run.results[i]?.hit ?? false;
+                return (
+                  <span
+                    key={`mine-${i}`}
+                    tabIndex={0}
+                    role="img"
+                    aria-label={`Stop ${i + 1}: ${name} — ${hit ? "you landed it" : "you missed"}`}
+                    className={`verdict-strip-dot group relative flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
+                      // F-291-1 cure: text-bg, not text-white — the fg
+                      // disc is near-white in the default/dark themes,
+                      // so a white ✓ measured 1.10:1 (invisible).
+                      hit ? "bg-fg text-bg" : "border-2 border-current"
+                    }`}
+                    style={{ "--verdict-i": i } as CSSProperties}
+                  >
+                    {hit ? "✓" : "✕"}
+                    <span className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] whitespace-nowrap text-white opacity-0 group-focus:opacity-100 group-hover:opacity-100">
+                      {name}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5" aria-label="Your friend's stops">
+              {stripNames.map((name, i) => {
+                const hit = ((winner.senderMask >> (15 - i)) & 1) === 1;
+                return (
+                  <span
+                    key={`theirs-${i}`}
+                    tabIndex={0}
+                    role="img"
+                    aria-label={`Stop ${i + 1}: ${name} — ${hit ? "your friend landed it (their word)" : "your friend missed (their word)"}`}
+                    className="verdict-strip-dot group relative flex h-5 w-5 items-center justify-center rounded-full border-2 border-dotted text-[11px] opacity-60"
+                    style={{ "--verdict-i": i } as CSSProperties}
+                  >
+                    {hit ? "✓" : ""}
+                    <span className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] whitespace-nowrap text-white opacity-0 group-focus:opacity-100 group-hover:opacity-100">
+                      {name}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-sm text-muted">Your friend's stops — their word.</p>
+          </>
+        ) : null}
+        {bothMissed.length > 0 ? (
+          <p className="mt-2 text-base text-fg">
+            Both missed: {bothMissed.join(", ")} — the hard stops.
+          </p>
+        ) : null}
+      </div>
+      {/* The disclosure repeats here (§Q2 hardening): the attested
+          row must never wear measured-looking glyphs undisclosed. */}
+      <p className="verdict-late mt-4 text-sm text-muted" data-testid="challenge-verdict-disclosure">
+        One honest note: this score is your friend's word — Meridian can't check scores
+        sent in links.
+      </p>
+      {facts.length > 0 ? (
+        <div className="verdict-late mt-3" data-testid="challenge-verdict-facts">
+          {facts.map((fact) => (
+            <p key={fact} className="text-sm text-muted">
+              {fact}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ChallengeComplete({
+  run,
+  total,
+  onDone,
+  onRetry,
+  shareEnabled,
+  regionCatalog,
+}: {
+  run: Run;
+  total: number;
+  onDone: () => void;
+  /** Verdict-screen Retry (Package B): replay the received route at
+   * once. Only offered when the route carried a winner block. */
+  onRetry?: () => void;
+  /** The completion re-share renders only while the flag is on: a flag
+   * flipped off mid-challenge drops the share, never the run (§4). */
+  shareEnabled: boolean;
+  /** The completed route's OWN region catalog (Package B, §1(f)): the
+   * fresh secondary deals from the region, never from the route itself.
+   * Null while the catalog has not loaded (or for mc1 runs, whose
+   * completion surface is frozen and never shows the secondary). */
+  regionCatalog?: readonly Starter[] | null;
+}) {
+  // Origin rule (manifest §2, contract 3, as amended by the mc3 delta
+  // §3.3): a route re-shares without ever losing information — an mc1
+  // route stays mc1 byte for byte; an mc2 route forward-upgrades to
+  // mc3 with its own region named; an mc3 route stays mc3. Never a
+  // downgrade.
+  //
+  // Package B (§Q2-B2/B4): reaching this screen IS a completion. It is
+  // recorded exactly once per run (recordChallengeCompletion), and
+  // the pass-along mints a NEW winner block from THIS player's play —
+  // their score, their mask, their attempts — with best′ ratcheted
+  // against the received chain best under the farming guard. Package
+  // A carried the received block losslessly because nothing minted
+  // yet; re-issuing it now would attest the PREVIOUS player's mark
+  // under a new sender, so the mint replaces it. When the mint
+  // produces no block (an all-miss chain start), the re-share is an
+  // open route again — a zero target is never a chain state.
+  const [completion] = useState(() => recordChallengeCompletion(run));
+  // Verdict tap-to-settle (§Q4): the settled flag lives HERE, on the
+  // completion screen's root, so the CSS snap reaches every animated
+  // element — the verdict block AND the pass-along share container
+  // (a sibling subtree, which a flag inside ChallengeVerdict could
+  // never cover). Any tap on the screen settles the choreography.
+  const [verdictSettled, setVerdictSettled] = useState(false);
+  // Cure round 2 on PR #295: a second latch records whether the
+  // settle came from a player gesture — the root's tap/keydown
+  // handlers below — rather than the auto-settle timer effect.
+  // The Grandpa clip's pause consumes THIS flag (media reads the
+  // gesture flag, not verdictSettled): the timer settles the
+  // choreography but carries no intent to stop motion, so it must
+  // not freeze the clip. Everything else — the CSS snap, the inert
+  // gates, data-verdict-settled — keeps consuming verdictSettled
+  // exactly as before, whichever way it was set.
+  const [verdictSettledByGesture, setVerdictSettledByGesture] =
+    useState(false);
+  const settleByGesture = () => {
+    setVerdictSettled(true);
+    setVerdictSettledByGesture(true);
+  };
+  const incomingWinner = run.challengeWinner ?? null;
+  // A-291-3: settling is not pointer-only. Any keydown settles (the
+  // keydown fires before the focus move, so the first Tab lands on
+  // already-visible elements — see onKeyDown on the root below), and
+  // a timer settles when the choreography completes (~1,600 ms;
+  // immediately under reduced motion, where every element is
+  // already at its final state).
+  useEffect(() => {
+    if (!incomingWinner) return;
+    const reduced =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = setTimeout(() => setVerdictSettled(true), reduced ? 0 : 1600);
+    return () => clearTimeout(t);
+  }, [incomingWinner]);
+  const myScoreRaw = run.results.reduce((s, r) => s + r.score, 0);
+  const mintedWinner = completion?.minted.winner ?? null;
+  const isMc2 = run.challengeOrigin === "mc2" || run.challengeOrigin === "mc3";
+  const mc2Creation = isMc2
+    ? createChallengeRoute({
+        edition: run.edition,
+        regionId: run.challengeRegionId ?? "globe",
+        scoringVersion: SCORING_VERSION,
+        mode: "exact",
+        exactIds: run.poolIds,
+        // The radius freeze in full (manifest §2.3 + §6): the route
+        // re-encodes at the radius it was JUDGED at — an in-tolerance
+        // pinned circle (rad 90 vs the computed 87) survives the
+        // re-share, never re-pins.
+        originFormat: "mc3",
+        radiusKmOverride: run.challengeRadiusKm,
+        // The block minted from this completion (above) — absent
+        // when the mint produced none.
+        winner: mintedWinner ?? undefined,
+      })
+    : null;
+  // "Share just the route" (§Q4): the same route with NO winner block
+  // — sharing never requires disclosing a result. Offered on every
+  // mc2-family completion, verdict or not.
+  const routeOnlyCreation = isMc2
+    ? createChallengeRoute({
+        edition: run.edition,
+        regionId: run.challengeRegionId ?? "globe",
+        scoringVersion: SCORING_VERSION,
+        mode: "exact",
+        exactIds: run.poolIds,
+        originFormat: "mc3",
+        radiusKmOverride: run.challengeRadiusKm,
+      })
+    : null;
+  const routeOnlyUrl =
+    routeOnlyCreation && typeof window !== "undefined"
+      ? `${window.location.origin}${window.location.pathname}${routeOnlyCreation.fragment}`
+      : "";
+  const routeOnlyText = routeOnlyCreation
+    ? buildFreshChallengeShareText({
+        placeCount: routeOnlyCreation.placeCount,
+        regionName: routeOnlyCreation.regionName,
+        radiusKm: routeOnlyCreation.radiusKm,
+        url: routeOnlyUrl,
+      })
+    : "";
+  const challengeHash = isMc2
+    ? (mc2Creation?.fragment ?? null)
+    : run.poolIds.length >= CHALLENGE_MIN_PLACES && run.poolIds.length <= CHALLENGE_MAX_PLACES
+      ? encodeChallenge(run.poolIds, SCORING_VERSION)
+      : null;
+  const challengeUrl =
+    challengeHash && typeof window !== "undefined"
+      ? `${window.location.origin}${window.location.pathname}${challengeHash}`
+      : "";
+  // The re-share text, built once so the button and its failure fallback
+  // below can never drift apart. It is a RECEIPT (governing manifest
+  // §Q3): one of the five byte-exact forms — by verdict class when the
+  // route carried a target, the chain-start form when it didn't. No
+  // version line (receipts never carry one), no tries clause, and no
+  // margin number in a loss.
+  const score = myScoreRaw.toLocaleString("en-US");
+  const verdictClass: VerdictClass | null = incomingWinner
+    ? classifyVerdict(myScoreRaw, incomingWinner.bestScore)
+    : null;
+  const challengeText = isMc2
+    ? `${passAlongReceipt({
+        cls: verdictClass ?? "chain-start",
+        mine: myScoreRaw,
+        newBest: mintedWinner?.bestScore ?? incomingWinner?.bestScore ?? myScoreRaw,
+        regionName: mc2Creation?.regionName ?? run.regionName,
+      })}\n${challengeUrl}`
+    : `Play the same ${total} places on the Globe! I scored ${score}.\n${challengeUrl}`;
+  // The fresh secondary (manifest §1(f), Package B): a NEW route in the
+  // completed route's region, dealt from the region catalog — the
+  // sources are built with no runPoolIds on purpose, so the route just
+  // played can never become its own deal source. mc2 completions only:
+  // the mc1 completion surface is frozen (§2). Like the re-share, it is
+  // creation, so it renders only while the flag is on (§4). The deal
+  // seed is the run's own seed — deterministic for a given completion.
+  const freshCreation =
+    isMc2 && shareEnabled && regionCatalog
+      ? createChallengeRoute({
+          edition: run.edition,
+          regionId: run.challengeRegionId ?? "globe",
+          scoringVersion: SCORING_VERSION,
+          mode: "fresh",
+          sources: buildCreationSources({
+            catalog: regionCatalog,
+            choice: run.difficultyChoice,
+          }),
+          dealSeed: run.seed,
+        })
+      : null;
+  const freshUrl =
+    freshCreation && typeof window !== "undefined"
+      ? `${window.location.origin}${window.location.pathname}${freshCreation.fragment}`
+      : "";
+  const freshText = freshCreation
+    ? buildFreshChallengeShareText({
+        placeCount: freshCreation.placeCount,
+        regionName: freshCreation.regionName,
+        radiusKm: freshCreation.radiusKm,
+        url: freshUrl,
+      })
+    : "";
+  return (
+    <main
+      className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center px-5 py-8"
+      data-verdict-settled={incomingWinner ? verdictSettled : undefined}
+      onClick={incomingWinner ? settleByGesture : undefined}
+      onKeyDown={incomingWinner ? settleByGesture : undefined}
+    >
+      <p className="text-sm tracking-wide text-muted uppercase">
+        {isMc2 ? run.regionName : CHALLENGE_REGION_NAME}
+      </p>
+      {incomingWinner && completion ? (
+        // The verdict (§Q4) replaces the plain completion headline
+        // when the route carried a target: verdict word → score pair
+        // + target bar → margin → duel → strip. The "landed inside"
+        // sentence is cut here — the strip header carries the counts.
+        <ChallengeVerdict
+          run={run}
+          winner={incomingWinner}
+          completion={completion}
+          regionCatalog={regionCatalog}
+          settled={verdictSettled}
+          settledByGesture={verdictSettledByGesture}
+        />
+      ) : (
+        <>
+          <h1 className="mt-2 font-display text-4xl text-fg" data-testid="challenge-complete">
+            Route complete! You scored {score} across {total} places.
+          </h1>
+          <p className="mt-4 max-w-md text-lg text-muted">
+            You landed inside the {challengeRadiusOf(run)} km circle on {run.hits} of {total} stops.
+          </p>
+        </>
+      )}
+      <div className="mt-6 flex max-w-xs flex-col gap-3">
+        {verdictClass === "near-miss" && onRetry ? (
+          // NEAR-MISS: retry is the primary action (§Q4) — the route
+          // is right there and the target nearly fell.
+          <Button onClick={onRetry} data-testid="challenge-retry">
+            Try this route again
+          </Button>
+        ) : null}
+        {challengeUrl && shareEnabled ? (
+          <div
+            data-testid="challenge-share-container"
+            data-challenge-url={challengeUrl}
+            className={incomingWinner ? "verdict-last" : undefined}
+            // A-291-3: the pass-along fades in last (~1,400 ms) — it
+            // stays inert until settled so it is never focusable
+            // while invisible. Non-verdict completions never gate.
+            inert={incomingWinner ? !verdictSettled : undefined}
+          >
+            <ShareButton
+              title="Meridian friend challenge"
+              text={challengeText}
+              url={challengeUrl}
+              label={isMc2 ? CHALLENGE_RESHARE_LABEL : CHALLENGE_SHARE_LABEL}
+              variant={verdictClass === "win" ? "primary" : "secondary"}
+              className="w-full"
+              failureFallback={
+                // If the share sheet and the clipboard both fail, the
+                // button says "Copy manually" — the link has to be
+                // somewhere visible to copy, or that state is a dead
+                // end. Same selectable-text block the GeoDetective
+                // share uses on themed surfaces.
+                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap wrap-anywhere rounded-lg border border-line bg-bg px-4 py-3 font-sans text-sm leading-relaxed text-fg">
+                  {challengeText}
+                </pre>
+              }
+            />
+          </div>
+        ) : null}
+        {freshCreation && freshUrl ? (
+          <div data-testid="challenge-fresh-share-container" data-challenge-url={freshUrl}>
+            <ShareButton
+              title="Meridian friend challenge"
+              text={freshText}
+              url={freshUrl}
+              label={challengeFreshRouteLabel(freshCreation.regionName)}
+              className="w-full"
+              failureFallback={
+                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap wrap-anywhere rounded-lg border border-line bg-bg px-4 py-3 font-sans text-sm leading-relaxed text-fg">
+                  {freshText}
+                </pre>
+              }
+            />
+          </div>
+        ) : null}
+        {routeOnlyCreation && routeOnlyUrl && shareEnabled ? (
+          // "Share just the route" (§Q4): always offered on an
+          // mc2-family completion — the same route, no winner block,
+          // no result disclosed.
+          <div data-testid="challenge-route-only-container" data-challenge-url={routeOnlyUrl}>
+            <ShareButton
+              title="Meridian friend challenge"
+              text={routeOnlyText}
+              url={routeOnlyUrl}
+              label="Share just the route"
+              variant="secondary"
+              className="w-full"
+              failureFallback={
+                <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap wrap-anywhere rounded-lg border border-line bg-bg px-4 py-3 font-sans text-sm leading-relaxed text-fg">
+                  {routeOnlyText}
+                </pre>
+              }
+            />
+          </div>
+        ) : null}
+        {(verdictClass === "hold" || verdictClass === "loss") && onRetry ? (
+          // HOLD/LOSS: retry rides quieter, under the shares (§Q4).
+          <Button variant="secondary" onClick={onRetry} data-testid="challenge-retry">
+            Try this route again
+          </Button>
+        ) : null}
+        <Button onClick={onDone} data-testid="challenge-done">
+          {REVIEW_DECK_COPY.backToEditions}
+        </Button>
       </div>
     </main>
   );
@@ -3312,9 +5942,13 @@ function Play({
   onBankPlace,
   onEndGame,
   onEditions,
+  onChallengeDone,
+  onChallengeRetry,
   onSummaryDone,
   onReplayed,
   onReviewDeck,
+  onResetHistory,
+  onReviewChallenge,
   onCleared,
   celebrationOpen,
   tutorial,
@@ -3325,6 +5959,8 @@ function Play({
   onManualMapMode,
   applyMapMode,
   applySessionMapMode,
+  scoutUpgradeEligible,
+  onScoutUpgrade,
 }: {
   run: Run;
   session: Session | null;
@@ -3343,6 +5979,10 @@ function Play({
   }) => void;
   /** Ends the session and returns its summary (null when there is no session). */
   onEndGame: () => SessionSummary | null;
+  /** mc2 challenge Done: clear the challenge slot, offer the displaced run back. */
+  onChallengeDone?: () => void;
+  /** Verdict Retry (Package B): start this route again at once. */
+  onChallengeRetry?: (route: ChallengeRoute) => void;
   /** Back to the edition picker mid-run; the session stays alive. */
   onEditions: () => void;
   /** Summary dismissed after End game; the session is already ended. */
@@ -3351,6 +5991,10 @@ function Play({
   onReplayed: (run: Run) => void;
   /** "Review my misses" from the end-game summary. */
   onReviewDeck: () => void;
+  /** Run the "Start over" history reset (GameApp owns the flow). */
+  onResetHistory: () => ResetHistoryResult;
+  /** "Challenge a friend — pick a map" from review-complete (§1(e)). */
+  onReviewChallenge: () => void;
   /** A difficulty band was just cleared: show the celebration dialog. */
   onCleared: (info: ClearedInfo) => void;
   /**
@@ -3385,6 +6029,10 @@ function Play({
    * setter (BLOCK-B).
    */
   applySessionMapMode: (mode: MapMode) => void;
+  /** Issue #330: this boot is an unknown-memory Scout trial. */
+  scoutUpgradeEligible: boolean;
+  /** Issue #330: apply the trial's session-only upgrade to full. */
+  onScoutUpgrade: () => void;
 }) {
   // The catalog is stored WITH the key it was loaded for and only used while
   // that key is the current run's key. Play stays mounted across run changes
@@ -3393,10 +6041,20 @@ function Play({
   // dealer on the new band's seen store, and a stale place written into the
   // new band's no-repeat history. Deriving `places` makes that commit
   // impossible: a key mismatch renders "Loading places" instead.
-  const loadKey = placesLoadKey(run.edition, run.regionId, run.difficultyChoice);
+  const challenge = isChallengeRun(run);
+  const loadKey = challenge
+    ? `${CHALLENGE_REGION_ID}:${run.poolIds.join(",")}`
+    : placesLoadKey(run.edition, run.regionId, run.difficultyChoice);
   const [loadedPlaces, setLoadedPlaces] = useState<LoadedFor<Starter[]> | null>(null);
   const [poolFailure, setPoolFailure] = useState<LoadedFor<string> | null>(null);
   const places = loadedForKey(loadedPlaces, loadKey);
+  // Package B (§1(f)): for a challenge run, `places` above is only the
+  // route's own places — the completion screen's fresh secondary deals
+  // from the route's REGION, so the full catalog the load branch fetched
+  // is kept alongside, keyed the same way.
+  const [loadedChallengeCatalog, setLoadedChallengeCatalog] =
+    useState<LoadedFor<Starter[]> | null>(null);
+  const challengeCatalog = loadedForKey(loadedChallengeCatalog, loadKey);
   const poolError = loadedForKey(poolFailure, loadKey);
   // Review sessions: the due deck entries in session order (the poolIds
   // order). Null for normal runs.
@@ -3436,6 +6094,42 @@ function Play({
           setPoolFailure({ key: loadKey, value: "Could not load your review deck." });
         }
       }
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (challenge) {
+      // Challenge pool: the places are exactly the link's ids, in the
+      // link's order — no dealer, no band filter, no seen-history. Each
+      // id is looked up in THIS device's own catalog FOR THE ROUTE'S
+      // REGION (the Globe for mc1; the named state or country for mc2);
+      // an id that catalog does not know fails the whole run closed
+      // with the child-friendly copy, never a substituted place.
+      placesFor(run.edition, run.challengeRegionId ?? "globe", undefined, false).then(
+        (list) => {
+          if (cancelled) return;
+          setLoadedChallengeCatalog({ key: loadKey, value: list });
+          const byId = new Map(list.map((p) => [p.id, p]));
+          const ordered: Starter[] = [];
+          for (const id of run.poolIds) {
+            const found = byId.get(id);
+            if (!found) {
+              setPoolFailure({ key: loadKey, value: CHALLENGE_CHILD_COPY });
+              return;
+            }
+            ordered.push(found);
+          }
+          setLoadedPlaces({ key: loadKey, value: ordered });
+        },
+        (err: unknown) => {
+          if (!cancelled) {
+            setPoolFailure({
+              key: loadKey,
+              value: err instanceof Error ? err.message : String(err),
+            });
+          }
+        },
+      );
       return () => {
         cancelled = true;
       };
@@ -3504,14 +6198,19 @@ function Play({
     <PlayLoaded
       run={run}
       places={places}
+      challengeCatalog={challengeCatalog}
       session={session}
       onRun={onRun}
       onBankPlace={onBankPlace}
       onEndGame={onEndGame}
       onEditions={onEditions}
+      onChallengeDone={onChallengeDone}
+      onChallengeRetry={onChallengeRetry}
       onSummaryDone={onSummaryDone}
       onReplayed={onReplayed}
       onReviewDeck={onReviewDeck}
+      onResetHistory={onResetHistory}
+      onReviewChallenge={onReviewChallenge}
       onCleared={onCleared}
       celebrationOpen={celebrationOpen}
       reviewEntries={reviewEntries}
@@ -3523,6 +6222,8 @@ function Play({
       onManualMapMode={onManualMapMode}
       applyMapMode={applyMapMode}
       applySessionMapMode={applySessionMapMode}
+      scoutUpgradeEligible={scoutUpgradeEligible}
+      onScoutUpgrade={onScoutUpgrade}
     />
   );
 }
@@ -3530,14 +6231,19 @@ function Play({
 function PlayLoaded({
   run,
   places,
+  challengeCatalog,
   session,
   onRun,
   onBankPlace,
   onEndGame: requestEndGame,
   onEditions,
+  onChallengeDone,
+  onChallengeRetry,
   onSummaryDone: finishSummary,
   onReplayed,
   onReviewDeck,
+  onResetHistory,
+  onReviewChallenge,
   onCleared,
   celebrationOpen,
   reviewEntries,
@@ -3549,9 +6255,15 @@ function PlayLoaded({
   onManualMapMode,
   applyMapMode,
   applySessionMapMode,
+  scoutUpgradeEligible,
+  onScoutUpgrade,
 }: {
   run: Run;
   places: Starter[];
+  /** Package B (§1(f)): the challenge route's full region catalog,
+   * loaded by Play for challenge runs (where `places` is only the
+   * route itself). Null for normal runs and while loading. */
+  challengeCatalog?: Starter[] | null;
   /** Effective age band for tolerance + round params (parent-set). */
   ageBand: AgeBandId;
   session: Session | null;
@@ -3568,12 +6280,20 @@ function PlayLoaded({
   }) => void;
   onEndGame: () => SessionSummary | null;
   onEditions: () => void;
+  /** mc2 challenge Done: clear the challenge slot, offer the displaced run back. */
+  onChallengeDone?: () => void;
+  /** Verdict Retry (Package B): start this route again at once. */
+  onChallengeRetry?: (route: ChallengeRoute) => void;
   onSummaryDone: () => void;
   onReplayed: (run: Run) => void;
   /** A difficulty band was just cleared: show the celebration dialog. */
   onCleared: (info: ClearedInfo) => void;
   /** "Review my misses" from the end-game summary. */
   onReviewDeck: () => void;
+  /** Run the "Start over" history reset (GameApp owns the flow). */
+  onResetHistory: () => ResetHistoryResult;
+  /** "Challenge a friend — pick a map" from review-complete (§1(e)). */
+  onReviewChallenge: () => void;
   /**
    * Whether the cleared-mode celebration dialog is open. The M5 Escape
    * handler yields while it is open so one Escape press dismisses only
@@ -3612,11 +6332,16 @@ function PlayLoaded({
    * setter (BLOCK-B).
    */
   applySessionMapMode: (mode: MapMode) => void;
+  /** Issue #330: this boot is an unknown-memory Scout trial. */
+  scoutUpgradeEligible: boolean;
+  /** Issue #330: apply the trial's session-only upgrade to full. */
+  onScoutUpgrade: () => void;
 }) {
   // Review-deck session: a synthetic Run reusing this game loop. The deck
   // queue (due order) is the pool; review answers never bank into the
   // session and the cleared-mode celebration never fires here.
   const review = isReviewRun(run);
+  const challenge = isChallengeRun(run);
   const reviewEntryById = useMemo(
     () => new Map((reviewEntries ?? []).map((entry) => [entry.place.id, entry] as const)),
     [reviewEntries],
@@ -3649,14 +6374,21 @@ function PlayLoaded({
       createDealer(
         pool,
         run.seed,
-        seenStoreFor(run.edition, run.regionId, run.difficultyChoice),
+        // Review and challenge runs get a throwaway in-memory seen
+        // store: their places must never enter the player's persistent
+        // no-repeat history (a friend's picks are not places this
+        // player was dealt). Normal runs use the real localStorage
+        // store, scoped to edition/region/band.
+        review || challenge
+          ? memorySeenStore()
+          : seenStoreFor(run.edition, run.regionId, run.difficultyChoice),
         run.index,
         run.prevLastId,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pool, run.seed, run.dateKey, run.edition, run.regionId, run.difficultyChoice, run.prevLastId],
+    [pool, run.seed, run.dateKey, run.edition, run.regionId, run.difficultyChoice, run.prevLastId, review, challenge],
   );
-  const place = review ? pool[run.index] : dealer.at(run.index);
+  const place = review || challenge ? pool[run.index] : dealer.at(run.index);
   /** The deck entry behind the dealt card (review sessions only). */
   const reviewEntry = review && place ? reviewEntryById.get(place.id) : undefined;
   // The qualified question label ("Manhattan, Nebraska, United States" in
@@ -3691,9 +6423,9 @@ function PlayLoaded({
   // real regions' histories), and the tour must not pollute the France
   // band's persistent history with its practice place.
   useEffect(() => {
-    if (review || tutorial) return;
+    if (review || tutorial || challenge) return;
     dealer.markDealtThrough(run.index);
-  }, [dealer, review, run.index, tutorial]);
+  }, [dealer, review, challenge, run.index, tutorial]);
   // Tutorial beat 1 → 2: the pin was committed (phase left "aim"), so the
   // reveal feedback takes over. Any later phase change is a real run's
   // business — tutorial is already 2 or 3 by then.
@@ -3701,6 +6433,16 @@ function PlayLoaded({
     if (tutorial === 1 && run.phase !== "aim") onTutorialAdvance(2);
   }, [tutorial, run.phase, onTutorialAdvance]);
   const [aim, setAim] = useState<{ lon: number; lat: number } | null>(null);
+  // Target-chip settle state (§Q4): true while aim movements are
+  // arriving; the chip hides until ~700 ms after the last one.
+  const [chipSettling, setChipSettling] = useState(false);
+  const chipSettleTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (chipSettleTimer.current !== null) window.clearTimeout(chipSettleTimer.current);
+    },
+    [],
+  );
   // A11y (WCAG 4.1.3): the sr-only live region announces aim transitions so
   // screen-reader users get feedback for place/move/clear. Cleared whenever
   // the phase changes, at which point phase messaging takes over.
@@ -3791,6 +6533,31 @@ function PlayLoaded({
     [applySessionMapMode, place],
   );
 
+  /**
+   * Issue #330: the unknown-memory trial's Scout map stayed stable past
+   * its soak — upgrade the session to the full map. Mirrors the tile
+   * fallback's remount (live viewport carried over, nothing stored),
+   * in reverse. No switch note: the player did not lose anything, the
+   * map simply got richer, and device-driven switches are silent.
+   * Challenge runs are excluded: a challenge's map is picked at its
+   * welcome card, and a challenge is never re-mapped mid-run.
+   */
+  const handleScoutUpgrade = useCallback(
+    (view: ScoutRestoreView) => {
+      if (mapModeRef.current !== "scout") return;
+      if (challenge) return;
+      // #330 cure: re-check at fire time — a stored manual record
+      // written after boot (a manual choice that did not pass through
+      // the handlers that clear eligibility) stands over the trial,
+      // and the upgrade must never override it.
+      if (readStoredMapMode()?.source === "manual") return;
+      onScoutUpgrade();
+      setScoutSwitchView(view);
+      setMapRemountNonce((n) => n + 1);
+    },
+    [onScoutUpgrade, challenge],
+  );
+
   // The switch viewport is consumed by the remount it triggers; clear it
   // when the place changes so later mounts never re-open a stale view.
   const lastPlaceIdRef = useRef<string | null>(null);
@@ -3806,6 +6573,7 @@ function PlayLoaded({
   // is authoritative for the session (no mid-game surprises). Flag off =
   // no reads, no writes, no traces — dealing/scoring/session byte-identical.
   const [learningEnabled, setLearningEnabled] = useState(false);
+  const [friendChallengesEnabled, setFriendChallengesEnabled] = useState(false);
   const [learningStore, setLearningStore] = useState<LearningStore | null>(null);
   useEffect(() => {
     let active = true;
@@ -3813,14 +6581,17 @@ function PlayLoaded({
     // load so a remote decision wins the boot-time race deterministically.
     loadFlags().then(() => {
       if (!active) return;
-      const on = isEnabled("learningOutcomes");
+      // Challenge runs are excluded even when the flag is on: a
+      // friend's route must not write this player's learning record.
+      const on = isEnabled("learningOutcomes") && !challenge;
       setLearningEnabled(on);
       if (on) setLearningStore(readLearningStore() ?? emptyLearningStore());
+      setFriendChallengesEnabled(isEnabled("friendChallenges"));
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [challenge]);
   // Session score: the HUD total accumulates across edition switches until
   // End game. Falls back to the run's own results when no session exists
   // (defensive; openRun always ensures one).
@@ -3951,12 +6722,12 @@ function PlayLoaded({
   }, [run.phase, aim, celebrationOpen]);
 
   useEffect(() => {
-    // Review sessions: an exhausted queue (place undefined) renders the
-    // review-complete screen — never the run "done" phase.
-    if (review) return;
+    // Review and challenge sessions: an exhausted queue (place undefined)
+    // renders the completion screen — never the run "done" phase.
+    if (review || challenge) return;
     if (place || run.phase === "done" || run.phase === "summary") return;
     onRun({ ...run, phase: "done" });
-  }, [onRun, place, review, run]);
+  }, [onRun, place, review, challenge, run]);
 
   useEffect(() => {
     if (run.phase !== "story" || !place) {
@@ -4005,9 +6776,18 @@ function PlayLoaded({
       // Review cards replay the original question's hit radius.
       // Otherwise the age-profile band scales the tolerance (Phase 1 §3a):
       // x1.5 / x1.25 / x1.0, clamps applied after the multiplier.
-      radiusKm: review
-        ? (reviewEntry?.place.radiusKm ?? radiusKm("globe", 0))
-        : pinToleranceKm(run.bandConfig?.band ?? ageBand, run.edition, greaterSideKm(boundsFor(run))),
+      // Challenge runs are the exception: the radius is the one the
+      // link pinned, snapshotted on the run (challengeRadiusOf) —
+      // never scaled by the player's age band, because sender and
+      // receiver may be in different bands and a shared route is only
+      // fair if both players face the identical circle. mc1 routes
+      // resolve to the historic 750 km through the same accessor.
+      // This value must match the one onConfirm judges with, below.
+      radiusKm: challenge
+        ? challengeRadiusOf(run)
+        : review
+          ? (reviewEntry?.place.radiusKm ?? radiusKm("globe", 0))
+          : pinToleranceKm(run.bandConfig?.band ?? ageBand, run.edition, greaterSideKm(boundsFor(run))),
       // Same unit as the result headline — USA plays read miles (owner ruling 2026-10-11).
       unit: unitForEdition(run.edition, run.regionId),
     };
@@ -4021,6 +6801,11 @@ function PlayLoaded({
         : "Pin placed. Double-tap the map or press Drop pin to lock in your guess.",
     );
     setAim({ lon, lat });
+    // The target chip yields while the pin is in motion and settles
+    // back once aim movements stop (see the chip's comment).
+    setChipSettling(true);
+    if (chipSettleTimer.current !== null) window.clearTimeout(chipSettleTimer.current);
+    chipSettleTimer.current = window.setTimeout(() => setChipSettling(false), 700);
   }
 
   // M5: Escape with a pin clears it.
@@ -4036,9 +6821,15 @@ function PlayLoaded({
     // Review cards are judged against the hit radius of the original
     // question (snapshotted at miss time) — the same bar as the first try.
     // Otherwise the age-profile band scales the tolerance (Phase 1 §3a).
-    const radius = review
-      ? (reviewEntry?.place.radiusKm ?? radiusKm("globe", 0))
-      : pinToleranceKm(run.bandConfig?.band ?? ageBand, run.edition, greaterSideKm(boundsFor(run)));
+    // Challenge runs judge against the run's snapshotted radius (see
+    // the variation above for why): this is the judgement call site,
+    // and the mc1 E2E 600 km-hit / 800 km-miss pair brackets the 750 km
+    // an mc1 route resolves to through the same accessor.
+    const radius = challenge
+      ? challengeRadiusOf(run)
+      : review
+        ? (reviewEntry?.place.radiusKm ?? radiusKm("globe", 0))
+        : pinToleranceKm(run.bandConfig?.band ?? ageBand, run.edition, greaterSideKm(boundsFor(run)));
     const hit = isHit(distance, radius);
     // v3: the place is scored with the streak engine + difficulty multiplier;
     // a miss scores 0 and resets the streak (handled in dropPin). Review is
@@ -4081,8 +6872,11 @@ function PlayLoaded({
     // the (unreachable here) no-op path. Skipped for the tutorial practice
     // round — the tour is unscored practice. Review sessions record their
     // learning record and deck sync below but never bank into the session's
-    // totals and streaks.
-    if (!tutorial && nextRun.results.length > bankedBefore) {
+    // totals and streaks. Challenge runs skip banking for the same
+    // reason they skip the other stores: the score belongs to the
+    // shared route's own completion screen, not to this player's
+    // session totals.
+    if (!tutorial && !challenge && nextRun.results.length > bankedBefore) {
       if (!review) {
         onBankPlace({
           edition: run.edition,
@@ -4194,7 +6988,7 @@ function PlayLoaded({
     // cycle can re-trigger, so the catalog/history scan below is skipped.
     // Review sessions never celebrate clears: the deck is a practice queue,
     // not a difficulty band.
-    if (!review && justAnswered && !wasClearedCelebrated(run.edition, run.regionId, run.difficultyChoice)) {
+    if (!review && !challenge && justAnswered && !wasClearedCelebrated(run.edition, run.regionId, run.difficultyChoice)) {
       // The band catalog is the unfiltered region catalog narrowed by the
       // run's difficulty band — the same filter the replay path uses.
       const bandCatalogIds = dealingPoolFor(places, run.difficultyChoice).map(
@@ -4232,9 +7026,24 @@ function PlayLoaded({
     // cleared path above returns early, so the celebration never
     // double-sounds the applause; reload-restores advance silently.
     playCelebrationSound("nextPlace");
+    // Wave 1 P0 Item 3 (3B): the Next place button unmounts with the
+    // result card, so without this focus falls to body. After the new
+    // question commits, land on its map (tabIndex 0, role application):
+    // one Tab then reaches the new question's controls, and the live
+    // paragraph above announces the new question ("Find …").
+    window.setTimeout(() => {
+      document
+        .querySelector<HTMLElement>(".satellite-map")
+        ?.focus({ preventScroll: true });
+    }, 0);
   }
 
   function onEndGame() {
+    if (challenge) {
+      clearDrop();
+      onRun(endRun(run).run);
+      return;
+    }
     // The summary tallies the whole session (every edition played), not
     // just this run; the session ends here.
     const final = requestEndGame();
@@ -4246,6 +7055,14 @@ function PlayLoaded({
   function onSummaryDone() {
     setSummary(null);
     finishSummary();
+    // Wave 1 P0 Item 3 (3C): closing the summary unmounts Play — and the
+    // End-game opener with it — for home, so returning focus to the
+    // opener would land on body. Focus return rides GameApp's
+    // landHomeFocusRef flag (set by the summary-done handler that
+    // finishSummary runs): its effect retries after every commit and
+    // lands on the home heading once Choose has mounted — never body,
+    // never a hidden control. No setTimeout here: a single-shot timeout
+    // silently no-ops when Choose has not mounted yet.
   }
 
   function onSummaryPlayAgain() {
@@ -4333,6 +7150,18 @@ function PlayLoaded({
   const mapRegionName = review
     ? (reviewEntry?.place.regionName ?? REVIEW_DECK_REGION_NAME)
     : run.regionName;
+  // The satellite map resolves its region geometry BY NAME (the atlas
+  // index in satellite-map.tsx), so it must be handed the region's real
+  // name — never the run's display name. A challenge run's regionName
+  // is "<Region> challenge" (challengeRunFields), which names no atlas
+  // region: the lookup missed, the painter fell back to an empty
+  // polygon, and the challenge map showed no region outline or border
+  // on either renderer (owner report, 2026-10-29). Display surfaces
+  // (the question bubble) keep mapRegionName; only the map gets this.
+  const satelliteRegionName = challenge
+    ? (findRegion(run.edition, run.challengeRegionId ?? "globe")?.name ??
+      mapRegionName)
+    : mapRegionName;
   const mode = review
     ? (reviewEntry?.place.mapMode ?? "globe")
     : run.edition === "globe"
@@ -4360,11 +7189,466 @@ function PlayLoaded({
     [learningEnabled, run.phase],
   );
 
+  // "Start over" entry on ReviewComplete (manifest 2026-10-28, D16):
+  // its visibility derives from a FRESH deck read at this render — not
+  // from the home reset epoch and not from deck state threaded down —
+  // so a reset performed on this screen hides the control at once, and
+  // total={pool.length} below stays the review-queue total it has
+  // always been.
+  const reviewDeckTotal =
+    review && run.index >= pool.length
+      ? deckCounts(readReviewDeck() ?? emptyReviewDeck(), Date.now()).total
+      : 0;
+
+  // "Challenge a friend — pick a map" on ReviewComplete (manifest
+  // §1(e)): entering the creation flow sounds the card tap (the
+  // Package B precedent — every creation entry sounds); the GameApp
+  // handler owns the exit + mini-picker transition and re-checks the
+  // flag at tap. Rendered only while this screen's boot-authoritative
+  // flag read says on — see the ReviewComplete call site below.
+  const reviewChallengeTap = useCallback(() => {
+    playCardTap();
+    onReviewChallenge();
+  }, [onReviewChallenge]);
+
+  /**
+   * The summary's friend-challenge offers (manifest §1(d), Package A):
+   * primary = the sender's OWN route — the places they just played, in
+   * play order, first ten, offered once at least five were played; its
+   * share opens a preview sheet first, carrying the exact-route
+   * disclosure (the privacy trade's mitigation, §3). Secondary = a
+   * fresh five in the same region. A run that ends before five places
+   * has no exact route to share, so the fresh offer becomes the
+   * primary and shares directly — on the Globe in its shipped mc1 form
+   * byte for byte. A globe exact primary's TEXT also stays the shipped
+   * one; its fragment is mc1, every other exact fragment is mc3.
+   * Computed from the dealer: for a normal run the place at index i IS
+   * dealer.at(i), so the played ids are exact — PlaceResult carries
+   * scores, not ids.
+   */
+  const summaryChallengeOffers = useMemo(() => {
+    const none = { primary: null, secondary: null } as {
+      primary: {
+        url: string;
+        text: string;
+        label: string;
+        exact?: boolean;
+        placeCount?: number;
+        regionName?: string;
+      } | null;
+      secondary: { url: string; text: string; label: string } | null;
+    };
+    if (!friendChallengesEnabled || challenge || review || run.phase !== "summary") return none;
+    const origin = `${window.location.origin}${window.location.pathname}`;
+    // The exact offer needs the sender's own five; the FRESH offer does
+    // not — the shipped summary offered a fresh route even when the run
+    // ended before five places, and that surface is frozen in kind (the
+    // frozen E2E pair at friend-challenge.desktop.spec.ts:792/:820 pins
+    // it). Gating both on the played count was a Package A regression,
+    // caught by those frozen tests.
+    const playedIds: string[] = [];
+    for (let i = 0; i < run.results.length; i++) {
+      const dealt = dealer.at(i);
+      if (dealt) playedIds.push(dealt.id);
+    }
+    // Package B (§Q2-B3): the summary exact mint carries the sender's
+    // winner block — their score ON THIS ROUTE (the first ten played
+    // places, the ones the route actually contains), their hit-mask
+    // over those places, and attempts = storedCount + 1. The
+    // recording itself happens in the effect under this memo, once
+    // per run; here we only read the store. Globe exact stays mc1
+    // and carries nothing (the frozen surface), and a zero route
+    // score mints no block — the share then keeps its shipped text.
+    const exactIds = playedIds.slice(0, CHALLENGE_MAX_PLACES);
+    const routeScore = run.results
+      .slice(0, CHALLENGE_MAX_PLACES)
+      .reduce((s, r) => s + r.score, 0);
+    const summaryTuple = challengeRouteTuple({
+      scoringVersion: SCORING_VERSION,
+      edition: run.edition,
+      regionId: run.regionId,
+      ids: exactIds,
+    });
+    let summaryAttempts = readRouteAttempts(summaryTuple) + 1;
+    try {
+      if (sessionStorage.getItem(`meridian.challenge.recorded.summary.${run.seed}`)) {
+        summaryAttempts = readRouteAttempts(summaryTuple);
+      }
+    } catch {
+      // Storage blocked: report stored+1 unstored (the effect's
+      // recording will have failed the same way).
+    }
+    const summaryWinner =
+      run.edition === "globe"
+        ? null
+        : mintWinnerBlock({
+            myScore: routeScore,
+            myMask: hitMaskFromResults(run.results.slice(0, CHALLENGE_MAX_PLACES)),
+            myAttempts: summaryAttempts,
+            incomingBest: null,
+          }).winner;
+    const exact =
+      run.results.length >= CHALLENGE_MIN_PLACES
+        ? createChallengeRoute({
+            edition: run.edition,
+            regionId: run.regionId,
+            scoringVersion: SCORING_VERSION,
+            mode: "exact",
+            exactIds: playedIds,
+            winner: summaryWinner ?? undefined,
+          })
+        : null;
+    const seenIds = new Set(
+      seenStoreFor(run.edition, run.regionId, run.difficultyChoice).read(),
+    );
+    const sources = buildCreationSources({
+      catalog: pool,
+      choice: run.difficultyChoice,
+      seenIds,
+      runPoolIds: run.poolIds,
+    });
+    const fresh = createChallengeRoute({
+      edition: run.edition,
+      regionId: run.regionId,
+      scoringVersion: SCORING_VERSION,
+      mode: "fresh",
+      sources,
+      dealSeed: run.seed,
+    });
+    const regionPhrase =
+      run.edition === "globe" ? "on the Globe" : `in ${exact?.regionName ?? run.regionName}`;
+    const freshSecondary = fresh
+      ? {
+          url: `${origin}${fresh.fragment}`,
+          label: `New route in ${fresh.regionName} instead`,
+          text: buildFreshChallengeShareText({
+            placeCount: fresh.placeCount,
+            regionName: fresh.regionName,
+            radiusKm: fresh.radiusKm,
+            url: `${origin}${fresh.fragment}`,
+          }),
+        }
+      : null;
+    if (exact) {
+      return {
+        primary: {
+          url: `${origin}${exact.fragment}`,
+          // One label in every edition (manifest §1(d)): the primary
+          // opens the preview sheet, whose disclosure names the
+          // exact-route privacy trade before anything is shared.
+          label: CHALLENGE_EXACT_SHARE_LABEL,
+          exact: true,
+          placeCount: exact.placeCount,
+          regionName: exact.regionName,
+          text: exact.fragment.startsWith("#c=mc1.")
+            ? `Play the same ${exact.placeCount} places on the Globe!\n${origin}${exact.fragment}`
+            : summaryWinner
+              ? // The exact-with-target form (§Q3): the score hook is
+                // the block's own attested number, so the words and
+                // the wire can never disagree.
+                exactRouteTargetShareText({
+                  senderScore: summaryWinner.senderScore,
+                  placeCount: exact.placeCount,
+                  regionName: exact.regionName,
+                  radiusKm: exact.radiusKm,
+                  url: `${origin}${exact.fragment}`,
+                })
+              : `Play the same ${exact.placeCount} places ${regionPhrase}! I scored ${sessionTotal.toLocaleString("en-US")}.\n${CHALLENGE_VERSION_LINE}\n${origin}${exact.fragment}`,
+        },
+        secondary: freshSecondary,
+      };
+    }
+    // No exact offer (fewer than five played): the fresh route becomes
+    // the primary. On the Globe it takes the SHIPPED form byte for
+    // byte — the same flat deal from this run's pool and seed, encoded
+    // mc1 — because that surface predates mc2 and is frozen in kind.
+    if (run.edition === "globe") {
+      const gnPool = pool.filter((p) => /^gn-[0-9]+$/.test(p.id));
+      if (gnPool.length < CHALLENGE_MIN_PLACES) return none;
+      const ids = dealChallenge(
+        gnPool.map((p) => ({ id: p.id, w: 1 })),
+        CHALLENGE_MIN_PLACES,
+        run.seed,
+      );
+      const fragment = encodeChallenge(ids, SCORING_VERSION);
+      return {
+        primary: {
+          url: `${origin}${fragment}`,
+          label: CHALLENGE_SHARE_LABEL,
+          text: `Play the same ${ids.length} places on the Globe!\n${origin}${fragment}`,
+        },
+        secondary: null,
+      };
+    }
+    if (!fresh) return none;
+    return {
+      primary: {
+        url: `${origin}${fresh.fragment}`,
+        label: CHALLENGE_SHARE_LABEL,
+        text: freshSecondary!.text,
+      },
+      secondary: null,
+    };
+  }, [friendChallengesEnabled, challenge, review, run, dealer, pool, sessionTotal]);
+
+  // Package B (§Q2-B3): arriving at a normal run's summary records
+  // the completion that stands behind the exact-route mint — once
+  // per run, guarded by a sessionStorage marker with the run slots'
+  // own lifetime (a reload at the summary cannot count the same play
+  // twice; a genuinely replayed route is a new run and counts). Only
+  // where a mint can exist: non-Globe (Globe exact is the frozen mc1
+  // surface), at least five played, flag on.
+  useEffect(() => {
+    if (challenge || review || run.phase !== "summary") return;
+    if (!friendChallengesEnabled || run.edition === "globe") return;
+    if (run.results.length < CHALLENGE_MIN_PLACES) return;
+    const ids: string[] = [];
+    for (let i = 0; i < Math.min(run.results.length, CHALLENGE_MAX_PLACES); i++) {
+      const dealt = dealer.at(i);
+      if (dealt) ids.push(dealt.id);
+    }
+    if (ids.length < CHALLENGE_MIN_PLACES) return;
+    const markerKey = `meridian.challenge.recorded.summary.${run.seed}`;
+    try {
+      if (sessionStorage.getItem(markerKey)) return;
+      recordRouteCompletion(
+        challengeRouteTuple({
+          scoringVersion: SCORING_VERSION,
+          edition: run.edition,
+          regionId: run.regionId,
+          ids,
+        }),
+      );
+      sessionStorage.setItem(markerKey, "1");
+    } catch {
+      // Storage blocked: the mint simply reports stored+1 unstored.
+    }
+  }, [
+    challenge,
+    review,
+    run.phase,
+    run.seed,
+    run.edition,
+    run.regionId,
+    run.results.length,
+    friendChallengesEnabled,
+    dealer,
+  ]);
+
+  // The exact-route preview sheet (manifest §1(d)): the primary's tap
+  // opens it BEFORE any sharing — the disclosure line is the privacy
+  // trade's mitigation, and a share failure inside it still leaves a
+  // visible, copyable link (§5). Rendered only while the summary is up
+  // and the primary is an exact offer.
+  const [summaryPreviewOpen, setSummaryPreviewOpen] = useState(false);
+  const exactPrimary =
+    run.phase === "summary" && summaryChallengeOffers.primary?.exact
+      ? summaryChallengeOffers.primary
+      : null;
+  const summaryPreviewEl =
+    summaryPreviewOpen && exactPrimary ? (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Challenge a friend"
+        data-testid="challenge-preview"
+      >
+        <div className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-2xl">
+          <h2 className="font-display text-2xl text-fg">Challenge a friend</h2>
+          <p className="mt-3 text-base text-fg">
+            {exactPrimary.placeCount} places · {exactPrimary.regionName}
+          </p>
+          <p className="mt-2 text-base text-muted">
+            This shares the exact places you just played, in order.
+          </p>
+          <p className="mt-2 text-base text-muted">{CHALLENGE_FAIRNESS_COPY}</p>
+          <div className="mt-5 flex flex-col gap-2">
+            <div data-testid="challenge-share-container" data-challenge-url={exactPrimary.url}>
+              <ShareButton
+                title="Meridian friend challenge"
+                text={exactPrimary.text}
+                url={exactPrimary.url}
+                label={CHALLENGE_SHARE_LABEL}
+                className="w-full"
+                failureFallback={
+                  <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap wrap-anywhere rounded-lg border border-line bg-bg px-4 py-3 font-sans text-sm leading-relaxed text-fg">
+                    {exactPrimary.text}
+                  </pre>
+                }
+              />
+            </div>
+            <Button variant="secondary" onClick={() => setSummaryPreviewOpen(false)}>
+              Back
+            </Button>
+          </div>
+        </div>
+      </div>
+    ) : null;
+
+  // --- Package B: mid-run (b) and reveal (c) challenge creation ---
+  // One creation path behind two entries: the run-menu item (aim) and
+  // the result-card footer link (reveal). Both deal a FRESH five from
+  // the run's region — the widening chain is the manifest §1(b) one:
+  // run pool → region band, seen-INCLUDED → the run's loaded catalog,
+  // which is buildCreationSources with NO seenIds (nothing is
+  // subtracted). One honesty note: on Globe the loaded catalog is the
+  // tier-split subset the run itself loaded, so the last step widens
+  // within that subset — still in-region, still fail-closed (no source
+  // reaching five means no entry is offered).
+  // Creation is a pure read + fresh deal: it never touches the run,
+  // the dealer, or the pool, and the flag is re-read at tap time
+  // (click-atomic, §4) rather than trusted from render state. Normal
+  // runs only — the same exclusion the summary offers ship with:
+  // challenge runs pass their route along at completion (§1(f)) and
+  // review is its own surface (§1(e), Package C).
+  const [runChallengePreview, setRunChallengePreview] = useState<ChallengeCreation | null>(null);
+  const [runMenuOpen, setRunMenuOpen] = useState(false);
+  const runChallengeSources = useMemo(
+    () =>
+      !challenge && !review && places
+        ? buildCreationSources({
+            catalog: places,
+            choice: run.difficultyChoice,
+            runPoolIds: run.poolIds,
+          })
+        : [],
+    [challenge, review, places, run.difficultyChoice, run.poolIds],
+  );
+  const runChallengeAvailable =
+    friendChallengesEnabled &&
+    runChallengeSources.some(
+      (source) => new Set(source.map((entry) => entry.id)).size >= CHALLENGE_MIN_PLACES,
+    );
+  const createRunChallenge = useCallback(() => {
+    if (!isEnabled("friendChallenges")) return;
+    const creation = createChallengeRoute({
+      edition: run.edition,
+      regionId: run.regionId,
+      scoringVersion: SCORING_VERSION,
+      mode: "fresh",
+      sources: runChallengeSources,
+      dealSeed: mintSeed(),
+    });
+    if (creation) {
+      // The cartographer's tap, matching the other challenge entry
+      // points (Package A's panel-cured precedent): entering the
+      // creation flow sounds, whichever entry the player used.
+      playCardTap();
+      setRunChallengePreview(creation);
+    }
+  }, [run.edition, run.regionId, runChallengeSources]);
+  // The menu never survives the run it belongs to: Escape closes it,
+  // and the summary (or a new run) closes it too.
+  useEffect(() => {
+    if (!runMenuOpen) return;
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setRunMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [runMenuOpen]);
+  useEffect(() => {
+    if (run.phase === "summary") setRunMenuOpen(false);
+  }, [run.phase]);
+  // The preview sheet for (b)/(c): the picker's sheet copy — what the
+  // friend gets, stated before anything is shared; a share failure
+  // inside it still leaves a visible, copyable link (§5).
+  const runChallengePreviewEl = runChallengePreview ? (() => {
+    const creation = runChallengePreview;
+    const url = `${window.location.origin}${window.location.pathname}${creation.fragment}`;
+    const text = buildFreshChallengeShareText({
+      placeCount: creation.placeCount,
+      regionName: creation.regionName,
+      radiusKm: creation.radiusKm,
+      url,
+    });
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Challenge a friend"
+        data-testid="challenge-preview"
+      >
+        <div className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-2xl">
+          <h2 className="font-display text-2xl text-fg">Challenge a friend</h2>
+          <p className="mt-3 text-base text-fg">
+            {creation.placeCount} places in {creation.regionName}
+          </p>
+          <p className="mt-1 text-base text-muted">
+            Get inside the {creation.radiusKm} km circle — closer is better!
+          </p>
+          <p className="mt-2 text-base text-muted">{CHALLENGE_FAIRNESS_COPY}</p>
+          <p className="mt-2 text-base text-muted">
+            Your friend gets this exact route — the same {creation.placeCount} places, in this order.
+          </p>
+          <div className="mt-5 flex flex-col gap-2">
+            <div data-testid="challenge-share-container" data-challenge-url={url}>
+              <ShareButton
+                title="Meridian friend challenge"
+                text={text}
+                url={url}
+                label={CHALLENGE_SHARE_LABEL}
+                className="w-full"
+                failureFallback={
+                  <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap wrap-anywhere rounded-lg border border-line bg-bg px-4 py-3 font-sans text-sm leading-relaxed text-fg">
+                    {text}
+                  </pre>
+                }
+              />
+            </div>
+            <Button variant="secondary" onClick={() => setRunChallengePreview(null)}>
+              Back
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  })() : null;
+
   // Review session complete: the due queue is exhausted. A bounded,
   // completable session — ADHD-friendly — never the endless run.
   if (review && run.index >= pool.length) {
     return (
-      <ReviewComplete results={run.results} total={pool.length} onDone={onEditions} />
+      <ReviewComplete
+        results={run.results}
+        total={pool.length}
+        onDone={onEditions}
+        onResetHistory={reviewDeckTotal > 0 ? onResetHistory : undefined}
+        onChallengeFriend={friendChallengesEnabled ? reviewChallengeTap : undefined}
+      />
+    );
+  }
+  if (challenge && (run.index >= pool.length || run.phase === "summary")) {
+    return (
+      <ChallengeComplete
+        run={run}
+        total={pool.length}
+        onDone={
+          (run.challengeOrigin === "mc2" || run.challengeOrigin === "mc3") && onChallengeDone
+            ? onChallengeDone
+            : onEditions
+        }
+        onRetry={
+          run.challengeWinner && onChallengeRetry
+            ? () =>
+                onChallengeRetry({
+                  edition: run.edition,
+                  regionId: run.challengeRegionId ?? "globe",
+                  regionName:
+                    findRegion(run.edition, run.challengeRegionId ?? "globe")?.name ??
+                    run.regionName,
+                  radiusKm: run.challengeRadiusKm ?? 750,
+                  ids: [...run.poolIds],
+                  originFormat: "mc3",
+                  winner: run.challengeWinner ?? null,
+                })
+            : undefined
+        }
+        shareEnabled={friendChallengesEnabled}
+        regionCatalog={challengeCatalog}
+      />
     );
   }
 
@@ -4378,12 +7662,13 @@ function PlayLoaded({
               tileRetriesUsed={tileRetriesUsed}
               onTileRetry={handleTileRetry}
               onTileFallback={handleTileFallback}
+              onScoutUpgrade={scoutUpgradeEligible ? handleScoutUpgrade : undefined}
               mode={mode}
               mapMode={mapMode}
               initialView={scoutSwitchView}
               onWebglContextLost={handleWebglContextLost}
               edition={mapEdition}
-              regionName={mapRegionName}
+              regionName={satelliteRegionName}
               bounds={bounds}
               onAim={onAim}
               onConfirm={onConfirm}
@@ -4414,11 +7699,76 @@ function PlayLoaded({
               testId="sound-toggle-game"
               className="pointer-events-auto rounded-md border border-line bg-surface px-2.5 py-2 text-fg transition-colors"
             />
+            {/* High-contrast view (manifest 2026-10-27): the same
+                meridian.palette toggle, reachable mid-game; flipping
+                repaints in place and never ends the run. Sized to the
+                44px tap-target floor. */}
+            <HighContrastToggle
+              testId="high-contrast-toggle-game"
+              className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-md border border-line bg-surface text-fg transition-colors"
+            />
             {/* Scout Map settings toggle. The choice writes
                 meridian:map-mode and sends the player home — the new
                 mode takes effect in the next game, because the map is
-                built once per game (owner ruling, 2026-10-20). */}
-            <MapModeToggle mapMode={mapMode} onSelect={onManualMapMode} />
+                built once per game (owner ruling, 2026-10-20). In a
+                challenge run it renders its challenge context instead
+                (reason copy, no switch): a challenge's map is picked
+                at challenge open, and the flip must never force-home
+                out of a challenge (owner ruling, 2026-10-29). */}
+            <MapModeToggle
+              mapMode={mapMode}
+              onSelect={onManualMapMode}
+              context={challenge ? "challenge" : "play"}
+            />
+            {/* Package B (§1(b)): the run menu. Mid-run challenge
+                creation lives HERE — one item in this overflow, in the
+                header chrome cluster beside the other run controls —
+                never as a new button on the aim surface, and physically
+                separated from End game (which sits in the bottom dock /
+                top-right score cluster). Aim phase only: the reveal has
+                its own entry (§1(c)) and the summary its own (§1(d)).
+                The button is not rendered at all when no route can be
+                dealt or the flag is off: flag-off means the feature
+                does not exist (§4). The popover is RIGHT-anchored on
+                purpose: this cluster's right edge sits ~297px from the
+                viewport's left at any width, so the 288px panel always
+                fits on screen — a left-anchored panel would spill past
+                the right edge on phone-width viewports. */}
+            {runChallengeAvailable && run.phase === "aim" ? (
+              <div className="relative pointer-events-auto">
+                <button
+                  type="button"
+                  data-testid="run-menu-button"
+                  aria-expanded={runMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Run menu"
+                  onClick={() => setRunMenuOpen((v) => !v)}
+                  className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-md border border-line bg-surface text-fg transition-colors"
+                >
+                  <MoreHorizontal aria-hidden="true" size={20} />
+                </button>
+                {runMenuOpen ? (
+                  <div
+                    role="menu"
+                    data-testid="run-menu"
+                    className="pointer-events-auto absolute top-full right-0 z-40 mt-2 w-72 rounded-2xl border border-line bg-surface p-2 shadow-xl"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="run-menu-challenge"
+                      onClick={() => {
+                        setRunMenuOpen(false);
+                        createRunChallenge();
+                      }}
+                      className="flex min-h-[44px] w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-medium text-fg transition-colors hover:bg-bg"
+                    >
+                      {challengeMidRunLabel(run.regionName)}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           {review ? (
             <p
@@ -4427,6 +7777,14 @@ function PlayLoaded({
             >
               {REVIEW_DECK_COPY.progressOf} {Math.min(run.index + 1, pool.length)} of{" "}
               {pool.length}
+            </p>
+          ) : challenge ? (
+            <p
+              data-testid="challenge-progress"
+              className="game-chrome pointer-events-auto rounded-md px-3 py-2 text-sm font-semibold tabular-nums"
+            >
+              Place {Math.min(run.index + 1, pool.length)} of {pool.length} ·{" "}
+              {run.results.reduce((s, r) => s + r.score, 0).toLocaleString("en-US")} pts
             </p>
           ) : (
           <div className="flex flex-col items-end gap-0.5 sm:gap-2">
@@ -4478,7 +7836,7 @@ function PlayLoaded({
                 </div>
               ) : null}
             </div>
-            <span className="sr-only" role="status">
+            <span className="sr-only">
               Session score {sessionTotal.toLocaleString("en-US")}
             </span>
             <div className="flex items-center gap-1.5">
@@ -4523,6 +7881,50 @@ function PlayLoaded({
           )}
         </div>
       </div>
+      {/* The target chip (§Q4, Package B): bottom-centre above the
+          aim controls, non-interactive and aria-hidden (the live
+          region owns announcements). It shows the chain's best and
+          the running score — until the target leaves reach: once
+          running + the most the remaining stops can still pay < the
+          best, the chip drops the target and counts landed stops
+          instead (a deficit counter must not ride a run that can no
+          longer be won). It hides while the aim pin is being moved:
+          onAim fires through a drag, so the chip yields and settles
+          back ~700 ms after the last aim movement. */}
+      {challenge && run.challengeWinner && (run.phase === "aim" || run.phase === "story") && !chipSettling
+        ? (() => {
+            const best = run.challengeWinner.bestScore;
+            const running = run.results.reduce((s, r) => s + r.score, 0);
+            // Attainability at the remaining places' OWN tiers
+            // (owner D2 amendment, 2026-11-01): the tier-blind bound
+            // fired late or never on easy routes, so the deficit
+            // counter rode runs that could no longer be won.
+            const remainingDifficulties = run.poolIds
+              .slice(run.results.length)
+              .map((id) => pool.find((p) => p.id === id)?.difficulty ?? 5);
+            const unreachable =
+              running +
+                maxAttainableRemaining(
+                  remainingDifficulties,
+                  trailingStreak(run.results),
+                ) <
+              best;
+            const hits = run.results.filter((r) => r.hit).length;
+            return (
+              <div
+                data-testid="challenge-target-chip"
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] z-30 flex justify-center"
+              >
+                <p className="game-chrome rounded-full px-3 py-1.5 text-sm font-semibold tabular-nums">
+                  {unreachable
+                    ? `landed ${hits} of ${pool.length}`
+                    : `🎯 ${best.toLocaleString("en-US")} · you ${running.toLocaleString("en-US")}`}
+                </p>
+              </div>
+            );
+          })()
+        : null}
       {/* Bottom-right dock (aim phase): the hint cluster rides ABOVE the
           End-game pill in a single flex column, so the two can never
           overlap (flex layout, no absolute offsets between them).
@@ -4566,7 +7968,12 @@ function PlayLoaded({
           : run.phase === "story" && place && revealDone
             ? `Pin dropped. ${drop ? formatLength(drop.distanceKm, unitForEdition(run.edition, run.regionId)) : "Hit"}. ${questionLabel}.${drop?.breakdown ? ` +${drop.breakdown.score} points.` : ""}`
             : run.phase === "story" && place
-              ? "Showing the answer."
+              // Wave 1 P0 Item 3: this paragraph is the ONE designated
+              // reveal announcer, and it must announce exactly once per
+              // reveal. The pre-card "Showing the answer." text was a
+              // second announcement in the same reveal window, so the
+              // beat stays silent here and speaks once at revealDone.
+              ? null
               : run.phase === "summary" && summary
                 ? `Game over. ${summary.placesPlayed} places, ${summary.hits} hits, total score ${summary.totalScore.toLocaleString("en-US")} — ${summary.byEdition
                     .map((b) => `${EDITION_LABELS[b.edition]} ${b.score.toLocaleString("en-US")}`)
@@ -4634,8 +8041,16 @@ function PlayLoaded({
               ? growthLineFor(learningStore?.records[place.id]?.attempts ?? [])
               : null
           }
+          // Package B (§1(c)): the reveal footer's challenge link —
+          // present only when a fresh in-region route can be dealt.
+          challengeOffer={
+            runChallengeAvailable
+              ? { regionName: run.regionName, onChallenge: createRunChallenge }
+              : null
+          }
         />
       ) : null}
+      {runChallengePreviewEl}
       {/* WS-4 Phase 1: the same deferred break as the note below, for the
           satellite-failure switch. Its own copy and its own dismiss. */}
       {(tileSwitchNote && place && tileSwitchNote.placeId === place.id && (run.phase === "story" || run.phase === "done") && revealDone) ? (
@@ -4718,8 +8133,12 @@ function PlayLoaded({
           onPlayAgain={onSummaryPlayAgain}
           onReview={onReviewDeck}
           reviewDueCount={reviewDueCount}
+          challengePrimary={summaryChallengeOffers.primary}
+          challengeSecondary={summaryChallengeOffers.secondary}
+          onChallengePrimaryPreview={() => setSummaryPreviewOpen(true)}
         />
       ) : null}
+      {summaryPreviewEl}
     </main>
   );
 }

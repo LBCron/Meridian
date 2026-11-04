@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import {
   clampDeckToPoolSize,
+  clearLoopStore,
   completePuzzle,
   dealPuzzleIndex,
   freshLoopPuzzleState,
@@ -249,7 +250,7 @@ test("blocked storage: everything degrades to in-memory, nothing throws", () => 
 
 test("peekLoopProgress: streak + resume flag for the edition card", () => {
   installStorage();
-  assert.deepEqual(peekLoopProgress(), { streak: 0, bestStreak: 0, inProgress: false });
+  assert.deepEqual(peekLoopProgress(), { streak: 0, bestStreak: 0, inProgress: false, activeDeckId: "core" });
   const store: LoopUnlimitedStore = {
     ...freshLoopUnlimitedStore(10),
     streak: 3,
@@ -257,13 +258,13 @@ test("peekLoopProgress: streak + resume flag for the edition card", () => {
     current: freshLoopPuzzleState(2, 1),
   };
   writeLoopStoreV2(store);
-  assert.deepEqual(peekLoopProgress(), { streak: 3, bestStreak: 5, inProgress: true });
+  assert.deepEqual(peekLoopProgress(), { streak: 3, bestStreak: 5, inProgress: true, activeDeckId: "core" });
   const done: LoopUnlimitedStore = {
     ...store,
     current: { ...store.current!, status: "won", completedAt: "2026-10-06", streakEndedAt: null },
   };
   writeLoopStoreV2(done);
-  assert.deepEqual(peekLoopProgress(), { streak: 3, bestStreak: 5, inProgress: false });
+  assert.deepEqual(peekLoopProgress(), { streak: 3, bestStreak: 5, inProgress: false, activeDeckId: "core" });
 });
 
 test("v1 archive is never read, written, or deleted", () => {
@@ -706,7 +707,7 @@ test("loadLoopStore: an old blob without bestStreak backfills 0 and keeps streak
 test("blocked storage: read/write paths never throw with bestStreak in play", () => {
   installBlockedStorage();
   assert.equal(readLoopStoreV2(), null);
-  assert.deepEqual(peekLoopProgress(), { streak: 0, bestStreak: 0, inProgress: false });
+  assert.deepEqual(peekLoopProgress(), { streak: 0, bestStreak: 0, inProgress: false, activeDeckId: "core" });
   // A full win/loss session in memory: nothing throws, best tracks.
   assert.doesNotThrow(() => writeLoopStoreV2(freshLoopUnlimitedStore(10)));
   let store = loadLoopStore(5);
@@ -716,4 +717,49 @@ test("blocked storage: read/write paths never throw with bestStreak in play", ()
   store = completePuzzle(store, lostPuzzle(0, 1), "2026-10-06");
   assert.doesNotThrow(() => writeLoopStoreV2(store));
   assert.equal(store.bestStreak, 1, "best preserved in the in-memory session");
+});
+
+test("clearLoopStore removes the v2 store and the open flag, never the v1 archive", () => {
+  const data = installStorage({
+    "meridian.loop.v1": '{"archive":true}',
+    "meridian.loop.open": "1",
+    "meridian.palette": "standard",
+  });
+  writeLoopStoreV2(freshLoopUnlimitedStore(10));
+  assert.notEqual(readLoopStoreV2(), null);
+  assert.equal(clearLoopStore(), true);
+  assert.equal(data.has(LOOP_STORAGE_KEY_V2), false);
+  assert.equal(data.has("meridian.loop.open"), false);
+  assert.equal(readLoopStoreV2(), null);
+  assert.deepEqual(peekLoopProgress(), { streak: 0, bestStreak: 0, inProgress: false, activeDeckId: "core" });
+  // Kept keys are byte-identical: the inert v1 archive is never touched.
+  assert.equal(data.get("meridian.loop.v1"), '{"archive":true}');
+  assert.equal(data.get("meridian.palette"), "standard");
+});
+
+test("clearLoopStore honours an injected storage and leaves the global alone", () => {
+  const globalData = installStorage();
+  writeLoopStoreV2(freshLoopUnlimitedStore(10));
+  const backing = new Map<string, string>([[LOOP_STORAGE_KEY_V2, "seeded"]]);
+  const fake = {
+    getItem: (k: string) => (backing.has(k) ? backing.get(k)! : null),
+    setItem: (k: string, v: string) => {
+      backing.set(k, v);
+    },
+    removeItem: (k: string) => {
+      backing.delete(k);
+    },
+  };
+  assert.equal(clearLoopStore(fake), true);
+  assert.equal(backing.has(LOOP_STORAGE_KEY_V2), false);
+  assert.equal(globalData.has(LOOP_STORAGE_KEY_V2), true, "global store untouched");
+});
+
+test("clearLoopStore: blocked storage reports failure, never throws", () => {
+  installBlockedStorage();
+  let result: boolean | undefined;
+  assert.doesNotThrow(() => {
+    result = clearLoopStore();
+  });
+  assert.equal(result, false);
 });

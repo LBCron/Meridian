@@ -7,6 +7,7 @@ import { ZoomControls } from "@/components/zoom-controls.tsx";
 import { disk } from "@/game/geo";
 import { isHit } from "@/game/radius";
 import { startGlobeSpin, stopGlobeSpin } from "@/game/audio/sfx";
+import { readPalettePreference } from "@/game/palette-preference";
 import { playCelebrationSound, safePlay, soundAudible } from "@/game/audio/play-guards";
 import { IMAGERY_NOTICE, imageryView } from "./imagery.ts";
 import { isTap, type PointerTapEndpoint } from "./pin-tap.ts";
@@ -21,7 +22,7 @@ import { mountStarfield } from "./starfield.ts";
 import { buildScoutStyle } from "./scout-style.ts";
 import { ScoutFallbackMap } from "./scout-fallback.tsx";
 import { isCoarsePointer, mapOptionsForDevice, revealZoomCap, settleZoomCap, SCOUT_MAX_ZOOM_FLAT, SCOUT_MAX_ZOOM_GLOBE } from "./map-options.ts";
-import type { MapMode } from "./capability.ts";
+import { SCOUT_UPGRADE_SOAK_MS, type MapMode } from "./capability.ts";
 import { emitTileFailed, emitWebglContextLost, recordMilestone, recordTileErrors } from "@/lib/observability";
 import { createTapTracker } from "./tap-tracker.ts";
 import { INITIAL_TILE_STATUS, tileStatusReducer, type TileStatus } from "./tile-status.ts";
@@ -470,6 +471,15 @@ export function SatelliteMap(props: {
    * stores nothing. Carries the viewport so the outline map reopens in place.
    */
   onTileFallback?: (view: ScoutRestoreView) => void;
+  /**
+   * Issue #330: fired once when this SCOUT mount is an unknown-memory
+   * trial (the owner passes this only then) and the map has proved
+   * stable: style loaded (map_ready), first idle render completed, then
+   * SCOUT_UPGRADE_SOAK_MS with no teardown and no context loss. The
+   * owner switches the session to the full map, storing nothing.
+   * Carries the live viewport so the full map reopens in place.
+   */
+  onScoutUpgrade?: (view: ScoutRestoreView) => void;
 }): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -485,6 +495,10 @@ export function SatelliteMap(props: {
   // scout switch); read via ref so the canvas listener never goes stale.
   const onWebglContextLostPropRef = useRef(props.onWebglContextLost);
   onWebglContextLostPropRef.current = props.onWebglContextLost;
+  // Issue #330: same ref pattern for the scout-upgrade callback, so the
+  // soak timer armed in the construction effect never goes stale.
+  const onScoutUpgradePropRef = useRef(props.onScoutUpgrade);
+  onScoutUpgradePropRef.current = props.onScoutUpgrade;
   const spotRef = useRef<{ lon: number; lat: number } | null>(null);
   spotRef.current = props.spot ?? null;
   const marksRef = useRef(props.marks);
@@ -533,6 +547,14 @@ export function SatelliteMap(props: {
   const [ready, setReady] = useState(false);
   // The intro opens at zoom 1.0 (Earth from space); zoomend keeps this fresh.
   const [zoom, setZoom] = useState(1);
+  // Fix round 2 (PR #287): a +/- press during the return beat must not
+  // fight the in-flight ease. MapLibre's zoomIn reads the ANIMATED zoom
+  // (~2.2 mid-return) and its easeTo first stops the return ease, so the
+  // press settles BELOW the pre-return zoom (3 < 4) and the stop's
+  // zoomend announces the intermediate level. The return-beat branch in
+  // zoomStepDuringReturn stops the ease, skips that one zoomend for
+  // setZoom only, and zooms from the settled React zoom state instead.
+  const suppressNextZoomEndRef = useRef(false);
   // Map center mirror for the DOM contract (data-center-lng/lat). Written on
   // moveend — cheap, stable between gestures, and precise enough (4 decimals
   // ≈ 11 m) for E2E drag assertions. data-zoom stays rounded for the existing
@@ -572,6 +594,27 @@ export function SatelliteMap(props: {
   useEffect(() => {
     if (tileStatus.kind === "failed") emitTileFailed();
   }, [tileStatus.kind]);
+
+  // High-contrast live swap (manifest 2026-10-27, D4b): only the ring
+  // layer follows the palette arc — labels, markers, and the imagery
+  // itself are untouched (D5: GeoDetective labels are the game). If
+  // the style has not loaded the layer does not exist yet; the
+  // style-load addLayer below reads the then-current palette, which
+  // covers that ordering.
+  useEffect(() => {
+    const onPaletteChange = () => {
+      try {
+        const map = mapRef.current;
+        if (map?.getLayer(RING_SOURCE)) {
+          map.setPaintProperty(RING_SOURCE, "line-color", readPalettePreference().arc);
+        }
+      } catch {
+        // Layer mid-teardown — the next style load reads the palette.
+      }
+    };
+    window.addEventListener("meridian:palette-change", onPaletteChange);
+    return () => window.removeEventListener("meridian:palette-change", onPaletteChange);
+  }, []);
 
   // WS-4 Phase 1: after the one allowed "Try again", a failed satellite load
   // hands the map over to Scout Map for this visit. Fires once per episode;
@@ -656,10 +699,35 @@ export function SatelliteMap(props: {
   // prefers-reduced-motion (UX 4.6). MapLibre's own pinch/wheel zoom keeps
   // its default (also user-invoked) behavior; dblclick zoom is disabled —
   // double-tap / double-click commits the pin instead.
+  // Fix round 2: +/- during the return beat only. The gate is beatKind
+  // === "return" (beatActive alone is also true during spin/narrow/
+  // reveal/relock; reduced-motion return sets neither flag, so it takes
+  // the plain path below). Captures the React zoom state BEFORE touching
+  // the camera — that is the settled pre-return zoom (e.g. 4), not the
+  // animated mid-ease value (~2.2) and not the return target (1.5).
+  // map.stop() fires zoomend + moveend synchronously (vendored
+  // MapLibre _stop → _onEaseEnd → _afterEase); the zoomend is skipped
+  // for setZoom only (so the intermediate level is never announced),
+  // the moveend completes the return via the normal path, and the ref
+  // is cleared unconditionally after stop() so a stop firing no
+  // zoomend cannot swallow the zoomTo announcement.
+  const zoomStepDuringReturn = (dir: 1 | -1): boolean => {
+    const map = mapRef.current;
+    if (!map) return false;
+    if (controllerRef.current?.beatKind !== "return") return false;
+    const target = zoom + dir;
+    suppressNextZoomEndRef.current = true;
+    map.stop();
+    suppressNextZoomEndRef.current = false;
+    map.zoomTo(target, { essential: true });
+    return true;
+  };
   const handleZoomIn = () => {
+    if (zoomStepDuringReturn(1)) return;
     mapRef.current?.zoomIn({ essential: true });
   };
   const handleZoomOut = () => {
+    if (zoomStepDuringReturn(-1)) return;
     mapRef.current?.zoomOut({ essential: true });
   };
 
@@ -728,12 +796,12 @@ export function SatelliteMap(props: {
       case "+":
       case "=":
         e.preventDefault();
-        map?.zoomIn({ essential: true });
+        if (!zoomStepDuringReturn(1)) map?.zoomIn({ essential: true });
         break;
       case "-":
       case "_":
         e.preventDefault();
-        map?.zoomOut({ essential: true });
+        if (!zoomStepDuringReturn(-1)) map?.zoomOut({ essential: true });
         break;
     }
   };
@@ -890,12 +958,26 @@ export function SatelliteMap(props: {
     }
     maxBoundsRef.current = initialMaxBounds ?? null;
     mapRef.current = map;
+    // Issue #330: the unknown-memory trial's soak timer (armed in the
+    // load handler below; see its comment there for how the timer
+    // relates to shouldFireScoutUpgrade in src/map/capability.ts).
+    // Cleared on teardown and on context loss — a Scout map that lost
+    // its context has not proved stable.
+    let scoutUpgradeTimer: number | undefined;
 
     if (mapMode === "scout") {
       // PBI-4: the outline style has no external resources — any map error
       // is a real render failure, so drop to the static SVG fallback and
       // keep the game playable instead of stranding it on a dead canvas.
-      map.on("error", () => setScoutFallback(true));
+      map.on("error", () => {
+        // Issue #330: a failed Scout render has not proved stable —
+        // cancel the upgrade soak so it cannot fire from this mount.
+        if (scoutUpgradeTimer !== undefined) {
+          window.clearTimeout(scoutUpgradeTimer);
+          scoutUpgradeTimer = undefined;
+        }
+        setScoutFallback(true);
+      });
     }
 
     // Observability: a lost WebGL context is a field signal for GPU /
@@ -907,6 +989,11 @@ export function SatelliteMap(props: {
     // so a failing read can never break the observability emit above.
     const onWebglContextLost = () => {
       emitWebglContextLost();
+      // Issue #330: a context loss during the soak cancels the upgrade.
+      if (scoutUpgradeTimer !== undefined) {
+        window.clearTimeout(scoutUpgradeTimer);
+        scoutUpgradeTimer = undefined;
+      }
       try {
         if (mapModeRef.current !== "full") return;
         const owner = onWebglContextLostPropRef.current;
@@ -1168,6 +1255,14 @@ export function SatelliteMap(props: {
             break;
           }
           case "announce": {
+            // Wave 1 P0 Item 3: while a reveal card is up, the GameApp
+            // sr-only paragraph is the ONE designated reveal announcer.
+            // Drop zoom-space announces here (reveal "Hit." / "Showing
+            // your pin and the true spot.", threshold crossings during
+            // the reveal beat) so the reveal is never announced twice.
+            // Outside reveals (variation null) this region works exactly
+            // as before — narrow/region/space announcements untouched.
+            if (variationRef.current) break;
             // Clear-then-set: consecutive identical messages (e.g. two
             // misses in a row) would not re-announce if the text node
             // never changes.
@@ -1498,7 +1593,16 @@ export function SatelliteMap(props: {
     });
     map.on("zoomend", () => {
       // Track zoom for the +/- controls' aria-live announcements (M10).
-      setZoom(Math.round(map.getZoom()));
+      // Fix round 2: a zoomend from stopping the return beat (see
+      // zoomStepDuringReturn) carries the intermediate animated zoom —
+      // never let it overwrite the settled zoom state or consume the
+      // +/- announcement. Only setZoom is skipped; the boundary band
+      // and controller notification below still run.
+      if (suppressNextZoomEndRef.current) {
+        suppressNextZoomEndRef.current = false;
+      } else {
+        setZoom(Math.round(map.getZoom()));
+      }
       // Progressive boundary reveal (F2): update the admin-boundary band
       // for the new zoom. Static — no transitions (reduced-motion safe).
       // Scout Map never loads the admin-1 band: the ~1.6 MB of lazy
@@ -1536,6 +1640,40 @@ export function SatelliteMap(props: {
 
     map.on("load", () => {
       recordMilestone("map_ready");
+      // Issue #330: arm the unknown-memory trial's upgrade soak. Only a
+      // scout mount with an owner-supplied upgrade callback does this.
+      // The soak starts at the first idle (Scout has no tiles, so idle
+      // is the first completed render) and fires once with the LIVE
+      // viewport, mirroring the context-lost switch's view capture.
+      // This timer implements the soak half of shouldFireScoutUpgrade
+      // (src/map/capability.ts); the gate's other conditions (no stored
+      // record, no prior crash, unknown-memory source, trial armed) hold
+      // by construction, because boot eligibility is only ever set for
+      // the unknown-memory branch of planBootMapMode — after
+      // qualifyMapMode's precedence order has already ruled the other
+      // conditions out, and only when the `scoutUpgradeTrial` flag is on
+      // (GameApp's boot effect awaits the flags load before arming). A
+      // disarmed trial never passes an upgrade callback, so this timer
+      // never arms.
+      if (mapMode === "scout" && onScoutUpgradePropRef.current) {
+        map.once("idle", () => {
+          scoutUpgradeTimer = window.setTimeout(() => {
+            try {
+              if (mapModeRef.current !== "scout") return;
+              const owner = onScoutUpgradePropRef.current;
+              const liveMap = mapRef.current;
+              if (!owner || !liveMap) return;
+              owner({
+                center: liveMap.getCenter().toArray() as [number, number],
+                zoom: liveMap.getZoom(),
+                projection: logicalProjection(),
+              });
+            } catch {
+              // Upgrade is best-effort: staying in Scout is always safe.
+            }
+          }, SCOUT_UPGRADE_SOAK_MS);
+        });
+      }
       // Must-fix #2: style parsed, tiles in flight — not a verdict either
       // way (the reducer treats map-load as a no-op; the first idle
       // decides). Recorded for contract fidelity with tile-status.ts.
@@ -1569,7 +1707,10 @@ export function SatelliteMap(props: {
         type: "line",
         source: RING_SOURCE,
         paint: {
-          "line-color": "#f4f1ea",
+          // The ring is the palette arc (STANDARD.arc is this literal):
+          // read the active palette so a map built after the toggle
+          // starts in the right colours (manifest 2026-10-27, D4b).
+          "line-color": readPalettePreference().arc,
           "line-width": 1.5,
           "line-opacity": 0.85,
           "line-dasharray": [2, 2],
@@ -1631,6 +1772,7 @@ export function SatelliteMap(props: {
       controllerRef.current = null;
       tapHandlersRef.current = null;
       window.clearTimeout(watchdog);
+      if (scoutUpgradeTimer !== undefined) window.clearTimeout(scoutUpgradeTimer);
       disarmSkip();
       stopSpin();
       // An unmount mid-intro must not leave the ambient loop playing.

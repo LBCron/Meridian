@@ -34,6 +34,14 @@ export interface ColdTrailSighting {
   text: string;
   /** Continent/country context for the witness city (never the hideout). */
   region: ColdTrailSightingRegion;
+  /**
+   * Capitals & Flags: when this witness is a pack capital, the flag
+   * identity of the land it is the capital OF (a country capital →
+   * that country; a state capital → that state), stamped by the pack
+   * generator. The card renders the flag beside the region line, where
+   * that land's name is already printed. Absent = no flag.
+   */
+  flagKey?: string;
 }
 
 export interface ColdTrailHideout {
@@ -42,6 +50,15 @@ export interface ColdTrailHideout {
   lon: number;
   lat: number;
   difficulty: number;
+  /**
+   * Capitals & Flags (pack cases only): the hideout's country, stamped
+   * by the pack generator so the reveal can print the country in text
+   * beside its flag — the one flag rule forbids a flag whose land is
+   * not named on screen. Absent on core cases (no reveal flag there).
+   */
+  countryName?: string;
+  /** The hideout country's flag identity; absent = flagless country. */
+  flagKey?: string;
 }
 
 /** One playable case from cases.generated.json. */
@@ -50,6 +67,13 @@ export interface ColdTrailCase {
   caseNo: number;
   hideout: ColdTrailHideout;
   sightings: [ColdTrailSighting, ColdTrailSighting, ColdTrailSighting];
+  /**
+   * Pack this case belongs to (for example "capitals"), stamped by a
+   * pack generation pass. Core deck cases omit it. Pack decks live in
+   * their own generated files with their own store keys, and load
+   * through cases-pack.ts, never through the core deck in cases.ts.
+   */
+  packId?: string;
 }
 
 /** A player-chosen ring center (lon/lat in WGS84, never pixels). */

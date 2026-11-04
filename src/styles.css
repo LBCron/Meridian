@@ -3,6 +3,12 @@
 @import "./styles/motion-tokens.css";
 @import "./components/bounded-text.css";
 
+/* #306: phone-landscape / short windows. The summary card's pinned action
+ * footer (~240px) leaves too little height for the scroll region there, so
+ * the card goes side by side instead (run-summary.tsx). 500px: below it the
+ * stacked card cannot show the 8rem caption slot above a 4–5 button footer. */
+@custom-variant short-landscape (@media (orientation: landscape) and (max-height: 500px));
+
 /* Self-hosted Atlas type system (latin subsets, vendored from Google Fonts;
  * no runtime CDN dependency, so the app — and its "clean console" E2E gate —
  * never depends on a font fetch succeeding). */
@@ -100,7 +106,8 @@
   --map-coast: #0c1816;
   --map-lit: #6e9084;
   --map-pin: #f4f1ea;
-  --map-answer: #f2c14e; /* matches region-highlight gold */
+  --map-pin-dot: rgba(0,0,0,0.38);
+  --map-answer: #f2c14e; /* matches region-highlight gold outside high contrast (D9: HC answer is #a86c00) */
   --map-arc: #f4f1ea;
   --map-cross: #d7ddd9;
   /* ---- Cartographer's Plate: brass text/rule + derived game chrome (spec §4) ---- */
@@ -154,6 +161,7 @@
     --map-coast: #7f9aa2;
     --map-lit: #d5e4ea;
     --map-pin: #1c2420;
+    --map-pin-dot: rgba(0,0,0,0.38);
     --map-answer: #f2c14e; /* legend: gold is the true spot */
     --map-arc: #3e4c46;
     --map-cross: #1c2420;
@@ -208,6 +216,7 @@
   --map-coast: #7f9aa2;
   --map-lit: #d5e4ea;
   --map-pin: #1c2420;
+  --map-pin-dot: rgba(0,0,0,0.38);
   --map-answer: #f2c14e; /* legend: gold is the true spot */
   --map-arc: #3e4c46;
   --map-cross: #1c2420;
@@ -243,12 +252,42 @@
   --map-coast: #0c1816;
   --map-lit: #6e9084;
   --map-pin: #f4f1ea;
-  --map-answer: #f2c14e; /* matches region-highlight gold */
+  --map-pin-dot: rgba(0,0,0,0.38);
+  --map-answer: #f2c14e; /* matches region-highlight gold outside high contrast (D9: HC answer is #a86c00) */
   --map-arc: #f4f1ea;
   --map-cross: #d7ddd9;
   --gold-ink: #f2c14e; /* gold text on dark surfaces */
   --error: #f1948a; /* error text on dark surfaces */
   color-scheme: dark;
+}
+
+/* High-contrast view (settings toggle, manifest 2026-10-27; mark tokens
+   added by the council addendum 2026-10-28, D9): the five HIGH_CONTRAST
+   tokens plus the seven HIGH_CONTRAST_MARKS tokens from
+   src/game/palette.ts as --map-* overrides — twelve palette vars in
+   all, plus the pin centre-dot seam var below. Placed after every
+   theme block so it wins at equal specificity over :root, the light
+   media query, paper, and night alike. Source-pin tests in
+   palette-preference.test.ts keep these values equal to HIGH_CONTRAST
+   / HIGH_CONTRAST_MARKS. Roads, highway, road-case, and river are
+   deliberately NOT overridden (D9 adjudication): they keep their
+   theme values, re-measured against the HC anchors in palette.test.ts.
+   --map-highlight gets its first definition here; in the standard
+   path colors.ts's #f2c14e fallback governs it. */
+:root[data-palette="high-contrast"] {
+  --map-water: #0b0d10;
+  --map-land: #f6f3ea;
+  --map-arc: #c45c12;
+  --map-lake: #1a1d22;
+  --map-coast: #050608;
+  --map-pin: #b04a9e;
+  --map-answer: #a86c00;
+  --map-highlight: #a86c00;
+  --map-border: #beaf8d;
+  --map-park: #cfdcb4;
+  --map-cross: #757575;
+  --map-lit: #f0dca0;
+  --map-pin-dot: #f6f3ea;
 }
 
 @theme inline {
@@ -504,6 +543,23 @@
 .atlas-sound-toggle:hover {
   border-color: var(--atlas-brass);
 }
+
+/* High-contrast toggle pressed state (panel BLOCK 3 cure): the same
+ * brass-fill language as .atlas-seg button[aria-pressed="true"], applied
+ * through the dedicated class HighContrastToggle renders in both hosts
+ * (home .atlas-sound-toggle and the in-game chrome). Lucide has no
+ * honest Contrast on/off pair, so the icon itself also changes: its
+ * stroke glyph fills solid in the pressed state. Background, foreground,
+ * and icon fill all change — a sighted user cannot miss that it is on. */
+.atlas-contrast-toggle[aria-pressed="true"] {
+  background: var(--atlas-brass);
+  color: var(--atlas-brass-ink);
+  border-color: var(--atlas-brass);
+  box-shadow: 0 8px 20px -10px var(--atlas-brass);
+}
+.atlas-contrast-toggle[aria-pressed="true"] svg {
+  fill: currentColor;
+}
 .atlas-sound-toggle:focus-visible {
   outline: 2px solid var(--atlas-brass);
   outline-offset: 2px;
@@ -642,6 +698,18 @@
   border-color: var(--atlas-brass);
   box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.5);
   translate: 0 -3px;
+}
+
+/* The locked age-band tile (.agep-locked) is also an .atlas-dossier,
+   so the hover above lifted it like a clickable card — a locked
+   tile is not one. Scoped to the locked tile only: on hover it
+   keeps its resting border, shadow, and position. Real dossier
+   cards keep the lift. (Pre-existing inconsistency, fixed with
+   the locked tile's picture band.) */
+.atlas-dossier.agep-locked:hover {
+  border-color: var(--atlas-card-line);
+  box-shadow: none;
+  translate: none;
 }
 
 .atlas-dossier-title {
@@ -2036,5 +2104,89 @@
 
   .ct-layout [data-testid="sighting-card"] {
     scroll-margin-top: 8px;
+  }
+}
+
+/* ==========================================================================
+   Challenge verdict motion (governing manifest 2026-10-31 §Q4, Package B).
+   CSS transforms + opacity only — no blur, no shadows, no scale on text,
+   no JS-driven animation. Final scores render at frame 0 (no count-up,
+   ever); the target bar sweeps by transform over 650 ms; the verdict
+   word fades in as the bar lands; the duel strip dots stagger in after
+   it (30 ms apart, ≤ 300 ms of stagger); the duel line follows; the
+   pass-along share fades in last. Total choreography ≤ ~1,600 ms. A
+   tap on the verdict — or any keydown, or the settle timer at
+   choreography end (A-291-3, 2026-11-01) — sets
+   data-verdict-settled="true", snapping every
+   element to its final state. Under prefers-reduced-motion nothing
+   animates at all — every element simply is at its final state, with
+   the same information.
+   ========================================================================== */
+@keyframes verdict-bar-sweep {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes verdict-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes verdict-passed-pulse {
+  50% {
+    opacity: 0.6;
+  }
+}
+.verdict-bar-fill {
+  transform-origin: left center;
+  animation: verdict-bar-sweep 650ms ease-out both;
+}
+.verdict-word {
+  animation: verdict-fade-in 200ms ease-out 650ms both;
+}
+.verdict-strip-dot {
+  animation: verdict-fade-in 200ms ease-out both;
+  animation-delay: calc(850ms + var(--verdict-i, 0) * 30ms);
+}
+/* A-291-2 (cure round, 2026-11-01): the dot's VISUAL stays 20 px —
+   ten dots must fit a phone — but its hit area grows to 44 px tall
+   × the 26 px dot pitch wide (20 px dot + 6 px gap), so adjacent
+   areas touch without overlapping (WCAG 2.5.8's spacing rule) and
+   the height meets the 44 px tap floor. The focus ring draws on
+   the visual disc itself. */
+.verdict-strip-dot::after {
+  content: "";
+  position: absolute;
+  inset: -12px -3px;
+}
+.verdict-strip-dot:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 1px;
+}
+.verdict-late {
+  animation: verdict-fade-in 200ms ease-out 1200ms both;
+}
+.verdict-last {
+  animation: verdict-fade-in 200ms ease-out 1400ms both;
+}
+.verdict-pulse {
+  animation: verdict-passed-pulse 300ms ease-in-out 700ms 1;
+}
+[data-verdict-settled="true"] .verdict-bar-fill,
+[data-verdict-settled="true"] .verdict-word,
+[data-verdict-settled="true"] .verdict-strip-dot,
+[data-verdict-settled="true"] .verdict-late,
+[data-verdict-settled="true"] .verdict-last,
+[data-verdict-settled="true"] .verdict-pulse {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .verdict-bar-fill,
+  .verdict-word,
+  .verdict-strip-dot,
+  .verdict-late,
+  .verdict-last,
+  .verdict-pulse {
+    animation: none;
   }
 }

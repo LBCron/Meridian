@@ -16,16 +16,16 @@ import { CONTACT_RETENTION_DAYS } from "@/lib/contact/retention";
  * - No contact email is published (team rationale: a published address
  *   on a kids' site invites spam and mail from children; grown-ups reach
  *   us through the gated /contact form instead).
- * - Contact delivery is PARKED (path B, adopted by the owner
- *   2026-10-21): the form is off and nothing is delivered today. When
- *   delivery is activated, Discord is the processor that will hold the
- *   messages — including an optional reply-to address, which travels to
- *   Discord with the message — the server keeps no copy, and retention
- *   is CONTACT_RETENTION_DAYS (src/lib/contact/retention.ts), deleted
- *   manually once resolved. The page below says all of this in the
- *   future tense while parked. The grown-up gate is described honestly
- *   as a check that keeps kids out of the form, NOT as verified
- *   parental consent.
+ * - Contact delivery was parked (path B, adopted by the owner
+ *   2026-10-21 — his words are quoted in that doc, decision 4) and is
+ *   wired by issue #220: Discord is the processor
+ *   that holds the messages — including an optional reply-to address,
+ *   which travels to Discord with the message — the server keeps no
+ *   copy, and retention is CONTACT_RETENTION_DAYS
+ *   (src/lib/contact/retention.ts), deleted manually once resolved.
+ *   The page below describes that wired state. The grown-up gate is
+ *   described honestly as a check that keeps kids out of the form, NOT
+ *   as verified parental consent.
  */
 export const Route = createFileRoute("/privacy")({
   head: () => ({ meta: [{ title: "Privacy — Meridian" }] }),
@@ -100,39 +100,33 @@ function PrivacyPage() {
         parent, and it is not a parental-consent mechanism. Children should not use the form.
       </p>
       <p>
-        <strong>The form is not switched on yet.</strong> No delivery is configured today, so a
-        message sent through the form cannot reach us, and the page tells you that plainly when you
-        try. Nothing is delivered, stored, or read. The rest of this section describes how delivery
-        will work once it is switched on, so you can decide then whether to use it.
+        The form sends only the topic you pick, your message (up to 1,000 characters), and, only if
+        you choose to give it, a reply-to email address for a grown-up. We never store or forward
+        your IP address with the message.
       </p>
-      <p>
-        When it is on, the form will send only the topic you pick, your message (up to 1,000
-        characters), and, only if you choose to give it, a reply-to email address for a grown-up. We
-        never store or forward your IP address with the message.
-      </p>
-      <h3>Where messages will go and how long they will be kept</h3>
+      <h3>Where messages go and how long they are kept</h3>
       <ul>
         <li>
-          <strong>Our server will keep nothing.</strong> A message will pass through the Meridian
+          <strong>Our server keeps nothing.</strong> A message passes through the Meridian
           site&rsquo;s server, which checks it and hands it on. The server has no database, keeps no
           copy, and never writes your message or email address to its logs.
         </li>
         <li>
-          <strong>Discord will receive the message — including a reply-to address, if you give
-          one.</strong> Each message will be posted to a private channel in <strong>Discord</strong>{" "}
-          (Discord Inc.) that only the Meridian developer can read. Discord will be the service that
+          <strong>Discord receives the message — including a reply-to address, if you give
+          one.</strong> Each message is posted to a private channel in <strong>Discord</strong>{" "}
+          (Discord Inc.) that only the Meridian developer can read. Discord is the service that
           holds the message, under{" "}
           <a href="https://discord.com/privacy" target="_blank" rel="noopener noreferrer">
             Discord&rsquo;s privacy policy
           </a>
           . The reply-to address travels to Discord with the message so we can answer you. Messages
-          will never be shared or used for anything except answering you.
+          are never shared or used for anything except answering you.
         </li>
         <li>
-          <strong>Deleted once resolved, within {CONTACT_RETENTION_DAYS} days.</strong> We will
-          delete the Discord message once your question or request is resolved, and in any case
-          within {CONTACT_RETENTION_DAYS} days of receiving it. You can ask us to delete it sooner
-          through the same form.
+          <strong>Deleted once resolved, within {CONTACT_RETENTION_DAYS} days.</strong> We delete
+          the Discord message once your question or request is resolved, and in any case within{" "}
+          {CONTACT_RETENTION_DAYS} days of receiving it. You can ask us to delete it sooner through
+          the same form.
         </li>
       </ul>
 

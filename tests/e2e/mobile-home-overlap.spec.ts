@@ -655,3 +655,148 @@ for (const width of WIDTHS) {
     });
   }
 }
+
+/* ---------- Part 3 (action-model manifest 2026-10-29): Review card
+ * controls at phone widths ----------
+ * Part 2 (the D9 cue-vs-illustration contract) is deleted with the
+ * cue itself: the Review card left Form S and the cue is removed.
+ * What replaces it — the new stack's geometry contract at 360/390px
+ * in the DUE state with friendChallenges ON: the two controls
+ * (primary, reset) are disjoint, each >=44px tall, stacked in DOM
+ * order, unobstructed at their centres (elementFromPoint), and
+ * disjoint from the card's illustration box — the control∩art heir
+ * of the deleted cue test (Councilor C F8d: a taller stack beside
+ * bottom-anchored art is exactly the original bug class). One
+ * page.evaluate snapshots all rects + hit probes atomically after
+ * home-rise settles. (The challenge pill that originally sat
+ * between them was removed by the owner's redundancy ruling,
+ * addendum 2026-10-29 — this part now also locks its absence at
+ * phone widths, flag on.) */
+const REVIEW_DECK_KEY = "meridian:review-deck:v1";
+
+function dueDeckSeed() {
+  return {
+    v: 1,
+    entries: {
+      "e2e-deck-lincoln": {
+        v: 1,
+        place: {
+          id: "e2e-deck-lincoln",
+          name: "Lincoln",
+          lon: -96.7,
+          lat: 40.83,
+          story: "Nebraska's capital, named for Abraham Lincoln.",
+          difficulty: 2,
+          edition: "state",
+          regionId: "nebraska",
+          regionName: "Nebraska",
+          subdivision: "Nebraska",
+          sourceLabel: "E2E",
+          sourceHref: "https://example.com",
+          mapMode: "flat",
+          regionBounds: [-104.05, 39.99, -95.31, 43.0],
+          radiusKm: 75,
+        },
+        streak: 0,
+        nextDueAt: 0,
+        lastReviewedAt: 0,
+        reviews: 0,
+      },
+    },
+  };
+}
+
+test.describe("Part 3 · review card controls (due deck, flag on, challenge entry removed)", () => {
+  for (const width of WIDTHS) {
+    test(`controls disjoint, >=44px, ordered, clear of the art at ${width}px`, async ({
+      page,
+      context,
+    }) => {
+      await context.route("**/flags.json", async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json; charset=utf-8",
+          body: JSON.stringify({
+            version: 1,
+            flags: { pwaUpdateToast: true, learningOutcomes: true, friendChallenges: true },
+          }),
+        });
+      });
+      await page.setViewportSize({ width, height: 844 });
+      await page.addInitScript(
+        ({ key, s }) => {
+          if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(s));
+        },
+        { key: REVIEW_DECK_KEY, s: dueDeckSeed() },
+      );
+      const errors = await loadHome(page);
+      const section = page.getByTestId("tour-stop-review");
+      await expect(section).toBeVisible();
+      await expect(section.locator(".hv5-review-cue")).toHaveCount(0);
+      // Redundancy addendum 2026-10-29: the card's challenge entry is
+      // REMOVED — absent even with the flag on (the picker's own
+      // "Challenge a friend" button is the canonical generic entry).
+      await expect(page.getByTestId("review-challenge-a-friend")).toHaveCount(0);
+      await page.waitForTimeout(1_700); // home-rise settled before geometry
+      const snap = await page.evaluate(() => {
+        const card = document.querySelector('[data-testid="tour-stop-review"]')!;
+        // Scroll INSIDE the snapshot (cure round 2026-10-29): the
+        // page does not stay where an out-of-band scroll leaves it
+        // (scrollY measured at 602–1303 across identical runs while
+        // the card's document position never moved — something
+        // re-scrolls), so an out-of-band scrollIntoView left the
+        // snapshot's elementFromPoint probes outside the viewport
+        // (empty stack → "centre unobstructed" false). Reproduced
+        // on the pre-cure build in a control run — harness race,
+        // not a product defect. Scrolling in the same task as the
+        // rect reads makes the frame atomic: no re-scroll can
+        // interleave between the scroll and the probes.
+        card.scrollIntoView({ block: "center", inline: "center", behavior: "instant" as ScrollBehavior });
+        const rect = (el: Element | null | undefined) => {
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { x: r.x, y: r.y, width: r.width, height: r.height };
+        };
+        const primary = card.querySelector('button[aria-label="Review my misses: Start review"]');
+        const reset = card.querySelector('[data-testid="reset-history-open"]');
+        const hit = (el: Element | null) => {
+          if (!el) return false;
+          const r = el.getBoundingClientRect();
+          const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+          return !!top && (el === top || el.contains(top));
+        };
+        return {
+          card: rect(card),
+          art: rect(card.querySelector(".hv5-art")),
+          primary: rect(primary),
+          reset: rect(reset),
+          primaryHit: hit(primary),
+          resetHit: hit(reset),
+        };
+      });
+      expect(snap.card, "review card has a bounding box").not.toBeNull();
+      const controls = [
+        ["primary", snap.primary],
+        ["reset", snap.reset],
+      ] as const;
+      for (const [name, box] of controls) {
+        expect(box, `${name} has a bounding box`).not.toBeNull();
+        expect(box!.height, `${name} height >= 44px`).toBeGreaterThanOrEqual(43.5);
+        // >=14px inset from the card's left/right edges (finish-gate E1).
+        expect(box!.x - snap.card!.x, `${name} left inset >= 14px`).toBeGreaterThanOrEqual(13.5);
+        expect(
+          snap.card!.x + snap.card!.width - (box!.x + box!.width),
+          `${name} right inset >= 14px`,
+        ).toBeGreaterThanOrEqual(13.5);
+        noOverlap(name, box, "review illustration", snap.art);
+      }
+      noOverlap("primary", snap.primary, "reset", snap.reset);
+      // Stack order = DOM order.
+      expect(snap.primary!.y, "primary above reset").toBeLessThan(snap.reset!.y);
+      // Centres unobstructed.
+      expect(snap.primaryHit, "primary centre unobstructed").toBe(true);
+      expect(snap.resetHit, "reset centre unobstructed").toBe(true);
+      expectCleanConsole(errors);
+    });
+  }
+});

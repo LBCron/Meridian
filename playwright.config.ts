@@ -33,6 +33,11 @@ const chromiumExecutable =
  */
 export default defineConfig({
   testDir: "./tests/e2e",
+  // Telemetry spill: setup truncates the run-scoped escape log; teardown
+  // fails the run if any spec let a crash-report request escape the stub
+  // (see tests/e2e/helpers.ts recordTelemetryEscape).
+  globalSetup: "./tests/e2e/telemetry-spill-setup.ts",
+  globalTeardown: "./tests/e2e/telemetry-spill-teardown.ts",
   timeout: 90_000,
   expect: { timeout: 15_000 },
   retries: 0,
@@ -344,6 +349,32 @@ export default defineConfig({
       // Journal ("What the land remembers", docs/journal-spec.md §8):
       // inline section on the home page, mocked-clock rotation. Desktop viewport.
       testMatch: /journal\.spec\.ts/,
+      use: {
+        viewport: { width: 1440, height: 900 },
+      },
+    },
+    {
+      name: "search-hidden",
+      // Wave 1 P0 Item 4H/4I: home has no Search control. Each test sets
+      // its own viewport (360x740 / 390x844); no mobile UA emulation
+      // (same note as badge-journey: isMobile/hasTouch breaks map mounting).
+      testMatch: /search-hidden\.spec\.ts/,
+    },
+    {
+      name: "round-loop-a11y",
+      // Wave 1 P0 Item 3: round-loop accessibility. Desktop viewport;
+      // the spec itself sets 360x740 / 390x844 for its visual checks.
+      testMatch: /round-loop-a11y\.spec\.ts/,
+      use: {
+        viewport: { width: 1440, height: 900 },
+      },
+    },
+    {
+      name: "discarded-notice",
+      // Wave 1 P0 Item 1: the manifest-fixed filename matches no other
+      // project, so it gets its own (tests set viewports explicitly
+      // where a size matters).
+      testMatch: /discarded-notice\.spec\.ts/,
       use: {
         viewport: { width: 1440, height: 900 },
       },

@@ -9,6 +9,7 @@ import {
   CONTACT_REPLY_TO_MAX,
   CONTACT_TOPICS,
   sendContact,
+  sendOutcome,
   type ContactDraft,
   type SendResult,
 } from "@/lib/contact/contact-form";
@@ -68,6 +69,10 @@ function ContactForm() {
       return;
     }
     setProblems([]);
+    // Clear the previous result as the new send starts: the stale message
+    // leaves the live region now, so a repeat of the same wording is a
+    // fresh insertion and gets announced again.
+    setResult(null);
     setSending(true);
     // The endpoint comes from flags.json (contactEndpoint) — null until the
     // owner switches /api/contact on, in which case we say so honestly.
@@ -75,26 +80,19 @@ function ContactForm() {
     const r = await sendContact(getContactEndpoint(), built.payload);
     setSending(false);
     setResult(r);
-    if (r.status === "sent") setDraft(EMPTY);
+    // The draft is cleared ONLY when the message was actually delivered
+    // (stored:true). On any other outcome the visitor keeps their text —
+    // clearing it on a failed delivery would throw their words away
+    // (issue #220).
+    if (sendOutcome(r) === "delivered") setDraft(EMPTY);
   };
 
   return (
     <InfoPage title="Contact us">
       <p>
         For parents, carers, and teachers — questions about privacy, a request about your data, or a
-        bug report.
-      </p>
-      <p
-        className="rounded-lg border border-line bg-surface p-4 text-base font-medium"
-        role="note"
-        data-testid="contact-parked-note"
-      >
-        ⏸️ This form isn&rsquo;t switched on yet. Our contact inbox isn&rsquo;t connected, so a
-        message sent here can&rsquo;t reach us or be answered yet — and the form will tell you the
-        same thing if you try to send. Please check back soon. Our{" "}
-        <Link to="/privacy">privacy notice</Link> explains how delivery will work once it is on:
-        what the form will send, where messages will go (a private Discord channel), and how long
-        they will be kept.
+        bug report. Our <Link to="/privacy">privacy notice</Link> explains what this form sends,
+        where messages go (a private Discord channel), and how long they are kept.
       </p>
       <p
         className="rounded-lg border border-line bg-surface p-4 text-base font-medium"
@@ -105,15 +103,25 @@ function ContactForm() {
         personal details here. Ask a grown-up to help.
       </p>
 
-      {result?.status === "sent" ? (
-        <p role="status" data-testid="contact-sent">
-          {result.stored
-            ? "Thanks — your message was sent."
-            : // NoopSink (no inbox connected yet): be honest rather than
-              // let a grown-up wait for a reply that cannot come.
-              "Thanks — we received it, but our contact inbox isn't connected yet, so nobody can read or answer it right now. Please check back soon."}
-        </p>
-      ) : null}
+      {/* The thank-you renders ONLY on confirmed delivery (stored:true).
+          For every other outcome the visitor gets an honest state below
+          and keeps their draft — saying "we received your request" for a
+          message nobody received was the #220 bug.
+          Screen readers: the polite live region is ALWAYS in the DOM (empty
+          until a result) — a region inserted together with its text is not
+          reliably announced. The message inside has no role of its own, so
+          it is announced once. empty:-mt-5 cancels the column gap while it
+          is empty, so the layout is unchanged. */}
+      <div role="status" data-testid="contact-status-region" className="empty:-mt-5">
+        {sendOutcome(result) === "delivered" ? (
+          <p
+            data-testid="contact-sent"
+            className="rounded-lg border border-line bg-surface p-4 text-base font-medium"
+          >
+            Thanks — we received your request and will get back to you.
+          </p>
+        ) : null}
+      </div>
 
       <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate data-testid="contact-form">
         <label className="flex flex-col gap-1">
@@ -185,15 +193,23 @@ function ContactForm() {
             </ul>
           </div>
         ) : null}
-        {result && result.status !== "sent" ? (
-          <p role="alert" data-testid="contact-error">
-            {result.status === "not-configured"
-              ? "The contact form isn't switched on yet. Please check back soon."
-              : result.status === "rate-limited"
-                ? "That's a lot of messages in a short time — please try again in a few minutes."
-                : "We couldn't send that just now. Please try again later."}
-          </p>
-        ) : null}
+        {/* Same pattern as the status region above: the alert region is
+            always present (empty:-mt-4 cancels the form's gap while empty);
+            not-delivered / rate-limited / error results render inside it. */}
+        <div role="alert" data-testid="contact-alert-region" className="empty:-mt-4">
+          {result && sendOutcome(result) !== "delivered" ? (
+            <p data-testid="contact-error">
+              {sendOutcome(result) === "not-configured" || sendOutcome(result) === "not-delivered"
+                ? // "not-delivered" (accepted but stored:false — no inbox is
+                  // connected) reuses the not-configured wording on purpose:
+                  // same honest situation, same voice (SPEC §4).
+                  "The contact form isn't switched on yet. Please check back soon."
+                : sendOutcome(result) === "rate-limited"
+                  ? "That's a lot of messages in a short time — please try again in a few minutes."
+                  : "We couldn't send that just now. Please try again later."}
+            </p>
+          ) : null}
+        </div>
 
         <button
           type="submit"

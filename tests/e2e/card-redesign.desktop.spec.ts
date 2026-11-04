@@ -10,9 +10,17 @@ import { serveBuiltArtifact } from "./helpers";
  * B. GeoDetective + Cold Trail Variant A split (image first in DOM) with
  *    whole-card action via the stretched CTA (Form S): clicks on the
  *    image, heading, paragraph, and corner inset each open the game;
- *    one focus stop per card; focus ring around the whole card.
- * C. Review my misses: due → whole-card click + visible REVIEW → cue;
- *    empty/caught-up → not focusable/clickable, no cue, no button.
+ *    focus ring around the whole card. Focus stops per card: the CTA
+ *    only — the card films carried a 44px pause/play toggle from
+ *    feat/home-card-films until the owner's autoloop order
+ *    (2026-11-03) removed the play button from every card film, so
+ *    each game card has one stop, or two on GeoDetective when
+ *    badge chips are present.
+ * C. Review my misses: due → explicit controls only (action-model
+ *    manifest 2026-10-29 — the card left Form S: body taps are inert,
+ *    the primary button opens review, the REVIEW → cue is removed);
+ *    empty → not focusable/clickable, no controls; caught-up → no
+ *    CTA either, but the Part 1 reset opener renders (total > 0).
  * D. Grid band: .hv5-pages children span full width at 768/1280 (row
  *    stretch only); no-op at 390px. The 768 .hv5-grid3 orphan is a
  *    separate container and is deliberately NOT covered here.
@@ -189,7 +197,7 @@ async function ringWhileFocused(page: Page, cardSelector: string) {
     const after = getComputedStyle(btn, "::after");
     const btnStyle = getComputedStyle(btn);
     const cardBox = card.getBoundingClientRect();
-    const img = card.querySelector(".hv5-pic img") as HTMLElement | null;
+    const img = card.querySelector(".hv5-pic :is(img, video)") as HTMLElement | null;
     const imgBox = img ? img.getBoundingClientRect() : null;
     return {
       focused: document.activeElement === btn,
@@ -221,7 +229,7 @@ async function cardPoints(page: Page, cardSelector: string) {
   const box = await card.boundingBox();
   const head = await card.locator("h2").boundingBox();
   const para = await card.locator("p").first().boundingBox();
-  const img = await card.locator(".hv5-pic img").boundingBox();
+  const img = await card.locator(".hv5-pic :is(img, video)").boundingBox();
   return {
     image: { x: img!.x + img!.width / 2, y: img!.y + img!.height / 2 },
     heading: { x: head!.x + head!.width / 2, y: head!.y + head!.height / 2 },
@@ -249,7 +257,7 @@ test("B: GeoDetective split order + whole-card clicks open the game", async ({ p
   // Image before text in DOM order (not CSS order).
   const firstChildClass = await card.evaluate((el) => el.firstElementChild?.className ?? "");
   expect(firstChildClass).toContain("hv5-pic");
-  const imgBox = await card.locator(".hv5-pic img").boundingBox();
+  const imgBox = await card.locator(".hv5-pic :is(img, video)").boundingBox();
   const txtBox = await card.locator(".hv5-txt").boundingBox();
   expect(imgBox!.y).toBeLessThan(txtBox!.y);
 
@@ -275,7 +283,7 @@ test("B: Cold Trail split order + whole-card clicks open the game", async ({ pag
   await expect(card).toBeVisible();
   const firstChildClass = await card.evaluate((el) => el.firstElementChild?.className ?? "");
   expect(firstChildClass).toContain("hv5-pic");
-  const imgBox = await card.locator(".hv5-pic img").boundingBox();
+  const imgBox = await card.locator(".hv5-pic :is(img, video)").boundingBox();
   const txtBox = await card.locator(".hv5-txt").boundingBox();
   expect(imgBox!.y).toBeLessThan(txtBox!.y);
 
@@ -294,9 +302,12 @@ test("B: Cold Trail split order + whole-card clicks open the game", async ({ pag
   }
 });
 
-test("B: one focus stop per game card, ring around the whole card", async ({ page }) => {
+test("B: CTA focus stop per game card, ring around the whole card", async ({ page }) => {
   await gotoHome(page, 1280);
-  // Clean state: no earned badges, so GeoDetective has exactly one stop.
+  // Clean state: no earned badges. Each game card has exactly one
+  // stop: the stretched CTA. The card film's pause/play toggle was
+  // removed by the owner's autoloop order (2026-11-03) — the films
+  // loop and render no control, so the picture adds no stop.
   expect(await focusableCount(page, '[data-testid="tour-stop-geodetective"]')).toBe(1);
   expect(await focusableCount(page, ".hv5-dispatch")).toBe(1);
 
@@ -345,7 +356,9 @@ test("B: seeded badge chip toggles its blurb and never opens the game; card taps
     const chip = badged.getByTestId("badge-chip-clean-round");
     await expect(chip).toBeVisible();
     await expect(chip).toContainText("Clean Round");
-    // With badges present the card has exactly two stops: chip + CTA.
+    // With badges present the card has exactly two stops: the chip
+    // and the CTA. (The film toggle that used to precede them was
+    // removed by the owner's autoloop order, 2026-11-03.)
     expect(await focusableCount(badged, '[data-testid="tour-stop-geodetective"]')).toBe(2);
     await expect(badged.getByTestId("badge-blurb-clean-round")).toHaveCount(0);
     await chip.click();
@@ -451,16 +464,45 @@ test("F: CTA accessible names carry the card name; articles labelled; due outlin
   }
 });
 
-test("C: Review due → tap anywhere opens review, REVIEW → cue present", async ({ page, browser }) => {
+type RectBox = { x: number; y: number; width: number; height: number };
+
+/** ONE page.evaluate snapshots the illustration and card rects
+ *  atomically — no scroll or layout can interleave between the reads
+ *  (friend-challenge single-evaluate pattern). The cue rect this
+ *  helper used to return is gone: the cue is removed (action-model
+ *  manifest 2026-10-29). */
+async function artSnapshot(page: Page) {
+  return page.evaluate(() => {
+    const section = document.querySelector('[data-testid="tour-stop-review"]');
+    const art = section?.querySelector(".hv5-art");
+    const rect = (el: Element | null | undefined) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height };
+    };
+    return { card: rect(section), art: rect(art) };
+  });
+}
+
+test("C: Review due → card body is inert, the primary button opens review, cue removed", async ({ page, browser }) => {
+  // Action-model manifest 2026-10-29: the Review card leaves Form S.
+  // Heading / paragraph / corner taps are INERT (they used to start
+  // the review via the stretched CTA); only the explicit primary
+  // button starts it. The REVIEW → cue is removed entirely.
   await seedDeckOn(page, deckSeed(0));
   await gotoHome(page, 1280);
   const section = page.getByTestId("tour-stop-review");
   await expect(section).toBeVisible();
-  await expect(section.locator(".hv5-review-cue")).toHaveText("REVIEW →");
+  await expect(section.locator(".hv5-review-cue")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Review my misses: Start review" })).toBeVisible();
-  expect(await focusableCount(page, '[data-testid="tour-stop-review"]')).toBe(1);
+  // Focusable controls: the primary + the "Start over" reset opener
+  // (this spec's flags route leaves friendChallenges off, so no
+  // challenge entry renders). The art film adds no stop: the
+  // owner's autoloop order (2026-11-03) removed the film toggle
+  // this count included during the Part 2 redo round.
+  expect(await focusableCount(page, '[data-testid="tour-stop-review"]')).toBe(2);
 
-  for (const point of ["heading", "paragraph", "cue", "corner"] as const) {
+  for (const point of ["heading", "paragraph", "corner"] as const) {
     const { context, page: fresh } = await freshHome(browser, 1280, deckSeed(0));
     try {
       const freshSection = fresh.getByTestId("tour-stop-review");
@@ -468,23 +510,70 @@ test("C: Review due → tap anywhere opens review, REVIEW → cue present", asyn
       const box = await freshSection.boundingBox();
       const head = await freshSection.locator("h2").boundingBox();
       const para = await freshSection.locator("p").first().boundingBox();
-      const cue = await freshSection.locator(".hv5-review-cue").boundingBox();
       const pt = {
         heading: { x: head!.x + head!.width / 2, y: head!.y + head!.height / 2 },
         paragraph: { x: para!.x + para!.width / 2, y: para!.y + para!.height / 2 },
-        cue: { x: cue!.x + cue!.width / 2, y: cue!.y + cue!.height / 2 },
         corner: { x: box!.x + 8, y: box!.y + 8 },
       }[point];
       await fresh.mouse.click(pt.x, pt.y);
-      await expect(freshSection).toHaveCount(0, { timeout: 20_000 });
-      await expect(fresh.getByText("Lincoln", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+      // Inert: still on the home picker, card still rendered.
+      await fresh.waitForTimeout(600);
+      await expect(fresh.getByTestId("home-heading")).toBeVisible();
+      await expect(freshSection).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  }
+
+  // The primary button itself still opens the review.
+  const { context, page: fresh } = await freshHome(browser, 1280, deckSeed(0));
+  try {
+    await fresh.getByRole("button", { name: "Review my misses: Start review" }).click();
+    await expect(fresh.getByTestId("tour-stop-review")).toHaveCount(0, { timeout: 20_000 });
+    await expect(fresh.getByText("Lincoln", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+  } finally {
+    await context.close();
+  }
+});
+
+test("C: Review due → cue element absent at 1280 + 1024; banner fully inside the card", async ({ browser }) => {
+  // Action-model manifest 2026-10-29: the REVIEW → cue is removed.
+  // What survives from the old D9 contract: the illustration box sits
+  // entirely inside the card at desktop widths including the 1024px
+  // regime (769–1279) no other suite measures. Since the rework
+  // (2026-11-03) the illustration is a full-bleed banner at the top
+  // of the card, so the box must also span the card's full width.
+  for (const [width, height] of [[1280, 900], [1024, 768]] as const) {
+    const { context, page: fresh } = await freshHome(browser, width, deckSeed(0));
+    try {
+      await fresh.setViewportSize({ width, height });
+      const section = fresh.getByTestId("tour-stop-review");
+      await expect(section).toBeVisible();
+      await expect(section.locator(".hv5-review-cue")).toHaveCount(0);
+      await section.scrollIntoViewIfNeeded();
+      const snap = await artSnapshot(fresh);
+      expect(snap.art, "review illustration has a bounding box").not.toBeNull();
+      expect(snap.card, "review card has a bounding box").not.toBeNull();
+      const { art, card } = snap as { art: RectBox; card: RectBox };
+      expect(art.width, "review illustration width > 0").toBeGreaterThan(0);
+      expect(art.height, "review illustration height > 0").toBeGreaterThan(0);
+      expect(art.width, "review banner spans the card width (56px of padding cancelled, 2px of border remains)")
+        .toBeGreaterThanOrEqual(card.width - 3);
+      expect(art.x, "review illustration left edge inside card").toBeGreaterThanOrEqual(card.x - 0.5);
+      expect(art.y, "review illustration top edge inside card").toBeGreaterThanOrEqual(card.y - 0.5);
+      expect(art.x + art.width, "review illustration right edge inside card").toBeLessThanOrEqual(
+        card.x + card.width + 0.5,
+      );
+      expect(art.y + art.height, "review illustration bottom edge inside card").toBeLessThanOrEqual(
+        card.y + card.height + 0.5,
+      );
     } finally {
       await context.close();
     }
   }
 });
 
-test("C: Review empty and caught-up → not focusable, not clickable, no cue", async ({ page, browser }) => {
+test("C: Review empty → not focusable, not clickable, no cue; caught-up → only the reset opener", async ({ page, browser }) => {
   // Empty deck: no entries at all.
   {
     const { context, page: fresh } = await freshHome(browser, 1280, { v: 1, entries: {} });
@@ -494,6 +583,9 @@ test("C: Review empty and caught-up → not focusable, not clickable, no cue", a
       await expect(section).toContainText("Miss a place and it'll land here for review.");
       await expect(fresh.getByRole("button", { name: "Review my misses: Start review" })).toHaveCount(0);
       await expect(section.locator(".hv5-review-cue")).toHaveCount(0);
+      // No focusable remains here at all: no card control renders,
+      // and the art film's pause/play toggle was removed by the
+      // owner's autoloop order (2026-11-03).
       expect(await focusableCount(fresh, '[data-testid="tour-stop-review"]')).toBe(0);
       const box = await section.boundingBox();
       await fresh.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -511,7 +603,15 @@ test("C: Review empty and caught-up → not focusable, not clickable, no cue", a
       await expect(section).toContainText("All caught up!");
       await expect(fresh.getByRole("button", { name: "Review my misses: Start review" })).toHaveCount(0);
       await expect(section.locator(".hv5-review-cue")).toHaveCount(0);
-      expect(await focusableCount(fresh, '[data-testid="tour-stop-review"]')).toBe(0);
+      // Part 1 cure (manifest D10): the caught-up card DOES carry one
+      // focusable element — the "Start over" reset opener, which
+      // renders whenever deck total > 0 (due OR caught-up). The art
+      // film's toggle, a second stop during the Part 2 redo round,
+      // was removed by the owner's autoloop order (2026-11-03).
+      // There is still no review CTA and no cue, and the card itself
+      // is not clickable (the click assertion above is the
+      // empty-deck half).
+      expect(await focusableCount(fresh, '[data-testid="tour-stop-review"]')).toBe(1);
     } finally {
       await context.close();
     }

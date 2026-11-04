@@ -159,6 +159,12 @@ meridian <date>
 
 When a region chunk fails to load *only* because the deploy moved on (build-meta mismatch), the kid sees **"A new version of Meridian is available."** with a **one-tap Refresh button** — never a dead-end error screen.
 
+**Extended to every screen (issues #209–#211, 2026-10-26).** Three gaps from the PR #203 review are now closed, in plain terms:
+
+- **No more endless spinners (#209).** A download can *hang* — never finish, never fail — and a hang used to leave the loading spinner up forever. Every big download behind a loading screen now has a 10-second patience limit: the map data, the place lists, and the GeoDetective / Cold Trail / map screens themselves. A download that runs out of patience lands on the same friendly, recoverable error card a failed download gets.
+- **The error card tells the truth (#210).** The card that catches a broken screen download used to always say "Couldn't load the map" — even when GeoDetective or Cold Trail was the thing that failed. It now names what actually failed. And it checks whether the tab is simply old: if a new version has been deployed, the card *is* the new-version prompt above, Refresh button included, on every screen — not just where a game starts.
+- **Small politeness + focus fixes (#211).** Merely *focusing* a home-screen card (tabbing past it with a keyboard) no longer starts the map-data download for players who turned on their browser's Save-Data mode — tapping or hovering still warms it up, and starting a game always loads it for real. Cold Trail's "couldn't load" screen now receives keyboard/screen-reader focus on arrival, exactly like GeoDetective's heading already did. And a new automated pin keeps score honest: the region bonus may only be read after the map data has fully loaded — never guessed from a half-loaded map.
+
 ## 12. Edition → picker → dealing flow
 
 ```mermaid
@@ -204,6 +210,20 @@ What the ruling does (issue #182):
 
 *Superseded:* the pre-2026-10-20 default — "no profile resolves to 11-13 for everything, hint policy included" — is replaced by the rule above. The per-band table itself is unchanged since 2026-10-09.
 
+**Reload honesty (issue #185, 2026-10-26).** In GeoDetective, "one hint per mystery" now survives a mid-mystery reload: the bulb's used-up state is read back from the mystery's saved hint count when the screen opens again, instead of starting fresh. Before this fix, reloading after using a hint quietly offered a second one. (The Clean Round badge was never fooled — it always read the saved count. Only the button forgot.)
+
+## 14. Start over — a player can wipe their own game history (2026-10-28)
+
+The review deck only ever grew: every miss added a card, forever, with no way to clear any of it. Veeresh, playing his own game: *"reset means now game remembers how many i missed, soon it will become huge, I want game allowing user to reset the past misses, so i can reset and start over deleting his game history."*
+
+The ruling (Tier-2 Consensus Manifest, PR #281): a **"Start over"** reset, entered from the deck's own surfaces — the home Review card and the review-complete screen — behind a two-step confirm that names every loss in plain words and ends "This cannot be undone."
+
+- **History is wiped; setup is not.** Cleared: the misses deck, learning records and growth, the seen/cleared no-repeat memory, GeoDetective and Cold Trail progress, today's session score, and any paused run (a paused run's results would otherwise re-seed the cleared session when its edition reopens). Kept: passport badges, the first-win flag, and every preference (palette, sound, age profile, difficulty, …).
+- **Seen places can be dealt again afterwards.** That is the point of starting over; the design doc (learning-outcomes §12) states it plainly instead of hiding it.
+- **The control shows only while the deck is non-empty.** An empty deck has nothing to reset, so no button renders; and because the deck is flag-gated, flag-off players have no reset door in v1 (manifest open question OQ3).
+- **Dissent on record.** Councilor C argued an all-history wipe entered from the misses card is a consent trap for a child even with enumerating copy, and wanted the owner to choose misses-only vs all-history first. The Chair ruled on the owner's own words ("deleting his game history", "start over"); the dissent is carried in the PR body, so the owner's merge word on PR #281 is also his ruling on it.
+- **Open questions carried:** badges and the first-win flag stay kept unless the owner says otherwise (OQ1); the inert `meridian.loop.v1` daily-era archive is left untouched (OQ2).
+
 ## Sources
 
 - `~/workspace/your_files/meridian-scoring-proposal.md` — scoring v3 design, formula, worked examples, display + share design, migration notes
@@ -213,3 +233,4 @@ What the ruling does (issue #182):
 - `~/workspace/your_files/game-review-recommendations.md` — Admin-1 narrow decision, symmetric country naming, pin-legend copy, top-10 improvement slate (recommendations; Veeresh decides)
 - `~/MEMORY.md` — slogan (2026-10-01), philosophy (2026-10-03), GeoDetective unlimited decision (2026-10-06), #130–#138 decisions (2026-10-11), reveal design (2026-09-30/10-01), share format, stale-deploy copy, blurb principles, Hyderabad rule (2026-09-30), dataset facts (2026-09-30), picker wording, learningOutcomes flag (2026-10-04)
 - GitHub issue #182 (2026-10-20) — the hidden-bulb bug report and Veeresh's hints-on-by-default ruling quoted in §13; the fix merged as PR #184 (2026-10-20, squash `11a95a7`)
+- Tier-2 Consensus Manifest `.council/manifests/2026-10-28-reset-history-and-card-fix.md` (decisions D1–D17) and PR #281 (2026-10-28) — the Start over reset in §14: the cleared/kept store inventory, the consent copy, Councilor C's dissent, and open questions OQ1–OQ3

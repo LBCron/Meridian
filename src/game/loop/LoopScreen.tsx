@@ -6,6 +6,8 @@ import { formatLength, loopGradeBand, unitForLoopTarget } from "@/game/units";
 import { preloadTerritory } from "@/game/territory";
 import { nameTier } from "@/game/place-name";
 import { PlaceNameText } from "@/components/place-name";
+import { FlagImg } from "@/components/flag-img";
+import { flagEntry } from "@/lib/flag-registry";
 import { GradeChip } from "@/components/grade-chip";
 import { ScrollCue, useMoreBelow } from "@/components/scroll-cue";
 import { BRAND } from "@/game/brand";
@@ -28,25 +30,47 @@ import {
 } from "@/game/audio/sfx";
 import {
   celebrationSpec,
+  deckCompleteCelebrationSpec,
   hasCelebratedFirstWin,
   markFirstWinCelebrated,
   type CelebrationSpec,
 } from "@/components/celebration-overlay";
 import {
+  activeDeckIdOf,
+  buildTierBandedDeck,
   clampDeckToPoolSize,
+  clampPackDeckToIndexes,
   completePuzzle,
+  dealFromDeck,
   dealPuzzleIndex,
+  deckIdOfPuzzle,
+  ensurePackDeck,
   freshLoopPuzzleState,
+  getDeckState,
   loadLoopStore,
   returnIndexToDeckHead,
+  returnPuzzleIndexToDeck,
+  setActiveDeck,
   writeLoopStoreV2,
 } from "./store";
+import {
+  isLoopPackManifest,
+  isLoopPackMeta,
+  loopMetaEntryFor,
+  packBriefingText,
+  packManifestCases,
+  type LoopPackManifest,
+  type LoopPackMeta,
+} from "./packs";
 import { buildLoopGuess, submitGuess, OCTANT_ARROWS } from "./engine";
 import { geodetectiveConfig, getBandConfig, canUseHint, resolveBand, type AgeBandId, type GeoDetectiveConfig } from "@/game/age-profile";
 import { HintPanel } from "@/components/hint-panel";
+import { PackShelf } from "@/components/pack-shelf";
+import { CORE_DECK_ID as SHELF_CORE_DECK_ID, deckLabelForId, toShelfDeckId } from "@/components/pack-shelf-data";
 import { directionalHint } from "@/components/hint-logic";
 import { awardCleanRoundBadge, type PassportBadge } from "@/game/passport/badges";
 import {
+  LOOP_CORE_DECK_ID,
   type LoopClueFile,
   type LoopGuess,
   type LoopManifest,
@@ -243,6 +267,93 @@ export function caseNumber(store: LoopUnlimitedStore): number {
   return store.totals.solved + store.totals.lost + 1;
 }
 
+/**
+ * Deal one case from the store's active deck. A core deal keeps the
+ * shipped path (dealPuzzleIndex over the core pool). A pack deal pops
+ * the pack deck and rebuilds it in tier bands when its cycle runs out.
+ * The caller resolves the pack manifest first; when it is missing (the
+ * pack failed to load) or the pack deck was never built, the deal falls
+ * back to the core deck so play is never blocked.
+ */
+function dealActiveDeck(
+  store: LoopUnlimitedStore,
+  corePoolSize: number,
+  pack: LoopPackManifest | null,
+): { store: LoopUnlimitedStore; index: number; cycle: number; deckId: string } {
+  if (pack && activeDeckIdOf(store) === pack.packId) {
+    const deck = getDeckState(store, pack.packId);
+    if (deck) {
+      const dealt = dealFromDeck(store, pack.packId, () =>
+        buildTierBandedDeck(packManifestCases(pack)),
+      );
+      return {
+        store: dealt.store,
+        index: dealt.index,
+        cycle: getDeckState(dealt.store, pack.packId)?.cycle ?? deck.cycle,
+        deckId: pack.packId,
+      };
+    }
+  }
+  const dealt = dealPuzzleIndex(store.deck, corePoolSize);
+  return {
+    store: { ...store, deck: dealt.deck },
+    index: dealt.index,
+    cycle: dealt.deck.cycle,
+    deckId: LOOP_CORE_DECK_ID,
+  };
+}
+
+/**
+ * The plain notice shown for a case that was dealt as a FALLBACK
+ * (#336): the player picked a pack, the pack could not be resolved at
+ * deal time, and the deal came from the core deck instead (the §0
+ * fallback in docs/story-packs.md — the fallback stays, the silence
+ * goes). The pick is untouched, so the next deal tries the pack
+ * again, and the notice says exactly that.
+ */
+function deckFallbackNoticeText(pickedDeckId: string): string {
+  const packLabel = deckLabelForId(pickedDeckId);
+  return `${packLabel} couldn’t load just now — this case is from All cases instead. Your next case will try ${packLabel} again.`;
+}
+
+/**
+ * The one plain sentence that names where the OPEN case came from
+ * (#336, owner wording cure 2026-11-04). The owner found the first
+ * version confusing: a "Deck: X" header label, the shelf's next-case
+ * line, and the fallback notice could all speak at once and seem to
+ * disagree. So now there is exactly one sentence, in one place: a
+ * healthy case gets this line, and a fallback case gets the fallback
+ * notice (deckFallbackNoticeText) in the same spot instead — never
+ * both. The deck comes from the case itself (deckIdOfPuzzle), never
+ * from the player's pick, which steers the NEXT deal.
+ */
+function caseSourceText(openCaseDeckId: string): string {
+  if (openCaseDeckId === LOOP_CORE_DECK_ID) return "This case is from All cases.";
+  return `This case is from your ${deckLabelForId(openCaseDeckId)} deck.`;
+}
+
+/**
+ * Did this deal fall back? A pack was picked (the store's active deck
+ * is not the core deck) but the dealt case came from the core deck.
+ * Keyed on the dealt result, so it fires exactly when resolution
+ * returned no pack — at either deal site.
+ */
+function dealFellBack(store: LoopUnlimitedStore, dealtDeckId: string): boolean {
+  return activeDeckIdOf(store) !== LOOP_CORE_DECK_ID && dealtDeckId === LOOP_CORE_DECK_ID;
+}
+
+/** §7e rollback for either deck: the failed index returns to its own deck's head. */
+function rollbackDeal(
+  store: LoopUnlimitedStore,
+  deckId: string,
+  index: number,
+): LoopUnlimitedStore {
+  if (deckId === LOOP_CORE_DECK_ID) {
+    return { ...store, deck: returnIndexToDeckHead(store.deck, index) };
+  }
+  return returnPuzzleIndexToDeck(store, deckId, index);
+}
+
 export function LoopScreen({
   onLeave,
   onCelebrate,
@@ -292,6 +403,22 @@ export function LoopScreen({
     writeLoopStoreV2(next);
   };
 
+  // Pack shelf pick: the loop store is this edition's one selection
+  // store, and this screen owns its live copy, so a pick is a store
+  // commit (setActiveDeck), never a side write the next commit would
+  // overwrite. The open mystery is untouched: it completes against
+  // the deck it was dealt from; the pick steers the next deal.
+  const onPickDeck = (shelfDeckId: string) => {
+    const s = storeRef.current;
+    if (!s) return;
+    // A fresh pick supersedes any fallback notice from the last deal:
+    // the notice described that deal, not the player's new pick. (When
+    // the tap also starts the next case, the deal that follows sets a
+    // fresh notice if it falls back again.)
+    setDeckFallbackNotice(null);
+    commitStore(setActiveDeck(s, shelfDeckId === SHELF_CORE_DECK_ID ? undefined : shelfDeckId));
+  };
+
   const [load, setLoad] = useState<LoadState>({
     phase: "loading",
     message: "Loading this mystery…",
@@ -316,6 +443,12 @@ export function LoopScreen({
   // the badge needs a visible surface). Set only on the winning guess that
   // earns it; cleared when the next mystery deals.
   const [cleanRoundBadge, setCleanRoundBadge] = useState<PassportBadge | null>(null);
+  // Deck fallback notice (#336): set only when a deal actually fell
+  // back — a pack was picked but the case came from the core deck.
+  // It belongs to that case: it stays up while the case plays and on
+  // its reveal, and it is cleared by the next deal and by a deck
+  // pick. Resumed/revealed cases and healthy deals never set it.
+  const [deckFallbackNotice, setDeckFallbackNotice] = useState<string | null>(null);
   // "Next mystery" idempotence: the button deals once and unmounts with
   // the reveal; a second tap during the deal is a no-op.
   const dealingRef = useRef(false);
@@ -345,6 +478,34 @@ export function LoopScreen({
     geodetectiveConfig(resolveBand()) ??
     SAFE_DEAL_FALLBACK;
 
+  // Resolve the pack manifest for the store's active deck, fresh at each
+  // deal: the first resolution builds the pack deck, and every resolution
+  // clamps the deck to the manifest's current indexes. A pack that fails
+  // to load (stale build, offline) never blocks play: the deal falls back
+  // to the core deck, and the stored active deck is left as the player
+  // set it, so the next mount tries the pack again.
+  const resolveActivePack = async (
+    store: LoopUnlimitedStore,
+    base: string,
+  ): Promise<{ store: LoopUnlimitedStore; pack: LoopPackManifest | null }> => {
+    const wanted = store.activeDeckId;
+    if (!wanted || wanted === LOOP_CORE_DECK_ID) return { store, pack: null };
+    try {
+      const manifest = await fetchJson(
+        `${base}packs/${wanted}/manifest.json`,
+        isLoopPackManifest,
+      );
+      if (manifest.packId !== wanted) {
+        throw new Error(`pack manifest id mismatch for ${wanted}`);
+      }
+      let next = ensurePackDeck(store, manifest.packId, packManifestCases(manifest));
+      next = clampPackDeckToIndexes(next, manifest.packId, new Set(manifest.loopIndexes));
+      return { store: next, pack: manifest };
+    } catch {
+      return { store, pack: null };
+    }
+  };
+
   // Mount / retry: fetch the manifest, resolve the store (resume, seam,
   // finished-but-unacknowledged reveal, or fresh deck deal), then fetch
   // the clue file. A 404 on a freshly dealt index rolls the pop back so
@@ -364,9 +525,18 @@ export function LoopScreen({
       let next = storeRef.current
         ? clampDeckToPoolSize(storeRef.current, manifest.size)
         : loadLoopStore(manifest.size);
+      const resolved = await resolveActivePack(next, base);
+      if (cancelled) return;
+      next = resolved.store;
+      const pack = resolved.pack;
       const seam = seamPuzzleIndex(manifest.size);
       let dealIndex: number;
       let popped = false;
+      let poppedDeckId = LOOP_CORE_DECK_ID;
+      // #336: the fallback notice for a FRESH deal on this mount, if it
+      // falls back. Resume/reveal/seam paths never deal, so they leave
+      // the notice alone (it starts null and those cases get none).
+      let dealNotice: string | null = null;
       if (next.current && next.current.status === "playing") {
         // Resume first: neither the seam nor a fresh deal ever clobbers an
         // in-progress mystery (the seam param survives reloads in the URL —
@@ -383,14 +553,17 @@ export function LoopScreen({
         const seamConfig = captureDealConfig();
         next = { ...next, current: freshLoopPuzzleState(seam, next.deck.cycle, seamConfig.startingClues, seamConfig.guessCap) };
       } else {
-        const dealt = dealPuzzleIndex(next.deck, manifest.size);
+        const dealt = dealActiveDeck(next, manifest.size, pack);
         dealIndex = dealt.index;
         popped = true;
+        poppedDeckId = dealt.deckId;
+        dealNotice = dealFellBack(next, dealt.deckId)
+          ? deckFallbackNoticeText(activeDeckIdOf(next))
+          : null;
         const dealtConfig = captureDealConfig();
         next = {
-          ...next,
-          deck: dealt.deck,
-          current: freshLoopPuzzleState(dealIndex, dealt.deck.cycle, dealtConfig.startingClues, dealtConfig.guessCap),
+          ...dealt.store,
+          current: freshLoopPuzzleState(dealIndex, dealt.cycle, dealtConfig.startingClues, dealtConfig.guessCap, dealt.deckId),
         };
       }
       if (cancelled) return;
@@ -400,21 +573,25 @@ export function LoopScreen({
           `${base}loop/clues/${dealIndex}.json`,
           isLoopClueFile,
         );
-        if (!cancelled) setLoad({ phase: "ready", clue, index: dealIndex });
+        if (!cancelled) {
+          // The fresh deal is the open case now: its fallback notice
+          // (or none) replaces any previous case's.
+          if (popped) setDeckFallbackNotice(dealNotice);
+          setLoad({ phase: "ready", clue, index: dealIndex });
+        }
       } catch (err: unknown) {
         if (cancelled) return;
         if (popped) {
-          // §7e: the deal failed — put the index back on the deck head so
-          // the deck stays exactly-once. Retry re-attempts the same index.
+          // §7e: the deal failed — put the index back on the head of the
+          // deck it came from so that deck stays exactly-once. Retry
+          // re-attempts the same index.
           const rolled = clampDeckToPoolSize(
-            {
-              ...next,
-              deck: returnIndexToDeckHead(next.deck, dealIndex),
-              current: null,
-            },
+            { ...rollbackDeal(next, poppedDeckId, dealIndex), current: null },
             manifest.size,
           );
           commitStore(rolled);
+          // The deal was rolled back — no case opened, no notice.
+          setDeckFallbackNotice(null);
         }
         setLoad(await toErrorState(err, !onlineRef.current));
       }
@@ -531,7 +708,9 @@ export function LoopScreen({
       const cycleDone = completedStore.current?.completedCycle === true;
       if (cycleDone) {
         markFirstWinCelebrated();
-        onCelebrate(celebrationSpec("game-complete", "deck-complete"));
+        // Deck-aware: a pack cycle celebrates the pack (its own count
+        // and copy); the core cycle keeps the shipped core copy.
+        onCelebrate(deckCompleteCelebrationSpec(deckIdOfPuzzle(progressed)));
       } else if (progressed.status === "won" && !hasCelebratedFirstWin()) {
         markFirstWinCelebrated();
         onCelebrate(celebrationSpec("mystery-solved", "first-win"));
@@ -565,12 +744,18 @@ export function LoopScreen({
       let next = storeRef.current
         ? clampDeckToPoolSize(storeRef.current, manifest.size)
         : loadLoopStore(manifest.size);
-      const dealt = dealPuzzleIndex(next.deck, manifest.size);
+      const resolved = await resolveActivePack(next, base);
+      next = resolved.store;
+      const dealt = dealActiveDeck(next, manifest.size, resolved.pack);
+      // #336: a fallback on this deal gets its notice; a healthy deal
+      // (or a core pick) clears any previous case's notice.
+      const dealNotice = dealFellBack(next, dealt.deckId)
+        ? deckFallbackNoticeText(activeDeckIdOf(next))
+        : null;
       const dealtConfig = captureDealConfig();
       next = {
-        ...next,
-        deck: dealt.deck,
-        current: freshLoopPuzzleState(dealt.index, dealt.deck.cycle, dealtConfig.startingClues, dealtConfig.guessCap),
+        ...dealt.store,
+        current: freshLoopPuzzleState(dealt.index, dealt.cycle, dealtConfig.startingClues, dealtConfig.guessCap, dealt.deckId),
       };
       commitStore(next);
       try {
@@ -578,6 +763,7 @@ export function LoopScreen({
           `${base}loop/clues/${dealt.index}.json`,
           isLoopClueFile,
         );
+        setDeckFallbackNotice(dealNotice);
         setLoad({ phase: "ready", clue, index: dealt.index });
         // SFX audio spec §2.5: the "case file snapped open" fires when the
         // next mystery deals — only on this explicit user tap, and only on
@@ -587,14 +773,12 @@ export function LoopScreen({
         playDeal();
       } catch (err: unknown) {
         const rolled = clampDeckToPoolSize(
-          {
-            ...next,
-            deck: returnIndexToDeckHead(next.deck, dealt.index),
-            current: null,
-          },
+          { ...rollbackDeal(next, dealt.deckId, dealt.index), current: null },
           manifest.size,
         );
         commitStore(rolled);
+        // The deal was rolled back — no case opened, no notice.
+        setDeckFallbackNotice(null);
         setLoad(await toErrorState(err, !onlineRef.current));
       }
     })()
@@ -615,6 +799,36 @@ export function LoopScreen({
 
   const current = store?.current ?? null;
   const caseNo = store ? caseNumber(store) : 1;
+  // Pack sidecar: when the open mystery came from a pack deck, load that
+  // pack's loop-meta for its briefing line and pairing blurb. The key is
+  // the mystery's own deck, not the active deck — a mystery dealt from a
+  // pack keeps its briefing even if the player later switches shelves.
+  // Core mysteries never fetch a sidecar, and a failed load simply leaves
+  // the case without a briefing; it never blocks play.
+  const [packMeta, setPackMeta] = useState<LoopPackMeta | null>(null);
+  const currentDeckId = current?.deckId;
+  const currentIndex = current?.index;
+  useEffect(() => {
+    let cancelled = false;
+    setPackMeta(null);
+    if (!currentDeckId || currentDeckId === LOOP_CORE_DECK_ID) return;
+    (async () => {
+      try {
+        const meta = await fetchJson(
+          `${assetBase()}packs/${currentDeckId}/loop-meta.json`,
+          isLoopPackMeta,
+        );
+        if (!cancelled) setPackMeta(meta);
+      } catch {
+        if (!cancelled) setPackMeta(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentDeckId, currentIndex]);
+  const packEntry = loopMetaEntryFor(packMeta, currentIndex ?? -1);
+  const packBriefing = packEntry ? packBriefingText(packEntry) : null;
   // Deal-time band for the hint policy FALLBACK (never live): in-memory
   // snapshot → persisted dealBandConfig.band (survives remount/resume) →
   // "11-13" (fails closed: policy "none" hides the button). LoopGame
@@ -638,6 +852,39 @@ export function LoopScreen({
           far off you were, and in which direction.
         </p>
       </header>
+
+      {/* Pack shelf (story packs): deck chips under the header. A pick
+          commits the loop store's active deck through onPickDeck, and
+          the deal path reads that same store. activeDeckId names the
+          deck the open case came from (the store's active deck while
+          no case is open), in shelf vocabulary. */}
+      <PackShelf
+        edition="geodetective"
+        activeDeckId={toShelfDeckId(
+          current ? deckIdOfPuzzle(current) : store ? activeDeckIdOf(store) : LOOP_CORE_DECK_ID,
+        )}
+        caseFinished={!!current && current.status !== "playing"}
+        onPickDeck={onPickDeck}
+        onStartNext={onNextMystery}
+        statusLineSuppressed={deckFallbackNotice !== null}
+      />
+
+      {/* The ONE deck signal (#336, owner wording cure): a single
+          plain sentence naming where the open case came from. A
+          healthy case gets caseSourceText; a fallback case gets the
+          fallback notice in this same spot instead — and while that
+          notice is up, the shelf's own status line is suppressed
+          (statusLineSuppressed above) so only one message speaks.
+          Shown only once the case's clues are on screen (phase
+          "ready"): during a deal the store already points at the new
+          case while its notice is not settled yet, and a half-dealt
+          case must not speak early. Before the first deal there is
+          no open case, so there is nothing to name. */}
+      {current && load.phase === "ready" ? (
+        <p role="status" data-testid="case-source-line" className="mt-4 text-sm text-fg">
+          {deckFallbackNotice ?? caseSourceText(deckIdOfPuzzle(current))}
+        </p>
+      ) : null}
 
       {load.phase === "loading" ? (
         <p className="mt-10 text-lg text-fg" role="status">
@@ -688,7 +935,15 @@ export function LoopScreen({
           streak={store.streak}
           bestStreak={store.bestStreak}
           caseNo={caseNo}
-          cycleCompleted={store.deck.cycleCompleted}
+          cycleCompleted={
+            store.current
+              ? (getDeckState(store, deckIdOfPuzzle(store.current))?.cycleCompleted ??
+                store.deck.cycleCompleted)
+              : store.deck.cycleCompleted
+          }
+          packBriefing={packBriefing}
+          packBlurb={packEntry?.blurb ?? null}
+          packFlagKey={packEntry?.flagKey ?? null}
           reduced={reduced}
           notice={pickNotice}
           revealAnnouncement={revealAnnouncement}
@@ -746,6 +1001,9 @@ function LoopGame({
   bestStreak,
   caseNo,
   cycleCompleted,
+  packBriefing,
+  packBlurb,
+  packFlagKey,
   reduced,
   notice,
   revealAnnouncement,
@@ -763,6 +1021,17 @@ function LoopGame({
   bestStreak: number;
   caseNo: number;
   cycleCompleted: number;
+  /** Pack briefing line from the sidecar (design §2.1); null for core cases. */
+  packBriefing: string | null;
+  /** Pack pairing blurb for the reveal; null for core cases. */
+  packBlurb: string | null;
+  /**
+   * Capitals & Flags: the subject land's flag identity, or null when
+   * the land is flagless (no licence-verified flag). The flag renders
+   * only beside the land's name: in this briefing, at the Giveaway
+   * rung, and on the reveal's identity card.
+   */
+  packFlagKey: string | null;
   reduced: boolean;
   notice: string | null;
   revealAnnouncement: string | null;
@@ -816,14 +1085,29 @@ function LoopGame({
   const hintPolicy =
     puzzle.dealBandConfig?.hintPolicy ?? getBandConfig(dealBand).hintPolicy;
   const [hintMessage, setHintMessage] = useState<string | null>(null);
-  const [hintsUsedThisMystery, setHintsUsedThisMystery] = useState(0);
+  // #185: the local counter starts from the mystery's PERSISTED count
+  // (puzzle.hintsUsed, committed by onHintUsed below), never from a
+  // blind zero — a mid-mystery reload remounts this screen, and a zero
+  // start would hand a one-per-round player a second hint in the UI.
+  // (The store count already blocks the Clean Round badge; this keeps
+  // the button honest too.) Legacy puzzles carry no count → zero.
+  const [hintsUsedThisMystery, setHintsUsedThisMystery] = useState(
+    () => puzzle.hintsUsed ?? 0,
+  );
   const [hintOfferDismissed, setHintOfferDismissed] = useState(false);
   // New mystery → fresh hint state (keyed on the dealt puzzle index).
+  // The count resets to the NEW mystery's persisted count — zero for a
+  // freshly dealt mystery, its saved count for a restored one (#185) —
+  // so the key change alone can never resurrect a spent hint.
   const hintResetKey = `${puzzle.cycle}:${puzzle.index}`;
   useEffect(() => {
     setHintMessage(null);
-    setHintsUsedThisMystery(0);
+    setHintsUsedThisMystery(puzzle.hintsUsed ?? 0);
     setHintOfferDismissed(false);
+    // hintResetKey is the trigger; puzzle.hintsUsed is read at that
+    // moment (a later commit for the same mystery updates it through
+    // onUseGeoHint's own setState, not through this effect).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hintResetKey]);
 
   function onUseGeoHint() {
@@ -1029,6 +1313,16 @@ function LoopGame({
         />
       ) : null}
 
+      {packBriefing && !finished ? (
+        <p className="flex items-center gap-2 text-base font-medium text-fg">
+          {/* The flag sits beside the given name the briefing itself
+              states — the design's one flag rule. Flagless lands and
+              core cases render the plain line. */}
+          <FlagImg flagKey={packFlagKey ?? undefined} className="h-6" />
+          <span>{packBriefing}</span>
+        </p>
+      ) : null}
+
       <section aria-label="Clues" className="flex flex-col gap-3">
         {clue.clues.map((text, i) => (
           <Fragment key={i}>
@@ -1041,6 +1335,12 @@ function LoopGame({
               revealed={finished || i < puzzle.cluesRevealed}
               reduced={reduced}
             />
+            {i === CLUE_TIERS.length - 1 && packFlagKey && (finished || i < puzzle.cluesRevealed) ? (
+              <p className="flex items-center gap-2 pl-1 text-xs text-muted" data-testid="loop-giveaway-flag">
+                <FlagImg flagKey={packFlagKey} className="h-6" />
+                <span>The flag of {flagEntry(packFlagKey)?.land ?? "this land"}</span>
+              </p>
+            ) : null}
             {i === HOOK_TIER_INDEX && hookVisible ? (
               <Suspense fallback={null}>
                 <StorytellerNarration
@@ -1128,6 +1428,8 @@ function LoopGame({
           bestStreak={bestStreak}
           caseNo={caseNo}
           cycleCompleted={cycleCompleted}
+          packBlurb={packBlurb}
+          packFlagKey={packFlagKey}
           reduced={reduced}
           revealAnnouncement={revealAnnouncement}
           onNextMystery={onNextMystery}
@@ -1318,6 +1620,8 @@ function LoopReveal({
   bestStreak,
   caseNo,
   cycleCompleted,
+  packBlurb,
+  packFlagKey,
   reduced,
   revealAnnouncement,
   onNextMystery,
@@ -1332,6 +1636,13 @@ function LoopReveal({
   caseNo: number;
   /** Mysteries finished in the current cycle — names the celebration count. */
   cycleCompleted: number;
+  /**
+   * Pack pairing blurb from the sidecar: the reveal states the pairing
+   * plainly (design §4 rule 7). Null for core cases.
+   */
+  packBlurb: string | null;
+  /** Capitals & Flags: subject land's flag identity; null = flagless. */
+  packFlagKey: string | null;
   reduced: boolean;
   revealAnnouncement: string | null;
   onNextMystery: () => void;
@@ -1455,6 +1766,21 @@ function LoopReveal({
               ) : null}
             </>
           )}
+          {packBlurb ? <p className="mt-3 text-sm text-fg">{packBlurb}</p> : null}
+          {packFlagKey && flagEntry(packFlagKey) ? (
+            <div
+              className="mt-3 flex items-center gap-3 rounded-xl border border-line bg-bg p-3"
+              data-testid="loop-reveal-flag"
+            >
+              <FlagImg flagKey={packFlagKey} className="h-10" />
+              <p className="text-sm text-fg">
+                <span className="font-medium">
+                  The flag of {flagEntry(packFlagKey)!.land}.
+                </span>{" "}
+                {flagEntry(packFlagKey)!.story}
+              </p>
+            </div>
+          ) : null}
         </div>
         {/* ---- Zone 2: the single scrolling body — case file + share +
             source. Named region + tabindex="0" per spec §8.1. ---- */}

@@ -12,7 +12,9 @@ Owner: **"Auto-switch silently on weak devices (my decision stands)"** —
 "check the device capability and auto switch; also allow user to manually switch."
 
 At boot, if no stored record stands, the device is qualified in order:
-prior map-attributed crash → WebGL probe → low memory.
+prior map-attributed crash → WebGL probe → low memory → unknown-memory
+Scout trial (touch devices only: Scout first, then the timed in-session
+upgrade described below).
 
 **Low-memory relaxed (2026-10-21, review finding P1-7 — prefer the Full
 map).** `deviceMemory ≤ 1 GB` still demotes on its own. A `2 GB` reading
@@ -37,9 +39,50 @@ in-game toggle keeps the force-home behavior below.
 | Event | Stored as | Decays? |
 | --- | --- | --- |
 | Boot auto-switch (prior-crash / probe / low-memory) | `mode: scout`, `source: <signal>` | **yes, 7 days** — then the device is re-qualified; a clean probe returns it to full |
+| Boot Scout trial (unknown memory on a touch device, issue #330) | nothing: in memory only | n/a — every boot re-qualifies; see below |
 | `webglcontextlost` auto-switch (mid-game) | `mode: scout`, `source: contextlost` | yes, 7 days |
 | Settings toggle (manual) | `source: manual` | never |
 | Tile-failure switch (WS-4, after one failed retry) | nothing: in memory only | n/a — the next visit tries the full map again |
+
+## Unknown memory on touch devices: the Scout trial (issue #330)
+
+Safari does not report `navigator.deviceMemory`, so the low-memory check
+can never fire there — and an iPhone 11 (4 GB) qualified as a strong
+device, booted the full map, and was killed by iOS in a loop. The rule
+now: when memory is **unknown** and the primary pointer is **coarse**
+(touch), the session starts in Scout as a trial (`source:
+unknown-memory`). Nothing is stored. Once the Scout map has loaded,
+rendered, and stayed stable for 3 seconds, the session upgrades to the
+full map — in memory only, still nothing stored.
+
+Kill-switch (PR #331 panel cure): the upgrade is gated by the
+`scoutUpgradeTrial` feature flag (`src/lib/flags.ts`; default on, and
+shipped on in `public/flags.json`). Redeploying `flags.json` with the
+flag off disarms the trial with no code change: the session still
+boots Scout first, but eligibility is never set, so the upgrade never
+arms or fires and the session stays in Scout. Scout-first boot,
+manual records, and every other path are untouched.
+
+One exclusion: challenge runs never upgrade mid-run. A friend
+challenge's map is picked when the challenge opens and is never
+re-mapped, so a trial boot stays in Scout for that challenge; the
+trial's upgrade eligibility survives, and a later normal run in the
+same boot can still upgrade.
+
+Two guards keep the trial safe:
+
+- Real weak signals keep their own source and never upgrade: a device
+  demoted by a prior crash, a failed probe, or low memory is not a
+  trial device.
+- If the upgraded full map is what kills the process, the next boot
+  sees the prior-crash signal and stays in Scout with no upgrade. The
+  prior-crash signal is now durable: a boot that detects a map crash
+  also stamps a marker in `localStorage` (`meridian:map-crash`), which
+  counts for the same 7 days even if the session data is gone.
+
+Desktops keep the old behavior exactly: unknown memory with a fine
+pointer still boots the full map. A stored manual record still wins
+over every signal above, including the durable crash marker.
 
 A stored record always stands over fresh signals: a manual choice is
 never overridden by a probe, and boot never rewrites a standing record
@@ -93,6 +136,33 @@ loading cancels that load's start: the places may finish
 downloading, but the game never starts, its record is never saved,
 and no "couldn't load" error appears for a start the player
 already cancelled.
+
+## Exception: inside a friend challenge, the toggle never sends you home (owner ruling, 2026-10-29)
+
+The force-home above applies to the player's own games. A friend
+challenge is different: the receiver did not start the game the
+toggle would discard — and the run record the toggle deletes is, at
+that moment, the player's own in-progress game that the challenge is
+keeping safe underneath. So inside a challenge run the toggle shows
+why the map can't change and offers no switch at all, and the
+force-home path itself refuses to run while a challenge is active.
+A challenge's map is chosen when the challenge OPENS instead: the
+welcome card shows the mode the boot resolved for this device (a
+stored manual choice stands, as always; otherwise the capability
+check above) and the receiver can flip it there, before Start builds
+the run's map. That pick is a manual choice like any other — flipping
+only stages it, Start writes it as a manual record (declining the
+card commits nothing), and it stands until the player changes it.
+
+Session end retires the notice too (#188, 2026-10-26). When the
+session itself ends — the idle timer runs out, or the player taps
+Done on the end-game summary — the notice is cleared with everything
+else the session owned. That matters because the notice says the
+score was kept: true while the session lives, and confusingly wrong
+the moment it ends. A player who comes back to Home after an
+idle-ended or finished game should never see a switched notice
+standing next to the "your game ended" note, and a fresh session
+never inherits one.
 
 Test harness: there is NO test seam in the app (issue #154 item 1,
 resolved 2026-10-21 — the owner's call was to remove it). The app once

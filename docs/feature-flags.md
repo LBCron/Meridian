@@ -114,16 +114,19 @@ killed feature by a stale flags.json.
 ## Current catalog
 
 > **Graduated (2026-10):** `globeTierSplit` shipped ON in production
-> (PR #148, 2026-10-15) and `learningOutcomes` shipped ON (2026-10-04) —
-> `public/flags.json` carries both `true`. The Off-behavior column below
-> describes what flipping a flag off *would* change, not today's
-> production behavior.
+> (PR #148, 2026-10-15), `learningOutcomes` shipped ON (2026-10-04), and
+> `friendChallenges` shipped ON (2026-10-28, after the PR #278 pre-flip
+> hardening) — `public/flags.json` carries all three `true`. The
+> Off-behavior column below describes what flipping a flag off *would*
+> change, not today's production behavior.
 
 | Flag               | Default | Off behavior                                             |
 | ------------------ | ------- | -------------------------------------------------------- |
 | `pwaUpdateToast`   | `true`  | Unregisters any live SW; no registration, no update toast |
 | `learningOutcomes` | `false` | No learning records, no growth UI (disabling removes them) |
 | `globeTierSplit`   | `false` | Globe loads all five fame-tier files and deals the full canonical pool; on = Easy t1+t2, Medium t2-t4, Hard t4+t5 only |
+| `friendChallenges` | `false` | No challenge entry points: a `#c=` link is stripped from the URL and ignored, the run-summary share button is hidden, and a saved challenge run is dropped instead of resumed |
+| `scoutUpgradeTrial` | `true`  | The issue #330 Scout trial never arms: an unknown-memory touch device still boots Scout first, but the in-session upgrade to the full map never fires — Scout-first boot, manual records, and every other path are untouched |
 
 **`globeTierSplit` and offline play.** With the flag on, the Globe fetches only
 the fame-tier files of the learning path being played, and the service worker
@@ -144,3 +147,210 @@ covers every learning path (the previous behaviour), and the first Globe run of
 a page load still waits for `flags.json` (at most 1.5 s on a slow connection,
 then it falls back to the full pool); the pool is unaffected. No cache-warming
 is done on purpose.
+
+**`friendChallenges` and challenge links.** This flag gates the friend
+challenge: a shareable `#c=mc1.` link that deals a fixed set of 5–10 Globe
+places to whoever opens it. The link carries only place ids and a seed
+derived from them (`src/game/challenge.ts`) — no names, no coordinates, no
+scores — so opening one cannot spoil the answers. With the flag on, a valid
+link starts a deterministic challenge run judged at a frozen 750 km pin
+radius, and the run summary offers a button that copies a fresh link to the
+same places. Challenge runs are isolated from normal play: they never write
+to the session, the review deck, learning records, or the seen-place stores,
+so a challenge can neither bank progress nor burn the no-repeat pool.
+A challenge link never eats the game the player already had going. The
+`#c=` fragment is stripped from the URL first, before anything else reads
+it. With the flag off — the `FLAG_DEFAULTS` code default, and the shipped
+value in `public/flags.json` until the 2026-10-28 flip turned it on —
+nothing in the link is read at all: the boot simply
+continues into the ordinary saved-run boot, exactly as if the link had
+never been tapped, so a resumable saved run still resumes. (One exception,
+in the table above: a saved *challenge* run found while the flag is off is
+dropped and its saved state cleared, because the feature is off.) With the
+flag on, a link that cannot be used — a corrupt hash, a place id this
+build's Globe catalog does not have, or the catalog itself failing to
+load — shows the child-facing notice "Could not load this challenge." and
+then falls through to that same saved-run boot, so a saved run still
+resumes underneath the notice. Nothing partial is ever dealt.
+
+**mc2 links (2026-10-28, Package A).** Challenges grew from Globe-only to
+every quiz edition. The original `mc1` format is frozen — links already
+sitting in family chats must decode forever — so a second format carries
+the new routes: `#c=mc2.` links name an edition, a region, and the route's
+own hit/miss radius in whole kilometres (Globe 750; a state gets 12% of its
+greater side, clamped 25–160 km; a country gets 12% too, clamped
+40–450 km). A receiver's build honours the pinned radius only when it
+sits within ±10% of the radius that build computes for the same region
+(the Globe is exact: 750 only, no tolerance), so a hand-edited circle
+cannot rig the game. Creating a challenge: the Home screen's "Challenge a friend" button
+deals a fresh five from the region you pick, and the end-of-run summary
+offers the route you just played ("Challenge a friend — play my route",
+which first opens a preview sheet saying it shares the exact places you
+just played, in order) plus a fresh route in
+the same region (a run that ends before five places still offers a fresh
+route — on the Globe that offer keeps its original mc1 form). Receiving
+one shows a welcome card first — your game in progress is only set aside
+when you tap Start, and it is offered back when the challenge ends;
+tapping "Not now" (or pressing Escape) closes the card and commits
+nothing. The card also carries the challenge's map pick (owner ruling,
+2026-10-29): it shows the map the challenge will be played on — a saved
+manual choice if the player has one, otherwise the map the device
+capability check picked at boot — and the receiver can flip it before
+tapping Start, because that is the one moment a switch costs nothing.
+Flipping only stages the pick: tapping Start commits it as the
+player's saved manual map choice — the same standing a Home-toggle
+choice has, and like every manual record it never decays — while
+"Not now" drops the staged pick and commits nothing, exactly as the
+paragraph above promises.
+Inside the challenge the map-mode toggle only explains this; it never
+switches and never sends the player home (see
+docs/scout-offer-policy.md). A received challenge frames and outlines
+its region exactly as Play does — the map zooms to the region and
+paints its gold border — on the full map and on Scout alike. mc2 runs are saved under their own storage key
+(`meridian.run.mc2`), which older builds never read, and they are every
+bit as isolated as mc1 runs: no session banking, no learning records, no
+review deck, no seen history. Failures explain themselves in plain words
+under the same "Could not load this challenge." headline — ask your friend
+to send the link again (broken link), a place or region this version of
+Meridian doesn't know yet (the sender's build is newer), or check your
+connection and tap the link again (a region file failed to load). With the
+flag off, a saved mc2 challenge is cleared on boot and the ordinary saved
+run — never collateral — boots as usual. GeoDetective and Cold Trail do
+not take part: their mysteries are solo investigations.
+
+**mc3 links (2026-10-31, Package A of the mc3 + winner delta).** The
+mc2 link carried its route as JSON text, and a shared link ran to
+300-plus characters — long enough to wrap, truncate, and look broken
+in a family chat. mc3 packs the same route into raw bytes instead:
+edition and flags in one byte, radius and scores as small
+variable-length numbers, places as 3-byte numbers, the region as a
+number in a frozen list the format keeps for itself, all of it closed
+by a short checksum that catches copying damage (a scrambled link
+fails closed; the checksum is a typo-catcher, not a proof — scores in
+a link are the sender's word, and the game says so). Why bytes and
+not cleverer text: the route itself is the payload, and no readable
+spelling of ten places is shorter than ten numbers. A 10-place
+Nebraska route is a 52-character payload (62 with a winner block
+inside, below), against mc2's 274. Nothing about fairness changes:
+the pinned radius is still honoured only within ±10% of the radius
+the receiving build computes for the region, the checksum still fails
+closed on any edit, and the whole fragment is capped at 127
+characters. mc1 and mc2 are now receive-only formats — every creation
+surface sends mc3, with one kept exception: a played Globe route
+still shares its exact route in the original mc1 form, the shipped
+surface. Finishing a challenge someone sent you passes the route
+along under one rule — never lose information: mc1 completions stay
+mc1, an mc2 completion moves UP to mc3 (the circle it was judged at
+rides along untouched), and an mc3 completion stays mc3. The format
+also reserves a winner block — the sender's score, which stops they
+landed, how many times they have completed this route, and the
+route's best score so far — carried inside the link for the
+winner-declaration surfaces that land as Package B of the same delta;
+in Package A the block was decoded and carried, but no screen read
+it yet, and no completion minted one (Package B, next paragraph,
+changed both). One failure line is new: when THIS
+build opens a link from a format newer than itself (a `#c=mc9.`-style
+prefix), or one naming a region this build's frozen list doesn't have
+yet, the notice headline is "This challenge needs the newest
+Meridian.", because asking for a resend from the same newer game
+would fail again in exactly the same way; a broken link in a known
+format still asks for the resend, as before. The reverse direction
+gets no such promise: a build OLDER than mc3, opening an mc3 link,
+shows only "Could not load this challenge." — it has never heard of
+the format, so it cannot point anyone at a newer version; the
+newest-Meridian headline exists only in builds new enough to
+recognise a newer format when they see one.
+
+**Winner declaration (2026-10-31, Package B of the mc3 + winner
+delta).** The winner block Package A carried silently now drives the
+game. A challenge link with a block opens on a welcome card with a
+Stakes section: "🎯 Beat {best} — the best score yet on this route.",
+with the sender's own score nested under it when someone earlier in
+the chain holds the best ("Your friend scored {sender} on this
+one."), and the honesty line the whole feature stands on — "One
+honest note: this score is your friend's word — Meridian can't check
+scores sent in links." How many tries anyone took appears nowhere on
+the card; tries are a story told after play, never a stake shown
+before it. During the run a small chip at the bottom of the map
+shows the target and your running score ("🎯 {best} · you
+{running}"); if the stops left can no longer pay the target, the
+chip stops quoting a number you cannot reach and counts landed
+stops instead ("landed {x} of {n}"). Finishing brings the verdict
+screen: one of four calls — a win ("You beat it! 🏆"), a dead heat
+inside the tie band ("Dead heat! You share the crown! 🤝" — close
+enough is never scored as a loss, and it never moves the best), a
+near miss within half of one perfect stop ("So close! 🎯"), or a
+loss ("Better luck next time! 🍀") — over a bar that sweeps to your
+score against the route's perfect score, with the target drawn on
+it from the first frame as a gold tick labelled "TARGET {best}" and,
+on a win, a "✓ PASSED" tag that stays put. Scores are never counted
+up: the numbers are final from the first frame, and under
+reduced-motion settings nothing animates at all — the same
+information, standing still. Under the bar, a stop-by-stop strip
+compares your landings with the sender's ("Stop by stop — you landed
+{x}, they landed {y}."), names the stops you both missed as the hard
+stops (if any place's name can't be resolved, the strip honestly
+falls back to the counts alone, with no names and no hard-stops
+line), and repeats the honesty line, because the friend's row is
+their word too. Below that, the tries arrive as story: who set the
+mark and in how many goes, and how many times you yourself have
+finished this route. Passing the route along mints YOUR block —
+your score, your stops, your completion count, and the best raised
+to yours if you beat it — under one guard against farming: from
+your third completion of the same route, your score can still be
+the sender's score on the next link, but it can no longer raise the
+chain's best (when the guard is what held the target, the verdict
+says so: "The target only rises on a player's first two tries at a
+route."). "Share just the route" rides beside the
+pass-along (one of the share offers the flag gates, like the rest):
+the same route with no winner block and no scores at all. Every non-win verdict offers a retry of the same route; a win
+leads with passing it along. The completion counts themselves live
+on the device in one small store (`meridian.challenge.attempts.v1`,
+keyed by the route's scoring version, edition, region and ordered
+places, capped at 512 routes): turning the friend-challenges flag
+off does not clear it, and "Reset my history" does. Sharing your
+exact played route from the end-of-run summary mints a block the
+same way (you are the sender; the best starts at your route score) —
+a played Globe route is the standing exception: it still shares in
+mc1, which has no room for a block, exactly as before.
+
+**`scoutUpgradeTrial` and the #330 trial (2026-11-03, PR #331 cure).** This flag is the kill-switch for the unknown-memory Scout trial's in-session upgrade (see `docs/scout-offer-policy.md`): a touch device whose browser reports no memory size boots the light Scout map first and, once Scout proves stable, upgrades to the full map for the rest of the session. The baked-in default is `true` — the shipped behavior — and `public/flags.json` ships it `true`. An operator disarms the trial by redeploying `public/flags.json` with `"scoutUpgradeTrial": false`: GameApp's boot effect awaits the shared flags load before arming eligibility, so on the next boot the device still starts in Scout but no upgrade callback is ever passed to the map — the soak timer never arms and the session stays in Scout. Nothing else changes: Scout-first boot, stored manual records, and the weak-device demotions are all outside this gate. Turning it back to `true` restores the trial on the next boot, no client release required.
+
+**Creating mid-game (2026-10-29, Package B).** Three more doors into the
+same challenge, all behind the same flag. While a game is running, the
+"⋯" menu in the top corner offers "Challenge a friend — new route in
+{Region}": it deals a fresh five from the region you are playing (your
+game's own places first, then the rest of the region — places you have
+already seen can appear; nothing about your game changes). After each
+place is revealed, the result card's footer carries the same offer as a
+text link, "Challenge a friend in {Region}", with a line explaining
+that your own route — the one you are playing — unlocks when you
+finish. Both open the same preview sheet before anything is shared, so
+you always see the route and its circle first. And when you finish a
+challenge someone sent you, the completion screen passes that exact
+route along under the origin rule (an mc2 route forward-upgrades to
+mc3, circle and all, since the 2026-10-31 delta; an mc3 route stays
+mc3) and — for mc2-family routes — offers a brand-new route in the
+same region beside it ("Or send a new {Region} route"). Routes
+received in the original mc1 format keep their original completion
+screen, unchanged.
+Turning the flag off removes every one of these entries; a challenge
+already in progress still finishes, it just can't be shared onwards.
+
+**Creating from your review deck (2026-10-29, Package C).** The
+screen you land on when a review finishes offers "Challenge a
+friend — pick a map". It opens the same region picker as the Home
+door and deals a fresh five from whichever map you pick, through
+the same preview sheet. One rule is absolute here: the route is
+NEVER dealt from your review deck. A challenge link can be decoded
+by anyone who receives it, so a route built from your deck would
+publish exactly which places you missed. When this was designed,
+the council's ruling was never-the-deck, and a labelled "Beat my
+misses" opt-in was deferred to the owner as an open question (the
+council's recommendation: no) — still open. The finished-review
+screen shows the door whenever the flag is on; turning the flag off
+removes it, and the review itself is untouched either way.
+(The Review card on Home carried the same door for a day: the
+owner's redundancy ruling removed it — it merely re-opened the
+generic picker, whose own "Challenge a friend" button is the one
+canonical door. The review-complete door stays.)

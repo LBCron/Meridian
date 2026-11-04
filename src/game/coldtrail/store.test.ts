@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { STARTING_STARS } from "./engine.ts";
 import {
+  clearColdtrailStore,
   COLDTRAIL_OPEN_KEY,
   COLDTRAIL_STORAGE_KEY,
   freshProgress,
@@ -384,5 +385,112 @@ test("cold trail open flag is a no-op without localStorage", () => {
     assert.equal(readColdTrailOpen(), false);
   } finally {
     (globalThis as Record<string, unknown>).localStorage = prev;
+  }
+});
+
+test("clearColdtrailStore removes v1 before v2, plus the open flag; load is fresh", () => {
+  const removed: string[] = [];
+  const data: Record<string, string> = {
+    [LEGACY_KEY]: JSON.stringify({ v: 1, caseIndex: 2, stars: 9, solved: 3 }),
+    [COLDTRAIL_STORAGE_KEY]: JSON.stringify(baseStore()),
+    [COLDTRAIL_OPEN_KEY]: "1",
+    "meridian.pack-shelf.v1": JSON.stringify({ v: 1, decks: { coldtrail: "capitals" } }),
+    "meridian.palette": "standard",
+  };
+  const fake: FakeStorage = {
+    getItem: (k) => (k in data ? data[k]! : null),
+    setItem: (k, v) => {
+      data[k] = v;
+    },
+    removeItem: (k) => {
+      removed.push(k);
+      delete data[k];
+    },
+  };
+  const prev = (globalThis as Record<string, unknown>).localStorage;
+  (globalThis as Record<string, unknown>).localStorage = fake;
+  try {
+    assert.equal(clearColdtrailStore(fake), true);
+    // Order is the contract: v1 first, so no later load can migrate it
+    // back into a fresh v2 after the wipe.
+    assert.ok(removed.indexOf(LEGACY_KEY) < removed.indexOf(COLDTRAIL_STORAGE_KEY));
+    assert.equal(data[LEGACY_KEY], undefined);
+    assert.equal(data[COLDTRAIL_STORAGE_KEY], undefined);
+    assert.equal(data[COLDTRAIL_OPEN_KEY], undefined);
+    // Reset symmetry: the shelf selection pick dies with the stores,
+    // so a pack pick cannot resurrect after "Start over".
+    assert.equal(data["meridian.pack-shelf.v1"], undefined);
+    assert.equal(readColdTrailOpen(), false);
+    // Kept keys byte-identical, and the loader sees a fresh wallet.
+    assert.equal(data["meridian.palette"], "standard");
+    const loaded = loadColdtrail();
+    assert.equal(loaded.caseIndex, 0);
+    assert.equal(loaded.stars, STARTING_STARS);
+    assert.equal(loaded.solved, 0);
+  } finally {
+    (globalThis as Record<string, unknown>).localStorage = prev;
+  }
+});
+
+test("clearColdtrailStore: fully blocked storage reports failure, never throws", () => {
+  const bad: FakeStorage = {
+    getItem: () => {
+      throw new Error("denied");
+    },
+    setItem: () => {
+      throw new Error("denied");
+    },
+    removeItem: () => {
+      throw new Error("denied");
+    },
+  };
+  let result: boolean | undefined;
+  assert.doesNotThrow(() => {
+    result = clearColdtrailStore(bad);
+  });
+  assert.equal(result, false);
+});
+
+const PACK_KEY = "meridian.coldtrail.pack.capitals.v1";
+
+test("pack key: save and load round-trip under the pack key only", () => {
+  const { data, restore } = stubStorage();
+  try {
+    saveColdtrail(baseStore(), PACK_KEY);
+    assert.equal(data[COLDTRAIL_STORAGE_KEY], undefined, "core key untouched");
+    const loaded = loadColdtrail(PACK_KEY);
+    assert.deepEqual(loaded, baseStore());
+    assert.equal(loadColdtrail().solved, 0, "core store still fresh");
+  } finally {
+    restore();
+  }
+});
+
+test("pack key: a legacy v1 save is the core store's, never the pack's", () => {
+  const { data, restore } = stubStorage({
+    [LEGACY_KEY]: JSON.stringify({ v: 1, caseIndex: 2, stars: 9, solved: 3, current: null }),
+  });
+  try {
+    const pack = loadColdtrail(PACK_KEY);
+    assert.equal(pack.caseIndex, 0, "pack starts fresh");
+    assert.equal(pack.solved, 0);
+    assert.ok(LEGACY_KEY in data, "legacy key not consumed by the pack read");
+    assert.equal(data[PACK_KEY], undefined, "pack read writes nothing");
+  } finally {
+    restore();
+  }
+});
+
+test("clearColdtrailStore removes the pack store too", () => {
+  const { data, restore } = stubStorage({
+    [COLDTRAIL_STORAGE_KEY]: JSON.stringify(baseStore()),
+    [PACK_KEY]: JSON.stringify(baseStore()),
+  });
+  try {
+    assert.equal(clearColdtrailStore(), true);
+    assert.equal(data[PACK_KEY], undefined);
+    assert.equal(loadColdtrail(PACK_KEY).solved, 0);
+  } finally {
+    restore();
   }
 });

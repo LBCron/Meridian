@@ -33,7 +33,11 @@ import {
  * session/run storage the app itself writes, mirroring shareText().
  */
 
-const SITE_URL = "https://meridian.knowledgetest.workers.dev/";
+// E2E artifact is Pages bytes served at localhost, so the expected share
+// URL is the Pages URL (build-aware share, Wave 1 P0 Item 4E/4F) — not the
+// Workers SITE_URL, not a localhost URL. The "meridian " first-line casing
+// below is UNCHANGED (CONDITIONAL wording, owner word still owed).
+const SITE_URL = "https://veeresh-bikkaneti.github.io/Meridian/";
 
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -241,13 +245,43 @@ test("end-game share: clipboard path copies the exact session share text", async
     await expect(
       dialog.getByRole("button", { name: "Copied ✓", exact: true }),
     ).toBeVisible();
-    await expect(dialog.locator('p[aria-live="polite"]')).toContainText("Copied ✓");
+    // Two live regions now live in this dialog (score ShareButton + the
+    // friend-challenge ShareButton shipped ON in flags.json #279): scope to
+    // the region announcing this share's feedback, same assertion as before.
+    await expect(dialog.locator('p[aria-live="polite"]', { hasText: "Copied ✓" })).toContainText("Copied ✓");
 
     expectCleanConsole(errors);
   } finally {
     await context.close();
   }
 });
+
+/**
+ * Click the summary's "Share score" button — once.
+ *
+ * This used to go through a retry helper (clickShareScoreWithRetry):
+ * the first click occasionally had no effect at all — button label
+ * stayed "Share score", __shareCalls stayed 0. Issue #289 found the
+ * root cause with an instrumented probe on unmodified main (15 runs,
+ * 1 swallowed): the summary's lazy Storyteller narration mounted
+ * ABOVE the buttons while a tap was in flight — pointerdown hit
+ * "Share score", the caption's insertion pushed the button down
+ * before pointerup, and the browser dispatched the click to the
+ * card instead of the button. The fix reserves the caption's box
+ * in the Suspense fallback (run-summary.tsx) and seeds the caption's
+ * words at first paint (storyteller.tsx — it used to paint empty and
+ * pop to full height at the first reveal tick), so the buttons never
+ * move when the narration swaps in and a single click lands. The
+ * exact assertions below (exactly 1 call, exact payload, "Shared ✓",
+ * clipboard sentinel intact) still gate the outcome.
+ */
+async function clickShareScore(
+  dialog: import("playwright/test").Locator,
+): Promise<void> {
+  const shareButton = dialog.getByRole("button", { name: "Share score" });
+  await expect(shareButton).toBeVisible();
+  await shareButton.click();
+}
 
 test("end-game share: mocked navigator.share is called once, clipboard untouched", async ({
   browser,
@@ -268,7 +302,7 @@ test("end-game share: mocked navigator.share is called once, clipboard untouched
     await page.evaluate((s) => navigator.clipboard.writeText(s), SENTINEL);
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(SENTINEL);
 
-    await dialog.getByRole("button", { name: "Share score" }).click();
+    await clickShareScore(dialog);
 
     const calls = await page.evaluate(
       () => (window as unknown as { __shareCalls: unknown[] }).__shareCalls,
@@ -279,7 +313,8 @@ test("end-game share: mocked navigator.share is called once, clipboard untouched
     await expect(
       dialog.getByRole("button", { name: "Shared ✓", exact: true }),
     ).toBeVisible();
-    await expect(dialog.locator('p[aria-live="polite"]')).toContainText("Shared ✓");
+    // Same two-live-region scoping as the clipboard path above.
+    await expect(dialog.locator('p[aria-live="polite"]', { hasText: "Shared ✓" })).toContainText("Shared ✓");
 
     // Clipboard untouched by the native-share path.
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(SENTINEL);

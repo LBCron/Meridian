@@ -21,6 +21,12 @@
  * Home there is no game to end, so the explainer talks about the next
  * game instead and there is no warning.
  *
+ * Third host context (owner ruling, 2026-10-29): inside a friend
+ * challenge (context "challenge") the popover shows the reason a
+ * challenge's map cannot change mid-challenge and renders NO switch
+ * at all — the map is picked on the challenge welcome card, at open,
+ * and the force-home flip must never fire inside a challenge run.
+ *
  * State contract: the mode state is owned by GameApp and threaded down
  * as a prop — this component only calls onSelect, and GameApp's handler
  * differs per host (force-home in Play; write-and-apply on Home).
@@ -43,16 +49,37 @@ import { SCOUT_COPY } from "./scout-copy.ts";
 export function MapModeToggle(props: {
   mapMode: MapMode;
   onSelect: (mode: MapMode) => void;
-  /** Host context: "play" (default) or "home" — see the header. */
-  context?: "play" | "home";
+  /**
+   * Host context: "play" (default), "home", or "challenge" — see the
+   * header. In a challenge run the popover carries the reason and NO
+   * switch: a challenge's map is picked when the challenge opens, and
+   * the force-home flip must never fire mid-challenge (owner ruling,
+   * 2026-10-29).
+   */
+  context?: "play" | "home" | "challenge";
 }): JSX.Element {
   const [open, setOpen] = useState(false);
-  // Home popover placement, measured at open time (see the popover
-  // render below for why neither CSS anchor survives the hero wrap).
-  const [homePos, setHomePos] = useState<{ top: number; left: number } | null>(null);
+  const inChallenge = props.context === "challenge";
+  // Home popover horizontal offset relative to the button, measured at
+  // open time (and on resize) so the absolute popover stays anchored
+  // 8px below the button while scrolling with the page.
+  const [homeLeftOffset, setHomeLeftOffset] = useState<number>(0);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const scout = props.mapMode === "scout";
   const atHome = props.context === "home";
+
+  const measureHomeLeftOffset = useCallback(() => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // Clamp the 256px (w-64) popover inside the viewport with an 8px
+    // margin on both sides, expressed as a left offset from the button.
+    const width = 256;
+    const clampedViewportLeft = Math.min(
+      Math.max(8, rect.left),
+      Math.max(8, window.innerWidth - width - 8),
+    );
+    setHomeLeftOffset(clampedViewportLeft - rect.left);
+  }, []);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -61,30 +88,29 @@ export function MapModeToggle(props: {
 
   const toggleOpen = useCallback(() => {
     if (!open && atHome) {
-      const rect = buttonRef.current?.getBoundingClientRect();
-      if (rect) {
-        // Clamp the 256px (w-64) popover inside the viewport with an
-        // 8px margin on both sides, preferring the button's own left.
-        const width = 256;
-        const left = Math.min(
-          Math.max(8, rect.left),
-          Math.max(8, window.innerWidth - width - 8),
-        );
-        setHomePos({ top: rect.bottom + 8, left });
-      }
+      measureHomeLeftOffset();
     }
     setOpen((v) => !v);
-  }, [open, atHome]);
+  }, [open, atHome, measureHomeLeftOffset]);
 
-  // Escape closes the popover and returns focus to the button.
+  // Escape closes the popover and returns focus to the button; resize
+  // updates the horizontal offset on Home.
   useEffect(() => {
     if (!open) return;
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, close]);
+    if (atHome) {
+      window.addEventListener("resize", measureHomeLeftOffset);
+    }
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (atHome) {
+        window.removeEventListener("resize", measureHomeLeftOffset);
+      }
+    };
+  }, [open, close, atHome, measureHomeLeftOffset]);
 
   const flip = useCallback(() => {
     const next: MapMode = scout ? "full" : "scout";
@@ -121,42 +147,48 @@ export function MapModeToggle(props: {
         onClick={toggleOpen}
         className={
           atHome
-            ? // Home theme: brass outline, matching the sound toggle
-              // beside it (styles.css .atlas-sound-toggle).
-              "pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-[var(--atlas-card-line)] bg-transparent text-[var(--atlas-brass)] transition-colors hover:border-[var(--atlas-brass)]"
+            ? "hv5-pill hv5-map-mode-pill pointer-events-auto"
             : "pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[rgba(10,12,16,0.72)] text-white/80 backdrop-blur-[14px] transition-colors hover:text-white"
         }
       >
-        <Layers aria-hidden="true" size={20} />
+        {atHome ? (
+          <>
+            <Layers aria-hidden="true" size={16} />
+            <span data-testid="map-mode-indicator" data-mode={props.mapMode}>
+              {scout ? "Scout Map" : "Full map"}
+            </span>
+          </>
+        ) : (
+          <Layers aria-hidden="true" size={20} />
+        )}
       </button>
       {open ? (
-        // Placement differs by host. In Play the button sits in the
-        // top bar's left cluster, so the popover anchors under it
-        // (absolute, left-0) and always fits. On Home the button sits
-        // in the hero's wrapping top row, whose wrap point moves with
-        // the viewport: measured on the real page, left-0 pushed the
-        // 256px popover off the right edge at 340px wide (and past
-        // the hero's overflow:hidden edge at 360px), while right-0
-        // would push it off the LEFT edge at 320px, where the button
-        // wraps to the row's start. Neither anchor survives the wrap,
-        // so on Home the popover is fixed-positioned from the
-        // button's measured rect, clamped inside the viewport
-        // (toggleOpen above) — it overlays the page like the Play
-        // popover and is never clipped by the hero.
+        // In both Play and Home the popover is position: absolute
+        // (top-full mt-2) inside the relative wrapper so it stays
+        // anchored 8px below the button and scrolls with the page
+        // instead of travelling with the viewport. On Home the button
+        // sits in the hero's wrapping top row, so its horizontal
+        // offset is clamped to the viewport [8, innerWidth - 264].
         <div
           data-testid="map-mode-popover"
-          style={atHome && homePos ? { top: homePos.top, left: homePos.left } : undefined}
-          className={
-            atHome
-              ? "pointer-events-auto fixed z-40 w-64 rounded-2xl border border-white/10 bg-[rgba(10,12,16,0.92)] p-4 text-white shadow-xl backdrop-blur-[14px]"
-              : "pointer-events-auto absolute top-full left-0 z-40 mt-2 w-64 rounded-2xl border border-white/10 bg-[rgba(10,12,16,0.92)] p-4 text-white shadow-xl backdrop-blur-[14px]"
-          }
+          style={atHome ? { left: homeLeftOffset } : undefined}
+          className="pointer-events-auto absolute top-full left-0 z-40 mt-2 w-64 rounded-2xl border border-white/10 bg-[rgba(10,12,16,0.92)] p-4 text-white shadow-xl backdrop-blur-[14px]"
         >
           <p className="text-sm font-semibold">{SCOUT_COPY.toggle.label}</p>
           <p className="mt-1 text-xs leading-relaxed text-white/70">
             {atHome ? SCOUT_COPY.toggle.homeExplainer : SCOUT_COPY.toggle.explainer}
           </p>
-          {atHome ? null : (
+          {inChallenge ? (
+            // Challenge context: the reason, at reading size — and no
+            // switch below it. The map was picked at challenge open;
+            // nothing in this popover can end the challenge.
+            <p
+              data-testid="map-mode-challenge-note"
+              className="mt-2 text-xs leading-relaxed text-white/70"
+            >
+              {SCOUT_COPY.toggle.challengeNote}
+            </p>
+          ) : atHome ? null : (
             // Block B: the consequence prints ABOVE the switch, at the
             // explainer's size and contrast — never as fine print
             // below the control that ends the game.
@@ -164,6 +196,7 @@ export function MapModeToggle(props: {
               {SCOUT_COPY.toggle.warning}
             </p>
           )}
+          {inChallenge ? null : (
           <div
             role="switch"
             aria-checked={scout}
@@ -181,6 +214,7 @@ export function MapModeToggle(props: {
               <span className="h-5 w-5 rounded-full bg-white shadow" />
             </span>
           </div>
+          )}
         </div>
       ) : null}
     </div>
