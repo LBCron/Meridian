@@ -12,8 +12,8 @@ Base: origin/main 851886bc0f733abe85182980ffb7b8afd2396319.
 - [x] Slice 2 (130bddd): can't-tell escalation in recordTelemetry + buildCantTellAlert — worker suite 174/174 (build-slice2.log)
 - [x] Gates on final tip: test:worker 174/174 · typecheck:worker clean · npx tsc --noEmit clean · npm test green (scripts 990 pass/0 fail, src 2107/2107) · observability-field-parity green unmodified (logs in ~/workspace/meridian-prov-gate/logs/build-*.log)
 - [x] Test-strengthening fix round (F1–F4, test file only): W9′ gate outcomes via handleRequest, C1′/C2′ history-length pins, E6 log capture, stub-arm session-mismatch pin — test:worker 175/175 · typecheck:worker clean (logs: fix-tests.log, fix-typecheck.log)
-- [ ] Swarm verification + independent Reality Checker
-- [ ] Push attempt (one) — no PR, no merge, no deploy (NOT done by the build crew; coordinator's step)
+- [x] Swarm verification (4 workers: gates PASS, contracts PASS after fix round, privacy PASS, prober 5/6 mutations caught + M2 pin added) + independent Reality Checker: **READY** (REALITY-CHECK.md, ~/workspace/meridian-prov-gate/)
+- [~] Push attempt — no PR, no merge, no deploy (NOT done by the build crew; coordinator's step)
 
 ## Notes
 - C1′/C2′ run as a live init() drive in the worker test file (ruling a) — no fixture fallback needed; the import runs under both the worker test runner and typecheck:worker.
