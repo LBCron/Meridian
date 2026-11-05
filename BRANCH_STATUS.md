@@ -19,7 +19,10 @@
 - [x] Ambient clouds drifting across the summit band (base tip had no clouds layer — V1b's are uncommitted in the parallel worktree — so simple gradient cloud forms + a master-clock valley mist are part of this prototype stage).
 - [x] Motion layers: 6 total (art, trail march, pulse, flag, clouds+mist, trekker+paper rig) — at the ceiling, not over.
 - [x] Gates mirror CardFilm: reduced-motion (shared hook) / Save-Data / deviceMemory ≤ 2 → the still, which is this same SVG paused on the t = 13.2s hold-up frame. Loop never stops on a timer.
-- [ ] Captures: video + reduced-motion still in `~/workspace/meridian-trekker-evidence/` (filled in by the capture commit).
+- [x] Captures (in `~/workspace/meridian-trekker-evidence/`): `hero-trekker.mp4` (20.8s, 838×520 — the hero band at 1440 in control framing; full 18s loop + loop point, no jump cut at the reset), `trekker-still-reduced.png` (reduced-motion gate's own frozen hold frame), `beat-*.png` seeked beat stills, `vid-t*.png` frames extracted from the video itself, `trekker-context-1440.png` full-viewport context.
+- Gates on this branch: `npx tsc --noEmit` clean (twice, incl. after the cure) · `npm run build:pages` green (prebuild lint-cards GATE PASSED) · captures verified by eye against the beat sheet. Unit/E2E suites NOT run — harness-gated design prototype, same as the V1/V2 branch; production rendering with no `ui` param is untouched.
+- Counts: 6 motion layers (ceiling) · ~36 figure shape elements (two poses + sheet; the brainstorm's 18–22 estimate bought one pose — the front hold pose is a second figure) · ~68 shape/group elements total incl. clouds/mist · trekker source block 17.5 KB incl. its doc comment (~14.8 KB excl.) vs the brainstorm's 4–6 KB rig estimate — over, driven by per-beat SMIL keyframe windows; a production pass would class the windows and merge the leg split.
+- Eye-check cure round (1): hold head floated mid-raise + only the headwrap showed → head raised, map grows down from a top edge anchored under his chin, hands/arms track the growth, sheet lands at face height; descent fade read as ghosting → mist thickens at the exit, fade moved later. Re-captured after the cure.
 
 ---
 
