@@ -2508,7 +2508,7 @@ test("W9′(i) P4a′ full-trail suspected_crash (history ≥1) → corroborated
   assert.equal(fetchCalls.length, 1, "corroborated crash forwards once (Discord)");
 });
 
-test("W9′(ii) P4a′ truncation-stub suspected_crash → corroborated (history [] or absent; graft: stub arm requires it)", () => {
+test("W9′(ii) P4a′ truncation-stub suspected_crash → corroborated (history [] or absent; graft: stub arm requires it)", async () => {
   const stub = {
     sessionId: "sess-1",
     buildId: "a1b2c3d4e5f6",
@@ -2532,15 +2532,38 @@ test("W9′(ii) P4a′ truncation-stub suspected_crash → corroborated (history
     "uncorroborated",
     "P4a′ graft: stub arm rejects a non-array, non-empty history",
   );
+  // Gate outcome: the same stub payloads forward via handleRequest.
+  const { map } = memoryStore();
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+  const resStub = await handleRequest(postEvent(provSuspected({ breadcrumb: stub })), env);
+  assert.equal(resStub.status, 200);
+  assert.ok(fetchCalls.length >= 1, "corroborated truncation stub (history []) forwards");
+  const resNoHistory = await handleRequest(postEvent(provSuspected({ breadcrumb: stubNoHistory })), env);
+  assert.equal(resNoHistory.status, 200);
+  assert.equal(fetchCalls.length, 2, "corroborated truncation stub (history absent) forwards");
 });
 
-test("W9′(iii) P4a′ core-only suspected_crash (no breadcrumb) → uncorroborated", () => {
+test("W9′(iii) P4a′ core-only suspected_crash (no breadcrumb) → uncorroborated", async () => {
   const ev = provSuspected();
   delete ev.breadcrumb;
   assert.equal(provenanceOf(ev as never), "uncorroborated", "P4a′ breadcrumb required");
+  // Gate outcome: the same payload is gated via handleRequest.
+  const { map } = memoryStore();
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+  const res = await handleRequest(postEvent(ev), env);
+  assert.equal(res.status, 200);
+  assert.equal(fetchCalls.length, 0, "uncorroborated crash is gated — no forward");
 });
 
-test("W9′(iv) P3′-watchdog boot_failure (webgl pair, no deviceClass, 10 keys) → corroborated; 9 keys → uncorroborated", () => {
+test("W9′(iv) P3′-watchdog boot_failure (webgl pair, no deviceClass, 10 keys) → corroborated; 9 keys → uncorroborated", async () => {
   const watchdogDevice = {
     browser: "safari",
     browserVersion: "16.4",
@@ -2569,9 +2592,23 @@ test("W9′(iv) P3′-watchdog boot_failure (webgl pair, no deviceClass, 10 keys
     "uncorroborated",
     "P3′-watchdog key-count floor (≥10)",
   );
+  // Gate outcome: boot_failure is crash-class — corroborated forwards,
+  // the 9-key variant is gated.
+  const { map } = memoryStore();
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+  const res = await handleRequest(postEvent(ev), env);
+  assert.equal(res.status, 200);
+  assert.ok(fetchCalls.length >= 1, "corroborated watchdog boot_failure forwards");
+  const res9 = await handleRequest(postEvent({ ...ev, device: nineKeys }), env);
+  assert.equal(res9.status, 200);
+  assert.equal(fetchCalls.length, 1, "9-key watchdog variant is gated — no further forward");
 });
 
-test("W9′(v) P3′-funnel narration_failed with device exactly {os, form} → corroborated; missing form → uncorroborated", () => {
+test("W9′(v) P3′-funnel narration_failed with device exactly {os, form} → corroborated; missing form → uncorroborated", async () => {
   const ev = {
     type: "narration_failed",
     ts: 1_729_000_000_000,
@@ -2586,9 +2623,23 @@ test("W9′(v) P3′-funnel narration_failed with device exactly {os, form} → 
     "uncorroborated",
     "P3′-funnel requires form",
   );
+  // Gate outcome: funnel never forwards — the same payload is counted
+  // with its provenance dim.
+  const { map, store } = memoryStore();
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+  const res = await handleRequest(postEvent(ev), env);
+  assert.equal(res.status, 200);
+  assert.equal(fetchCalls.length, 0, "funnel-class is counted only — no individual forward");
+  const bucket = (await store.readBucket(bucketKey(hourLabelOf(Date.now()), "narration_failed")))!;
+  assert.equal(bucket.total, 1, "funnel event counted");
+  assert.equal(bucket.provenance.corroborated, 1, "counted with the corroborated provenance dim");
 });
 
-test("W9′(vi) P4b′ pre-init js_error (exact signature, graft: no sessionId, lastMilestone undefined) → corroborated; hybrid shapes → uncorroborated", () => {
+test("W9′(vi) P4b′ pre-init js_error (exact signature, graft: no sessionId, lastMilestone undefined) → corroborated; hybrid shapes → uncorroborated", async () => {
   const preInit = {
     type: "js_error",
     ts: 1_729_000_000_000,
@@ -2616,9 +2667,19 @@ test("W9′(vi) P4b′ pre-init js_error (exact signature, graft: no sessionId, 
     "uncorroborated",
     "P4b′ linked arm requires lastMilestone; numeric msSinceBootStart is not the pre-init signature",
   );
+  // Gate outcome: js_error is crash-class — the same pre-init payload forwards.
+  const { map } = memoryStore();
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+  const res = await handleRequest(postEvent(preInit), env);
+  assert.equal(res.status, 200);
+  assert.ok(fetchCalls.length >= 1, "corroborated pre-init js_error forwards");
 });
 
-test("W9′(vii) P4a′ full trail with session mismatch → uncorroborated", () => {
+test("W9′(vii) P4a′ full trail with session mismatch → uncorroborated", async () => {
   const ev = provSuspected({
     breadcrumb: {
       sessionId: "other-session",
@@ -2629,16 +2690,83 @@ test("W9′(vii) P4a′ full trail with session mismatch → uncorroborated", ()
     },
   });
   assert.equal(provenanceOf(ev as never), "uncorroborated", "P4a′ session linkage");
+  // Gate outcome: the same payload is gated via handleRequest.
+  const { map } = memoryStore();
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+  const res = await handleRequest(postEvent(ev), env);
+  assert.equal(res.status, 200);
+  assert.equal(fetchCalls.length, 0, "session-mismatched crash is gated — no forward");
 });
 
-test("W9′(viii) P1′ local-<base36> and \"dev\" builds, rest valid → corroborated", () => {
+test("W9′ P4a′ truncation stub with session mismatch → uncorroborated", async () => {
+  const stubMismatch = {
+    sessionId: "other-session",
+    buildId: "a1b2c3d4e5f6",
+    startedAt: 1000,
+    lastMilestone: "game_loaded",
+    history: [] as Array<{ name: string; at: number }>,
+  };
+  assert.equal(
+    provenanceOf(provSuspected({ breadcrumb: stubMismatch }) as never),
+    "uncorroborated",
+    "P4a′ stub arm session linkage (history [])",
+  );
+  const { history: _dropped, ...stubMismatchNoHistory } = stubMismatch;
+  assert.equal(
+    provenanceOf(provSuspected({ breadcrumb: stubMismatchNoHistory }) as never),
+    "uncorroborated",
+    "P4a′ stub arm session linkage (history absent)",
+  );
+  // Gate outcome: the same stub payload is gated via handleRequest.
+  const { map } = memoryStore();
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+  const res = await handleRequest(postEvent(provSuspected({ breadcrumb: stubMismatch })), env);
+  assert.equal(res.status, 200);
+  assert.equal(fetchCalls.length, 0, "stub session-mismatched crash is gated — no forward");
+});
+
+test("W9′(viii) P1′ local-<base36> and \"dev\" builds, rest valid → corroborated", async () => {
   assert.equal(provenanceOf(provJsError({ buildId: "local-abc123" }) as never), "corroborated", "P1′ local- shape");
   assert.equal(provenanceOf(provJsError({ buildId: "dev" }) as never), "corroborated", "P1′ dev shape");
+  // Gate outcome: js_error is crash-class — both shapes forward.
+  const { map } = memoryStore();
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+  const resLocal = await handleRequest(postEvent(provJsError({ buildId: "local-abc123" })), env);
+  assert.equal(resLocal.status, 200);
+  assert.ok(fetchCalls.length >= 1, "corroborated local- build forwards");
+  const resDev = await handleRequest(postEvent(provJsError({ buildId: "dev" })), env);
+  assert.equal(resDev.status, 200);
+  assert.equal(fetchCalls.length, 2, "corroborated dev build forwards");
 });
 
-test("W9′(ix) P1′ buildId \"!!!\" → uncorroborated; probe-style buildId → uncorroborated", () => {
+test("W9′(ix) P1′ buildId \"!!!\" → uncorroborated; probe-style buildId → uncorroborated", async () => {
   assert.equal(provenanceOf(provJsError({ buildId: "!!!" }) as never), "uncorroborated", "P1′ build shape");
   assert.equal(provenanceOf(provJsError({ buildId: "chitti-verify" }) as never), "uncorroborated", "P1′ probe build");
+  // Gate outcome: both shapes are gated via handleRequest.
+  const { map } = memoryStore();
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    fetchCalls.push({ url: String(url), init });
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+  const res = await handleRequest(postEvent(provJsError({ buildId: "!!!" })), env);
+  assert.equal(res.status, 200);
+  assert.equal(fetchCalls.length, 0, "invalid build shape is gated — no forward");
+  const resProbe = await handleRequest(postEvent(provJsError({ buildId: "chitti-verify" })), env);
+  assert.equal(resProbe.status, 200);
+  assert.equal(fetchCalls.length, 0, "probe-style build is gated — no forward");
 });
 
 test("W9′ P2 stamps: missing storageOk or empty lcV → uncorroborated", () => {
@@ -2818,12 +2946,22 @@ test("C1′ real init() drive (P4a′): the actually-emitted suspected_crash cor
     "game_loaded",
   );
   assert.equal(payload.type, "suspected_crash");
+  assert.equal(
+    (payload.breadcrumb as { history: unknown[] }).history.length,
+    2,
+    "C1′ emitted trail carries the seeded 2 entries",
+  );
   assert.equal(provenanceOf(payload as never), "corroborated", "P4a′ full trail on the emitted event");
 });
 
 test("C2′ real init() drive (P4a′): trail history length exactly 1 (boot_start only) corroborates", () => {
   const payload = driveInitEmittedSuspectedCrash([{ name: "boot_start", at: 1000 }], "boot_start");
   assert.equal(payload.type, "suspected_crash");
+  assert.equal(
+    (payload.breadcrumb as { history: unknown[] }).history.length,
+    1,
+    "C2′ emitted trail carries exactly the seeded 1 entry (boot_start)",
+  );
   assert.equal(provenanceOf(payload as never), "corroborated", "P4a′ history ≥1, never game_loaded");
 });
 
@@ -3015,34 +3153,48 @@ test("E5 scope: corroborated insufficient_evidence recovery_outcome (non-repeat_
 test("E6 privacy: SECRET-SESSION is absent from can't-tell + threshold alert texts and every bucket", async () => {
   const { map, store } = memoryStore();
   const cfg = thresholdConfig({});
-  let cantTell = "";
-  for (let i = 0; i < 5; i++) {
-    const r = await recordTelemetry(
-      store,
-      cantTellCandidate({ sessionId: "SECRET-SESSION" }),
-      PROV_T0,
-      cfg,
-      "uncorroborated",
+  // logLine emits via console.log — capture that channel for both flows.
+  const capturedLogs: string[] = [];
+  const originalLog = console.log;
+  console.log = (...args: unknown[]) => {
+    capturedLogs.push(args.map((a) => String(a)).join(" "));
+  };
+  try {
+    let cantTell = "";
+    for (let i = 0; i < 5; i++) {
+      const r = await recordTelemetry(
+        store,
+        cantTellCandidate({ sessionId: "SECRET-SESSION" }),
+        PROV_T0,
+        cfg,
+        "uncorroborated",
+      );
+      if (r.alertTexts[0]) cantTell = r.alertTexts[0];
+    }
+    assert.ok(cantTell.includes("❔"), "can't-tell alert fired (non-vacuous)");
+    assert.ok(!cantTell.includes("SECRET-SESSION"), "can't-tell text carries no sessionId");
+    let threshold = "";
+    for (let i = 0; i < 10; i++) {
+      const r = await recordTelemetry(
+        store,
+        tileEvent({ sessionId: "SECRET-SESSION" }) as CrashReportEvent,
+        PROV_T0,
+        cfg,
+        "corroborated",
+      );
+      if (r.alertTexts[0]) threshold = r.alertTexts[0];
+    }
+    assert.ok(threshold.includes("crossed the hiccup threshold"), "threshold alert fired (non-vacuous)");
+    assert.ok(!threshold.includes("SECRET-SESSION"), "threshold text carries no sessionId");
+    const rawBuckets = [...map.values()].join("\n");
+    assert.ok(!rawBuckets.includes("SECRET-SESSION"), "no bucket carries a sessionId");
+    assert.ok(
+      !capturedLogs.join("\n").includes("SECRET-SESSION"),
+      "worker logs during the can't-tell + threshold flows carry no sessionId",
     );
-    if (r.alertTexts[0]) cantTell = r.alertTexts[0];
+  } finally {
+    console.log = originalLog;
   }
-  assert.ok(cantTell.includes("❔"), "can't-tell alert fired (non-vacuous)");
-  assert.ok(!cantTell.includes("SECRET-SESSION"), "can't-tell text carries no sessionId");
-  let threshold = "";
-  for (let i = 0; i < 10; i++) {
-    const r = await recordTelemetry(
-      store,
-      tileEvent({ sessionId: "SECRET-SESSION" }) as CrashReportEvent,
-      PROV_T0,
-      cfg,
-      "corroborated",
-    );
-    if (r.alertTexts[0]) threshold = r.alertTexts[0];
-  }
-  assert.ok(threshold.includes("crossed the hiccup threshold"), "threshold alert fired (non-vacuous)");
-  assert.ok(!threshold.includes("SECRET-SESSION"), "threshold text carries no sessionId");
-  const rawBuckets = [...map.values()].join("\n");
-  assert.ok(!rawBuckets.includes("SECRET-SESSION"), "no bucket carries a sessionId");
 });
 
 test("E7: the \"other\" overflow pattern (33rd distinct group) never escalates", async () => {

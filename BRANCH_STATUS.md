@@ -11,6 +11,7 @@ Base: origin/main 851886bc0f733abe85182980ffb7b8afd2396319.
 - [x] Slice 1 (0d96d50): provenanceOf gate + counting dims + corroborated-only threshold — worker suite 168/174, only Slice-2 escalation contracts failing (build-slice1.log)
 - [x] Slice 2 (130bddd): can't-tell escalation in recordTelemetry + buildCantTellAlert — worker suite 174/174 (build-slice2.log)
 - [x] Gates on final tip: test:worker 174/174 · typecheck:worker clean · npx tsc --noEmit clean · npm test green (scripts 990 pass/0 fail, src 2107/2107) · observability-field-parity green unmodified (logs in ~/workspace/meridian-prov-gate/logs/build-*.log)
+- [x] Test-strengthening fix round (F1–F4, test file only): W9′ gate outcomes via handleRequest, C1′/C2′ history-length pins, E6 log capture, stub-arm session-mismatch pin — test:worker 175/175 · typecheck:worker clean (logs: fix-tests.log, fix-typecheck.log)
 - [ ] Swarm verification + independent Reality Checker
 - [ ] Push attempt (one) — no PR, no merge, no deploy (NOT done by the build crew; coordinator's step)
 
