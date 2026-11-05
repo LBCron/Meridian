@@ -1,3 +1,434 @@
+# Branch status — fix/band-cluster-films-toast (band-cluster fix set)
+
+- **Branch:** `fix/band-cluster-films-toast`
+- **Base:** `main` @ `e1cf6fe`
+- **Authority:** Veeresh, 2026-11-04: "Commission all: latch fix + locked-film loop + band toast + E2E"
+
+## Task capsule
+
+- TASK: four commissioned fixes from the 2026-11-04 band-cluster diagnosis — (1) CardFilm/LockedTileFilm video-error latch: reset on media change + one bounded retry before latching; (2) LockedTileFilm loops under CardFilm's exact governance (R1 still holds: no control of any kind on the tile); (3) the age-profile confirm-change toast names the band (built from `getBand`, no hardcoded names/ranges), both run states; (4) a new in-session band-switch E2E driving the real UI flow with no seeded band.
+- Tier: 1 shape (clear repro + locked fix shapes) run as a builder silo; independent Silo QA + the 12-role panel review the final tip separately. Builder stops at PR open — NO MERGE.
+- Files in scope: `src/components/card-film.tsx` + `src/components/card-film.test.ts`, `src/components/age-profile/LockedTileFilm.tsx` + `locked-tile-film.test.ts`, `src/components/age-profile/AgeProfileSettings.tsx`, `tests/e2e/age-profile-gate.desktop.spec.ts` (one pin), `tests/e2e/band-switch-in-session.desktop.spec.ts` (new), docs the changes make stale (README locked-tile paragraph, `locked-tile-media.ts` header), this file.
+- Protected / out of scope: band locks, the band table's data, which loops each band gets; copy beyond item 3's two confirmChange toasts (first-save + reset toasts stay byte-identical); CardFilm/Review/Journal/Grown-ups behaviour beyond item 1.
+- Verification: pins fail on pre-fix code (stash check per item); full gates on the tip (`npm ci`, tsc, typecheck:worker, `npm test`, test:worker, lint-cards, build:pages); targeted E2E under `flock ~/workspace/.e2e.lock`, `--workers=1`, chromium-1243; the new spec also run against an unmodified-main build to prove it bites.
+
+## Status
+
+- [x] Unit 1 — CardFilm latch fix + pins (27/27 with fix; 24/27 with the src change stashed — the 2 new pins + the updated gate pin fail pre-fix)
+- [x] Unit 2 — LockedTileFilm: latch retry + loop governance (loop attr, threshold-0 off-screen pause observer, play() rejections dropped) + header rewrite (R1 holds: no control added; stop story = the gates + off-screen pause; stale CardFilm-toggle claim removed). Tests re-pinned: 16/16 with fix, 12/16 pre-fix (loop/off-screen/retry/gate pins fail); R1 describe passes both ways. Docs cured in-unit: README locked-tile paragraph + `locked-tile-media.ts` header now record the loop ruling (play-once marked superseded, not deleted)
+- [x] Unit 3 — Band-naming confirm toast: `Saved — {label} (ages {ageMin}–{ageMax}) ✅` / in-progress `Saved — {label} (ages {ageMin}–{ageMax}); takes effect on the next card. ✅`, built from `getBand(confirmTarget)`; first-save + reset toasts byte-identical; stale band-invisibility comment replaced with the 2026-11-04 ruling. Gate spec pin updated to its switch (8-10 → 11-13): `Saved — GeoDetective (ages 11–13) ✅`
+- [x] Unit 4 — New in-session switch E2E (`band-switch-in-session.desktop.spec.ts`, 1 test): real UI flow, no seeded band (unset → UI first-set 11–13 → Trail Scout → Little Explorer → back to 11–13); passes on the branch build (1/1). Bite proof against an unmodified-main build (scratch worktree @ e1cf6fe, removed after): the committed spec fails at the Trail Scout toast (expected `Saved — Trail Scout (ages 8–10) ✅`, main shows `Saved ✅`); a scratch variant with main's toast text substituted (evidence only, never committed) proceeds and fails at `locked film loop attribute — Expected: true, Received: false`
+- [x] Docs cured (README, locked-tile-media header — in Unit 2) — docs grep found no other play-once/band-invisible text: the ws-4 spec named in the brief does not mention LockedTileFilm, and the Handbook carries no locked-film or band-toast description
+- [x] Full gates on the final tip: `npm ci` ✓ · `npx tsc --noEmit` clean · `npm run typecheck:worker` clean · `npm test` — scripts 1016 (1005 pass, 11 skipped, 0 fail, unchanged from baseline), src 2123/2123 (baseline 2119 + exactly the 4 new pins) · `npm run test:worker` 117/117 (no worker code touched) · `node scripts/lint-cards.mjs` GATE PASSED · `npm run build:pages` green (one prerender attempt OOM-died under VM contention with another agent's build; the sealed re-run completed, exit 0)
+- [x] PR opened (NO MERGE — Silo QA + 12-role panel approve the final tip, then the owner's per-PR word is the merge gate)
+
+## Verification record (builder, on the tip)
+
+- Baseline (unmodified `e1cf6fe`): `npm test` — scripts 1016 tests (1005 pass, 11 skipped, 0 fail); src 2119/2119 pass.
+- Unit pins: card-film.test.ts 27/27 with fix, 24/27 pre-fix (stash check); locked-tile-film.test.ts 16/16 with fix, 12/16 pre-fix, R1 pins pass both ways.
+- Targeted E2E (flock, --workers=1, chromium-1243, branch build): band-switch-in-session 1/1; age-profile-gate 1/1 (new toast pin); band-media-variants 4/4. card-redesign full file: 3 whole-test 240 s timeouts under VM contention (no assertion failures); the 3 tests + 1 name-matched neighbour passed 4/4 on a clean sequential re-run — contention flake, dispositioned.
+- Full gate numbers recorded in the PR body.
+
+## Panel round-1 cure — 2026-11-04 (verdict on `2b2410b`: 2 APPROVE / 6 AWN / 4 BLOCK)
+
+Cure builder (not the round-1 builder). Both BLOCKs cured; the cured
+tip returns for fresh Silo QA + a full panel re-vote before any
+merge word. NO MERGE.
+
+- **B1 — off-screen-pause observer orphaned by the retry remount
+  (4 seats).** In `card-film.tsx` + `LockedTileFilm.tsx` the
+  threshold-0 observer now resolves `videoRef.current` inside its
+  callback (event time), immune to every remount path. Folded nit:
+  the retry/latch state is now URL+band-scoped DERIVED state
+  (`spentScope`/`failedScope` hold the scope string; `attempt`/
+  `failed` derived) — no post-render reset effect, no double fetch
+  start on a swap, no stale error charged to a new film.
+- **B2 — latch reset keyed only on URL (Office Hours).**
+  `CardFilm` takes a `band` prop (wired at all five game-app call
+  sites, all with `ageBand` in scope); the scope is band + videoUrl,
+  so ANY band change revives a latched slot in its first render —
+  including the constant-media slots (GeoDetective/Journal/
+  Grown-ups) and fail-closed variant slots. LockedTileFilm needs
+  no band prop (5–7 only, constant media).
+- **Proof.** New behavioural E2E `band-film-error-path.desktop.spec.ts`
+  (page.route aborts the GeoDetective film request): fail-once →
+  retry succeeds → film plays; fail-always → latch → band switch
+  11–13 → 8–10 → the same constant-media slot revives and plays;
+  after a successful retry, scrolling off-screen pauses the CURRENT
+  element. Bite vs the round-1 tip (scratch builds): the revival
+  case fails there (no video mounts after the switch); the unit
+  pins fail 8/51 there (observer-resolution + scope-derivation +
+  wiring pins), 51/51 on the cured tip. In-progress toast: proven
+  unreachable behaviourally (AgeProfileSettings renders only in
+  game-app's Home branch, reached only when run === null &&
+  !loopOpen, so runInProgress is never true at its only render
+  site) — covered instead by the new source/behaviour pin file
+  `age-profile-settings-toast.test.ts` (exact templates + composed
+  strings from the real band table, all three bands).
+- **Docs cures (all six).** AgeProfileSettings post-gate comment
+  deleted (toast renders ~3.5 s on home; owner ruled it names the
+  band anyway, 2026-11-04); types.ts band `label` gloss gains the
+  toast exception; AgePicker header scoped to durable surfaces +
+  the same exception; LockedTileFilm header gains the explicit
+  WCAG 2.2.2 sentence (no stop exists; owner accepted the gates);
+  locked-tile-media.ts ~105-char line rewrapped; card-film header
+  states the cured retry budget (one retry per media+band scope).
+- **Pin re-points (shape genuinely changed, nothing weakened).**
+  The exact CardFilm call-string pins in card-film.test.ts (5),
+  `card-media-band-variants.test.ts` (5) and
+  `home-smooth-cards.test.ts` (3) now include `band={ageBand}`.
+- **Merge-ups.** main `0b4e270` (#348) merged, then main `70e1be6`
+  (#347) merged when it landed mid-cure; sole conflict both times:
+  this file (both-records stack). Final diff vs main: this PR's
+  17 files only.
+- **Environment.** ~/workspace hit its btrfs quota (EDQUOT) during
+  the cure; builds + the final gate run were executed in a roomy
+  overlay-fs clone of the same tip. VM renderer crashes ("Target
+  crashed") hit the heavy E2E specs repeatedly in this window on
+  BOTH the cured build and a round-1-tip control build
+  (band-media-variants 0/4 and band-switch 0/1 there) — environment
+  class, dispositioned with sequential/control runs; the new
+  error-path spec passed 2/2 on the cured build in a quiet window.
+  Fresh Silo QA should re-run the two heavy specs in its own pass.
+
+## Merge-up — 2026-11-04 (main `0b4e270` merged in, PR #350 panel-cure round)
+
+- Sole conflict: this file. Resolved both-records: this branch's record above, main's #348 record below it; the accumulated records from main follow after.
+- Code files auto-merged with no conflicts (#348 removed dead auth only; no overlap with this branch's scope).
+
+## Merge-up — 2026-11-04 (main `70e1be6` merged in, PR #350 panel-cure round)
+
+- Sole conflict: this file. Resolved both-records: this branch's accumulated record above, main's #347 record below it; earlier accumulated records follow after.
+- Code files auto-merged with no conflicts (#347 touched only crash-watchdog scripts + the crash-report worker + observability docs; no overlap with this branch's scope).
+
+## Panel round-2 cure — 2026-11-04 (verdict on `7139160`: 5 APPROVE / 6 AWN / 1 BLOCK)
+
+Cure builder (not the round-1 cure builder). The cured tip returns
+for fresh Silo QA + a full panel re-vote before any merge word.
+NO MERGE.
+
+- **BLOCK (Game Developer; root shared with Senior Developer
+  NIT-4) — a remount never re-observes.** The round-1 B1 cure
+  resolved the video element inside the pause observer's
+  callback, but the effect's deps stayed `[gated, near]`: a film
+  that errors and remounts (retry key change) while its slot is
+  NON-intersecting is never re-observed — the deps don't change
+  on remount and IntersectionObserver fires no callback without
+  a threshold crossing — so the remounted film is never paused
+  and (in a browser that starts off-screen films) autoplays and
+  loops off-screen indefinitely, falsifying the headers' "never
+  decode off-screen" invariant. Same shape in both components,
+  and for a non-latched media swap below the fold. **Cure (the
+  seat's minimal cure, verbatim):** CardFilm pause-effect deps
+  → `[gated, near, attempt, media.videoUrl]`; LockedTileFilm →
+  `[gated, near, attempt]`. A remount now re-runs the effect,
+  and the fresh observer's initial delivery pauses/plays the
+  new element correctly. Header/code comments in both files
+  record why the deps carry the remount signals.
+- **Folded MAJOR nit (Office Hours; parent decision: fold in,
+  same mechanism) — band round-trip re-latch.** Derivation alone
+  revives a slot only while a different scope is showing: latch
+  in band A → switch to B (revives) → back to A in the same home
+  session rendered latched immediately, because `failedScope`
+  still equalled A's scope. **Cure:** leaving a scope clears
+  its record — CardFilm now tracks the last-rendered scope and,
+  on an actual scope transition (during render, React's
+  adjust-state pattern; still no reset effect), clears
+  `spentScope`/`failedScope`, so every arrival at a scope starts
+  fresh. LockedTileFilm needs no clearing: its scope can never
+  change while mounted, and leaving 5–7 unmounts it — now stated
+  in its scope comment. The PR body's "any band change revives"
+  wording is corrected to these real semantics.
+- **Proof.** Unit pins (source-pinning style): the deps pin in
+  each film test file + the round-trip pin in
+  `card-film.test.ts`. Bite (scratch worktree @ `7139160`, the
+  new test files over the voted components): exactly the 3 new
+  pins fail, 46/49 pass; on the cured tree 49/49. E2E: two new
+  variants in `band-film-error-path.desktop.spec.ts` — the error
+  fires BEFORE the slot first intersects (slot parked below the
+  fold, inside the lazy margin), CardFilm (Journal slot) and
+  LockedTileFilm. Witness design, recorded honestly: this
+  Chromium defers off-screen autoplay (probe-verified: a
+  below-fold film sits paused at t=0 with no observer at all),
+  so a paused-state assertion cannot separate the tips here;
+  the variants witness the DELIVERY — a `pause()` call landing
+  on the remounted element, recorded via an init script — which
+  is exactly the mechanism the BLOCK names, plus the final
+  paused-state assertions as the user-facing invariant. The
+  first failure is delayed 2.5 s so the original observer's
+  initial delivery is spent on the first element (an instant
+  abort can let that delivery land on the new element and mask
+  the bug — measured in this run: the first version of the
+  variant passed on the voted build for exactly that reason).
+- **PR-body record correction (QA nit).** The round-1 cure's
+  bite figures were overstated: under the stated scratch method
+  it is 6 pins fail / 45 pass across all 3 test files (40 pass
+  films-only), not "8 fail / 43 pass" — the 51 total only arises
+  including the 5 toast tests. The body is corrected.
+- **Gates (cure tree):** tsc clean · `npm test` — scripts 986
+  pass / 0 fail / 11 skipped, src 2107/2107 (2104 + the 3 new
+  pins: card-film 29 → 31, locked-tile 17 → 18) · lint-cards
+  GATE PASSED · build:pages green. E2E on the cured build:
+  band-film-error-path 4/4 (both new variants included, earlier
+  paused-state-only version — re-run with the delivery witness
+  sealed in the PR body). NOT in this cure: the dead
+  `runInProgress` deferral branch (owner decision owed outside
+  the PR — untouched), any other refactor.
+
+## Merge-up — 2026-11-04 (main `d3202a9` merged in, PR #350 round-2 cure round)
+
+- Main moved during the cure (#349, chunk-failure cascade,
+  merged live). Sole conflict: this file. Resolved both-records:
+  this branch's accumulated record above, main's #349 record
+  below it; earlier accumulated records follow after.
+- Code files auto-merged with no conflicts (#349 touched only
+  crash-watchdog scripts, `src/lib/chunk-recovery.ts`,
+  observability docs and its E2E spec; no overlap with this
+  branch's scope). Delta audit: after this merge-up the
+  branch-vs-main diff is exactly this PR's scope plus the
+  round-2 cure commit `6c5fb9f`, which the merge-up does not
+  change.
+
+---
+# Branch status — fix/chunk-failure-cascade (watchdog stand-down on stalled recovery reloads)
+
+- **Branch:** `fix/chunk-failure-cascade`
+- **Base:** `main` @ `e1cf6fe`
+- **Authority:** owner, 2026-11-04, in the meridian side chat: "Fix the chunk-failure cascade"
+- **Diagnosis of record:** `~/workspace/meridian-geodetective-diag/diagnostic-evidence/results*.json` (2026-11-04)
+
+## Task capsule
+
+- TASK / defect: on the GeoDetective open path, a screen chunk (or its
+  CSS preload) fails at tap time → MapErrorBoundary shows its
+  recoverable card (correct) → `src/lib/chunk-recovery.ts` auto-reloads
+  once (owner-approved, PR #245) → if that recovery reload's boot
+  stalls past the crash watchdog's 28 s timer, the watchdog showed
+  "The game couldn't start on this phone." and POSTed a `boot_failure`
+  — the wrong surface (a boot-failure screen for a mid-session chunk
+  failure) and false telemetry, for a session that had already reached
+  home and set `window.__meridian_ready` on the previous page. The
+  mechanism is shared (TrailScreen, SatelliteMap, HomeGlobe ride the
+  same lazy + withChunkTimeout + MapErrorBoundary + chunk-recovery
+  path; the watchdog is global), so the fix lands once, in the watchdog.
+- FIX: in `scripts/crash-watchdog.mjs`, `crashWatchdogMain`'s
+  `onTimer()` sets a recovery flag when
+  sessionStorage key `meridian.chunkReloadNotice` holds a numeric
+  timestamp whose age at timer-fire time is ≤ 900_000 ms (mirrors
+  `CHUNK_RELOAD_NOTICE_MAX_AGE_MS` in `src/lib/chunk-recovery.ts`;
+  keep-in-sync comments on both sides). Why it proves the case: the
+  key is written ONLY immediately before a chunk-recovery reload — by
+  chunk-recovery's `decide()` (`writeNotice`) before an auto-reload,
+  and by MapErrorBoundary's manual "Try again"
+  (`markChunkReloadNotice`) — and both writers run only inside an app
+  that already booted and reached home (verified by grep before
+  building: those are the only two writers; the only consumer is
+  `consumeChunkReloadNotice` at app init in `game-app.tsx`). If the
+  recovery reload boots, the app consumes the notice and
+  `__meridian_ready` stands the watchdog down anyway; a fresh notice
+  SURVIVING to timer-fire with ready unset can therefore only be a
+  stalled chunk-recovery reload. Malformed / stale / absent notice →
+  today's behaviour, unchanged (fail closed toward the fallback).
+- Path division (nothing else moves):
+  - version skew → the app's stale offer + Refresh, as today;
+  - plain chunk failure → recoverable card + one bounded auto-reload, as today;
+  - stalled recovery reload → the `boot_failure` report stands down on the fresh chunk-reload notice, and the player gets the recovery card ("The reload didn't finish loading.", panel round-1 cure — the report stands down, the player does not);
+  - fresh-boot stall → watchdog unchanged.
+- Redundancy audit: no parallel recovery surface was created — the
+  fix reuses the existing notice key and the watchdog's existing
+  guarded storage helper; no new key, no new pipeline.
+- Byte budget: the ES5 check is folded into onTimer's existing guard
+  (`+ss("meridian.chunkReloadNotice") >= Date.now() - 9e5`), +51
+  rendered bytes: worst case (14-char build id) 6,104 → 6,155. That
+  exceeds the old 6,144 budget by 11, so the budget constant (module
+  docstring + `scripts/crash-watchdog.test.mjs`) rises to 6,200 —
+  the smallest round number that fits with margin (~45 bytes, like
+  the ~40 bytes of headroom 6,144 carried). No unrelated watchdog
+  code was shaved. (These are the pre-cure round-1 figures; the
+  cure and the merge-up moved the budget again — final merged
+  figures: measured worst case 6,551, budget 6,600; see the
+  Merge-up section below.)
+
+## Files touched
+
+- `scripts/crash-watchdog.mjs` — the stand-down in `onTimer()`, module
+  docstring, budget figures (commit `ff43bbc`).
+- `scripts/crash-watchdog.test.mjs` — 3 new unit cases (fresh notice
+  stands down; stale and malformed are controls) + the budget raise
+  (commit `ff43bbc`).
+- `src/lib/chunk-recovery.ts` — comment only: the watchdog reads the
+  notice key as a stand-down proof; keep the 900_000 ms values in
+  sync (commit `ff43bbc`).
+- `tests/e2e/crash-watchdog.spec.ts` — one new case driving the real
+  two-page cascade (commit `ac6c24d`).
+- `docs/observability.md` — `boot_failure` row note + a new
+  "When the boot watchdog stands down" section with the path-division
+  table (docs commit, this record's commit).
+- `BRANCH_STATUS.md` — this section, prepended; the records below are
+  main's accumulated records, kept intact.
+
+## Fail-first evidence
+
+- Unit: the 3 new tests against the UNMODIFIED module — 50 tests,
+  49 pass / 1 fail: the fresh-notice case failed because the overlay
+  WAS inserted (veil object vs expected undefined); the stale and
+  malformed controls passed, pinning today's behaviour. With the fix:
+  50/50 pass.
+- E2E: the new spec against a build of unmodified `e1cf6fe` — failed
+  at the intended assertion, `page.locator("#mv")` resolved to 1
+  element after the watchdog timer (the overlay appeared on the
+  stalled recovery reload), with every anti-vacuity pin green first
+  (card shown, reload's time-origin move observed, reloaded page
+  stalled with no app UI, fresh notice surviving unconsumed). Two
+  earlier attempts died in Chromium itself ("Target crashed" /
+  browser-closed at context creation) under VM load shared with
+  parallel crews — environment class, dispositioned by the later
+  clean runs, not counted as evidence either way. With the fixed
+  build: the case passes (in the full-file run below).
+
+## Gates (final tip; actuals)
+
+- `npm ci` — 384 packages, exit 0.
+- `npx tsc --noEmit` — clean, exit 0.
+- `npm run typecheck:worker` — clean, exit 0.
+- `npm test` — exit 0: scripts 1,019 tests (1,008 pass / 0 fail /
+  11 skipped); src 2,119 / 2,119 pass.
+- `npm run test:worker` — 117 / 117 pass.
+- `node scripts/lint-cards.mjs` — GATE PASSED.
+- `npm run build:pages` — exit 0; the shipped `_shell.html` inline
+  watchdog carries the stand-down check (verified in the artifact).
+- E2E spot (flock `~/workspace/.e2e.lock`, `--workers=1`,
+  chromium-1243): `crash-watchdog.spec.ts` full file 4 passed /
+  1 failed — the new stalled-reload case PASSES; the failure is the
+  pre-existing "stale build" case (breadcrumb `lastMilestone`
+  expected `data_chunk_load_start`, received `storyteller_ready`),
+  which fails IDENTICALLY on a control build of unmodified
+  `e1cf6fe` (watchdog file restored from base, rebuilt, same
+  expected/received) — pre-existing on main in this environment,
+  not a regression; the watchdog never writes the breadcrumb.
+  `chunk-boundary-copy.desktop.spec.ts` + `card-redesign.desktop.spec.ts`
+  — 13 / 13 passed.
+- Rendered watchdog size: 6,104 bytes worst case before → 6,155
+  after (14-char build id); budget 6,144 → 6,200.
+
+## Status
+
+- [x] Fix + unit tests (`ff43bbc`), pushed
+- [x] E2E case (`ac6c24d`), pushed
+- [x] Docs + this record (docs commit), pushed
+- [x] PR opened — NO MERGE (pipeline continues: Silo QA + panel; merge only on the owner's per-PR word)
+
+## Panel round 1 + cure — 2026-11-04 (verdict on `417a5ab`)
+
+Panel tally: **2 APPROVE / 8 APPROVE-WITH-NITS / 2 BLOCK**; DevEx
+PASS-WITH-NITS. The two BLOCKs (UX Designer + UX Researcher lenses)
+share one finding: suppressing the `boot_failure` POST was right,
+but suppressing the ONLY recovery surface was not — on a stalled
+recovery reload the player (a child, possibly in the standalone PWA,
+which has no browser reload button) was left on a blank shell: no
+text, no button, no `role=alert` announcement, no exit. The round-1
+E2E pinned exactly that state.
+
+Cure (this round, commits `5a61551` + `b6a72ab` + the docs commit):
+
+- `scripts/crash-watchdog.mjs` — `onTimer()` now sets a short flag
+  (`rcv`) when the fresh-notice condition holds instead of returning;
+  `show()` reads it: the SAME overlay (role=alert, heading focus,
+  Try again, Reload + ?nosw=1 links, ASKED latch) with the recovery
+  heading **"The reload didn't finish loading."** (the existing body
+  line "The game didn't finish loading." is shared — true for both
+  cards, zero extra body cost; the WebGL-less heading variant does
+  not apply) and **no `send()`** — no `boot_failure` POST, no "Crash
+  note sent" line. Telemetry suppression from round 1 is unchanged;
+  stale/malformed notices keep the generic card + report.
+- Honesty wording (Office Hours nit): the notice proof is stated as
+  "in practice" in the watchdog docstring + `onTimer` comment,
+  `src/lib/chunk-recovery.ts`, and `docs/observability.md` — the
+  flag's removal at consume time is best-effort (the 13-Uf
+  surviving-flag case) and the check is one-sided on future
+  timestamps; both are accepted residuals, now worded honestly.
+- Tests: unit fresh-notice case updated (overlay IS inserted,
+  recovery heading present, generic + WebGL headings absent, zero
+  POSTs, no "Crash note sent") + a new Try-again case (reloads once,
+  still no report) — 51 tests. E2E cascade case retitled ("the
+  watchdog shows the reload card and files no boot_failure") and now
+  asserts #mv present + recovery heading visible + generic heading
+  absent + zero `boot_failure`; all anti-vacuity pins kept.
+- Fail-first: updated unit cases vs the `417a5ab` module — 51 tests,
+  48 pass / 3 fail (fresh-notice case: no overlay; Try-again case: no
+  veil; no-drift needle: heading string absent). Updated E2E vs the
+  `417a5ab` build — failed at `expect(#mv).toHaveCount(1)`: the old
+  tip shows nothing. With the cure both are green (below).
+- Docs: `docs/observability.md` row 3 rewritten (player sees the
+  reload card + Try again; no `boot_failure`), row 2's quote fixed
+  to the curly apostrophe the boundary actually renders
+  (`Couldn’t`, U+2019 from `&rsquo;`, byte-checked), proof paragraph
+  softened to "in practice" with the best-effort-removal residual
+  stated.
+- Byte budget: the cure adds 58 rendered bytes — worst case (14-char
+  build id) 6,155 → **6,213** — over the 6,200 budget, so the budget
+  rises to **6,250** (smallest round fit keeping the established
+  ~40-byte headroom pattern: 37 bytes margin; rationale recorded in
+  the test comment, the RENAME comment, and the module figures).
+
+Cured-tip gates:
+
+- `node --test scripts/crash-watchdog.test.mjs` — 51 / 51.
+- `npm test` — exit 0: scripts 1,020 tests (1,009 pass / 0 fail /
+  11 skipped); src 2,119 / 2,119.
+- `npx tsc --noEmit` — clean. `npm run typecheck:worker` — clean.
+- `npm run test:worker` — 117 / 117.
+- `node scripts/lint-cards.mjs` — GATE PASSED.
+- `npm run build:pages` — exit 0; the recovery heading verified
+  present in the shipped `_shell.html` watchdog block.
+- E2E (flock, `--workers=1`, chromium-1243): `crash-watchdog.spec.ts`
+  full file — 4 passed / 1 failed. The cured cascade case PASSES.
+  The one failure is the pre-existing "stale build" case with its
+  signature unchanged (expected `data_chunk_load_start`, received
+  `storyteller_ready`; control-proven pre-existing on unmodified
+  `e1cf6fe` in round 1) — not chased, per the cure brief.
+- Recorded follow-ups NOT built (panel's list): the
+  future-timestamp upper bound, an S3-style drift-guard test for the
+  mirrored key/age, an exact-boundary 900,000 ms unit pin.
+
+## Merge-up — 2026-11-04 (Silo QA, main `70e1be6` merged in)
+
+- Conflicts: this file (both-records: this #349 record on top,
+  main's #347/#348 records and the accumulated stack intact
+  below), `docs/observability.md` (auto-merged clean — #347's
+  severity/INFERRED content AND this branch's stand-down section
+  both present, verified), `scripts/crash-watchdog.mjs` + its
+  test (budget figures only — the code itself auto-merged).
+- Watchdog budget reconciliation: both features survive in the
+  merged module (the #347 read-only boot-health stamp AND the
+  #349 stand-down + recovery card). The rendered worst case
+  MEASURES 6,551 bytes (14-char build id) on the merged tree —
+  exactly 6,104 base + 338 (stamp) + 109 (stand-down + card) —
+  so the budget is 6,600 bytes (smallest round fit, 49 bytes of
+  margin, the established ~40-byte headroom pattern), recorded
+  in the module docstring, the RENAME comment, and the test.
+  Watchdog suite on the merged tree: 61/61.
+- Gates + E2E on the merged tip `0190262` (Silo QA, fresh clone):
+  npm test exit 0 — scripts 990 pass / 0 fail / 11 skipped, src
+  2,092/2,092, worker 145/145, watchdog file 61/61; tsc +
+  typecheck:worker clean; lint-cards GATE PASSED; build:pages
+  green. E2E crash-watchdog.spec.ts 4 passed / 1 failed — the
+  failure is the pre-existing "stale build" storyteller_ready
+  race, control-proven identical on unmodified main; the cascade
+  case PASSES here and FAILS on unmodified main at the
+  recovery-heading assertion (pre-fix bite, first-hand).
+- Panel re-vote on `0190262` (2026-11-04): READY-WITH-NITS —
+  3 APPROVE / 9 APPROVE-WITH-NITS / 0 BLOCK (both round-1 UX
+  BLOCKs verified cured first-hand); Silo QA PASS-WITH-NOTES;
+  DevEx PASS-WITH-NITS; benchmark PASS (largest delta +1.71%,
+  the watchdog bytes). Recorded follow-ups (not built): the
+  future-timestamp upper bound, an S3-style drift-guard test for
+  the mirrored key/age, an exact-boundary 900,000 ms pin, and
+  the ASKED-latch second-stall note. No merge — the owner's
+  per-PR word follows this verdict.
+
+---
+
 # Branch status — feat/345-crash-severity (issue #345: crash-report severity grades + watchdog stamp)
 
 - **Branch:** `feat/345-crash-severity`
