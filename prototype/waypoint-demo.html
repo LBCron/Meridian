@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Waypoint Companion — DEMO MOCKUP (design branch only)</title>
+<!--
+  WAYPOINT COMPANION — DEMO MOCKUP (2026-11-05)
+  design/detective-moments-prototype · prototype harness only, no PR,
+  no game-code integration, production untouched.
+
+  WHY THIS EXISTS — the owner's gate (2026-11-05): he tapped
+  "Commission the pilot" WITH a condition: "i cant tell 'Commission
+  the pilot' unless you show me demo mockup." This staged simulation
+  of the council-approved waypoint companion (COUNCIL-holmes-watson.md
+  Q2) is what his commission decision rides on. Mockup before the
+  real thing — his standing rule.
+
+  THE BEHAVIOUR ON STAGE (council Q2 spec, staged exactly):
+  - Holmes starts DOCKED at the map's edge, magnifying glass DOWN
+    (the glass stays down for the whole guessing phase).
+  - A simulated player's fingertip explores the Henderson map and
+    PAUSES. On the pause (~450 ms still + 120 ms) Holmes WALKS OVER
+    (stepping locomotion, the animated prototype's rig), plants his
+    feet beside the spot and THINKS (chin-on-fist). Clearance law:
+    he stands in the half-plane above the finger, >=96 dp from the
+    touch point, and when the NW berth would leave the stage he
+    takes the NE berth instead — the rule visibly working.
+  - On PAN (the finger drags the map) he CANCELS instantly: hurries
+    back to the dock, no chasing. A fresh pause is required after.
+  - When the bottom sheet rises (a place tap), Holmes is ABSENT —
+    cut out, not peeking. Watson (parked at the opposite dock per
+    Screenplay v2) is absent with him.
+  - Sheet closes -> a second pause at a DIFFERENT spot -> he walks
+    over again and thinks. The video ends on that held thinking beat.
+
+  Staging is SILENT: this demo is about motion and behaviour; the two
+  UK voices were already approved in the animated prototype.
+
+  A geometry trace (window.__trace, sampled every 50 ms) records
+  Holmes's box, Watson's box, the fingertip and the sheet state for
+  the clearance audit: zero frames of Holmes overlapping the pause
+  spot is a checked result, not a claim.
+-->
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:#e9dfc8; }
+  body { font-family: ui-sans-system, system-ui, "Segoe UI", Roboto, sans-serif; color:#3a3128; }
+  #screen { width:480px; margin:0 auto; background:#f4ecda; position:relative; overflow:hidden; }
+  #flashbar { height:10px; background:transparent; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; padding:8px 16px 0; font-size:13px; color:#6b5d49; }
+  .topbar .back { font-weight:600; }
+  .topbar .case { font-weight:700; letter-spacing:.06em; }
+  .cluestrip { margin:8px 14px 0; background:#fffdf6; border-radius:10px; padding:7px 12px 8px; box-shadow:0 1px 4px rgba(60,45,20,.12); }
+  .cluestrip .eyebrow { font-size:9.5px; letter-spacing:.14em; font-weight:700; color:#a07d2c; margin-bottom:2px; }
+  .cluestrip .text { font-size:12.5px; line-height:1.35; color:#4a3f30; }
+
+  /* ---------- the guessing stage (map-forward) ---------- */
+  .mapstage { position:relative; height:560px; margin-top:10px; overflow:hidden; background:#123c4e; }
+  .mapinner { position:absolute; left:0; top:0; will-change:transform; }
+  .bottombar { display:flex; justify-content:space-between; align-items:center; padding:9px 16px 11px; font-size:13px; color:#6b5d49; }
+  .bottombar .left { font-weight:700; color:#7a5f1e; }
+  #statusLine { padding:7px 18px 0; font-size:13.5px; color:#6b5d49; font-style:italic; min-height:22px; }
+
+  /* the simulated player's fingertip — a soft dot, labelled nowhere */
+  #fingerMove { position:absolute; left:0; top:0; width:42px; height:42px; margin:-21px 0 0 -21px; z-index:5; opacity:0; will-change:transform,opacity; pointer-events:none; }
+  #fingerDot { width:42px; height:42px; border-radius:50%;
+    background:radial-gradient(circle at 42% 38%, rgba(255,250,235,.95) 0%, rgba(255,240,205,.85) 44%, rgba(243,214,150,.45) 70%, rgba(243,214,150,0) 100%);
+    box-shadow:0 2px 9px rgba(20,30,40,.32), inset 0 0 0 2px rgba(255,252,240,.45);
+    transition:transform .16s ease; }
+
+  /* ---------- bottom sheet (mirrors the game's confirm sheet) ---------- */
+  #sheet { position:absolute; left:0; right:0; bottom:0; z-index:20; background:#fdfaf0;
+    border-radius:22px 22px 0 0; box-shadow:0 -6px 24px rgba(40,30,10,.28);
+    transform:translateY(106%); transition:transform .55s cubic-bezier(.3,.8,.3,1); padding:10px 22px 20px; }
+  #sheet.open { transform:translateY(0); }
+  #sheet .handle { width:44px; height:5px; border-radius:3px; background:#d8cbae; margin:0 auto 10px; }
+  #sheet .eyebrow { font-size:10px; letter-spacing:.14em; font-weight:700; color:#a07d2c; }
+  #sheet .placename { font-family:Georgia,"Times New Roman",serif; font-size:27px; font-weight:700; color:#33291d; margin-top:2px; }
+  #sheet .dismiss { position:absolute; top:16px; right:18px; width:40px; height:40px; border-radius:50%;
+    background:#f1e8d2; color:#6b5d49; font-size:17px; display:flex; align-items:center; justify-content:center; }
+  #sheet .btn { margin-top:12px; border-radius:12px; min-height:48px; display:flex; align-items:center; justify-content:center; font-size:15.5px; font-weight:700; }
+  #sheet .btn-guess { background:#e8b64c; color:#4a3503; box-shadow:0 2px 6px rgba(120,90,10,.25); }
+  #sheet .btn-not { background:transparent; color:#6b5d49; border:1.5px solid #d8cbae; font-weight:600; transition:background .3s ease, border-color .3s ease; }
+  #sheet .btn-not.pulse { background:#f6ecd2; border-color:#b39b58; }
+
+  #slate { position:absolute; left:0; right:0; bottom:10px; z-index:15; text-align:center; font-size:10.5px; letter-spacing:.22em; color:#e8dcc0; opacity:0; transition:opacity .8s ease; text-shadow:0 1px 4px rgba(10,25,35,.6); }
+  #slate.on { opacity:1; }
+
+  /* ---------- characters on the map ---------- */
+  .char { position:absolute; left:0; top:0; z-index:6; will-change:transform; }
+  .char .shadow { position:absolute; left:50%; bottom:-4px; width:78%; height:11px; transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(10,25,35,.40), rgba(10,25,35,0) 70%); }
+  .char svg { display:block; overflow:visible; }
+  .flipwrap { will-change:transform; }
+  .flip { transform:scaleX(-1); }
+  .char.absent { opacity:0; }
+
+  /* walk cycle — legs swing from the hip, arms counter-swing, body bobs (rig, verbatim) */
+  .leg, .arm { transform-box: view-box; }
+  @keyframes swingA { from { transform:rotate(17deg); } to { transform:rotate(-17deg); } }
+  @keyframes swingB { from { transform:rotate(-17deg); } to { transform:rotate(17deg); } }
+  @keyframes bob { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-2.6px); } }
+  @keyframes breath { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-1px); } }
+  .walking .leg-a { animation:swingA .36s ease-in-out infinite alternate; }
+  .walking .leg-b { animation:swingB .36s ease-in-out infinite alternate; }
+  .walking .arm-swing { animation:swingB .36s ease-in-out infinite alternate; }
+  .walking .bob { animation:bob .36s ease-in-out infinite; }
+  .idle .bob { animation:breath 2.8s ease-in-out infinite; }
+  .bob { transform-box: fill-box; transform-origin: 50% 100%; }
+  .torso, .head, .arm-pose { transition:transform .45s ease; transform-box:view-box; }
+
+  /* expressions — exactly one face set visible per char (rig, verbatim) */
+  .face-surprised, .face-delighted { display:none; }
+  .expr-surprised .face-neutral, .expr-surprised .face-delighted { display:none; }
+  .expr-surprised .face-surprised { display:block; }
+  .expr-delighted .face-neutral, .expr-delighted .face-surprised { display:none; }
+  .expr-delighted .face-delighted { display:block; }
+
+  /* --- guessing-phase poses (new for this demo) --- */
+  /* THINK: front-arm fist rises to the cheek (rotation solved in the
+     build notes: -112deg about the shoulder puts the fist at cheek
+     height; the down-hung glass swings up beside the head), head dips. */
+  #holmes.pose-think .arm-front { transform:rotate(-112deg); }
+  #holmes.pose-think .head { transform:rotate(3.5deg) translateY(1.5px); }
+  /* GAZE: a small head lift/turn worn briefly inside the think hold —
+     gaze at the finger, then out at the map generally (council Q2.5). */
+  #holmes.pose-think.pose-gaze .head { transform:rotate(-3deg) translateY(0); }
+  /* POLISH: the dock idle's one living beat — a small wrist turn of
+     the down-hung glass (council Q2.9 breath + glass-polish). */
+  #holmes.polishing .arm-front { animation:polish 1.25s ease-in-out; }
+  @keyframes polish { 0%,100% { transform:rotate(0deg); } 30% { transform:rotate(-10deg); } 55% { transform:rotate(-4deg); } 78% { transform:rotate(-9deg); } }
+  /* PLANT: the 2-3 frame feet-plant squash on arrival (council Q2.5). */
+  .planting .bob { animation:plant .22s ease-out; }
+  @keyframes plant { 0% { transform:translateY(0) scaleY(1); } 35% { transform:translateY(3px) scaleY(.955); } 100% { transform:translateY(0) scaleY(1); } }
+  /* HURRY: the cancel exit steps faster (council Q2.6 — exits accelerate). */
+  #holmes.hurrying .leg-a, #holmes.hurrying .leg-b,
+  #holmes.hurrying .arm-swing, #holmes.hurrying .bob { animation-duration:.21s; }
+  /* Watson's dock idle: pencil-tap on the notebook (Screenplay v2). */
+  #watson.penciltap .arm-note { animation:ptap 2.8s ease-in-out infinite; }
+  @keyframes ptap { 0%,68%,100% { transform:rotate(0deg); } 76% { transform:rotate(-4.5deg); } 84% { transform:rotate(0deg); } 91% { transform:rotate(-4.5deg); } 97% { transform:rotate(0deg); } }
+
+  /* The glass hangs DOWN from the fist (152deg about the hand puts the
+     lens below it). In the think pose the arm rises -112deg, so the
+     glass counter-rotates -93deg: world orientation stays hanging
+     down from the raised fist — the glass NEVER comes up in this phase. */
+  .glassgrp { transform:rotate(152deg); transform-box:view-box; transform-origin:87px 83px; transition:transform .45s ease; }
+  #holmes.pose-think .glassgrp { transform:rotate(-93deg); }
+
+  .noanim * { transition:none !important; animation:none !important; }
+</style>
+</head>
+<body>
+<div id="screen">
+  <div id="flashbar"></div>
+  <div class="topbar"><span class="back">‹ Cases</span><span class="case">GEODETECTIVE · CASE #7</span></div>
+  <div class="cluestrip">
+    <div class="eyebrow">LATEST CLUE · CLUE 5 — THE GIVEAWAY</div>
+    <div class="text">A web of long trails links its many parks, mile after mile. That green web is a proud mark of this desert city.</div>
+  </div>
+  <p id="statusLine">The clues are in — where is Henderson? Tap a place on the map.</p>
+
+  <div class="mapstage" id="stage">
+    <div class="mapinner" id="mapinner">
+      <svg width="480" height="560" viewBox="0 0 480 560" aria-hidden="true">
+        <defs>
+          <linearGradient id="oceanW" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2b7a8c"/><stop offset="1" stop-color="#123c4e"/>
+          </linearGradient>
+        </defs>
+        <rect width="480" height="560" fill="url(#oceanW)"/>
+        <path d="M28,58 L120,34 L235,28 L292,72 L268,138 L214,196 L128,214 L58,168 L24,108 Z" fill="#7d9b6a"/>
+        <path d="M318,26 L372,20 L388,48 L352,66 L318,52 Z" fill="#a8b06a" opacity=".8"/>
+        <path d="M186,262 L252,252 L272,322 L244,428 L212,478 L188,372 L178,300 Z" fill="#86a06b"/>
+        <path d="M308,64 L388,52 L400,92 L360,128 L310,112 Z" fill="#7d9b6a"/>
+        <path d="M312,158 L398,148 L428,214 L398,306 L334,318 L302,232 Z" fill="#d9b878"/>
+        <path d="M404,22 L468,32 L474,96 L436,128 L412,78 Z" fill="#a8b06a"/>
+        <path d="M382,332 L452,326 L466,372 L424,402 L378,378 Z" fill="#d9b878"/>
+        <path d="M0,524 L480,514 L480,560 L0,560 Z" fill="#e6ddc4"/>
+        <g fill="#7fd4ff" stroke="#eaf7ff" stroke-width="1.2">
+          <circle cx="120" cy="60" r="5"/><circle cx="250" cy="150" r="5"/>
+          <circle cx="95" cy="180" r="5" id="dotA"/><circle cx="352" cy="92" r="5"/>
+          <circle cx="366" cy="114" r="5" id="dotB"/><circle cx="255" cy="265" r="5" id="dotP"/>
+          <circle cx="362" cy="222" r="5"/><circle cx="424" cy="362" r="5"/>
+        </g>
+      </svg>
+    </div>
+
+    <div id="fingerMove"><div id="fingerDot"></div></div>
+
+    <!-- ============ HOLMES (animated-prototype rig; glass re-hung DOWN for the guessing phase) ============ -->
+    <div class="char idle" id="holmes">
+      <div class="jumpwrap"><div class="flipwrap" id="holmesFlip">
+      <svg width="81" height="120" viewBox="0 0 120 178" aria-hidden="true">
+        <defs>
+          <pattern id="plaidH" width="15" height="15" patternUnits="userSpaceOnUse">
+            <rect width="15" height="15" fill="#3f6d72"/><rect width="15" height="5" y="5" fill="#487a7e"/><rect width="5" height="15" x="5" fill="#487a7e"/>
+            <path d="M0,12.5 L15,12.5 M12.5,0 L12.5,15" stroke="#d8c98a" stroke-width="1" opacity=".5"/>
+          </pattern>
+          <pattern id="plaidT" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="#b39b58"/><rect width="12" height="4" y="4" fill="#c2a967"/><rect width="4" height="12" x="4" fill="#c2a967"/>
+            <path d="M0,10 L12,10 M10,0 L10,12" stroke="#7a6535" stroke-width=".9" opacity=".55"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:64px 118px">
+          <path d="M64,118 L64,162" stroke="#3d4950" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="68" cy="167" rx="9" ry="4.2" fill="#241d16"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 118px">
+          <path d="M52,118 L52,162" stroke="#46525c" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="56" cy="167" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-swing" style="transform-origin:44px 58px">
+            <path d="M44,58 L37,95" stroke="#33585c" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="37" cy="98" r="4.6" fill="#f2c49b"/>
+          </g>
+          <g class="torso" style="transform-origin:60px 132px">
+            <path d="M40,52 C33,80 32,104 35,132 L86,132 C89,104 88,80 81,52 C68,45 53,45 40,52 Z" fill="url(#plaidH)"/>
+            <path d="M52,50 L72,50 L74,132 L50,132 Z" fill="#38636a"/>
+            <path d="M54,48 L70,48 L62,66 Z" fill="#f0e6d2"/>
+            <path d="M60,55 L64,55 L63,74 L61,74 Z" fill="#7a2e3a"/>
+            <circle cx="62" cy="88" r="1.9" fill="#274a4e"/><circle cx="62" cy="103" r="1.9" fill="#274a4e"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:78px 58px">
+            <path d="M78,58 L86,80" stroke="#38636a" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="87" cy="83" r="4.6" fill="#f2c49b"/>
+            <!-- the glass, re-hung DOWN from the fist: guessing-phase carry (council Q2.9/Q4); orientation lives in the .glassgrp CSS so the think pose can counter-rotate it -->
+            <g class="glassgrp">
+              <path d="M89,79 L98,66" stroke="#6e5636" stroke-width="3.6" stroke-linecap="round"/>
+              <circle cx="104" cy="59" r="12.5" fill="#cfe8ef" fill-opacity=".5" stroke="#6e5636" stroke-width="3.2"/>
+              <circle cx="100" cy="55" r="3.4" fill="#ffffff" opacity=".55"/>
+            </g>
+          </g>
+          <g class="head" style="transform-origin:62px 54px">
+            <path d="M46,14 Q62,5 76,14 L79,38 Q78,56 63,59 Q48,57 45,40 Z" fill="#f2c49b"/>
+            <path d="M77,30 L93,37 L77,44 Z" fill="#f2c49b"/>
+            <circle cx="43" cy="31" r="4" fill="#6e5136"/><circle cx="42" cy="39" r="4" fill="#6e5136"/>
+            <g class="face-neutral">
+              <path d="M61,24.5 L75,24.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M65,50 Q70,52.5 75,50.5" fill="none" stroke="#b57e52" stroke-width="1.8" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M61,20 L75,21.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="70" cy="51.5" rx="2.8" ry="3.8" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M61,22 L75,22" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M64.5,28.5 Q68,25 71.5,28.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M63,48.5 Q70.5,56.5 78,48.5 Q70.5,53 63,48.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat" style="transform-origin:61px 14px">
+              <path d="M42,16 Q61,-4 80,16 L80,20 L42,20 Z" fill="url(#plaidT)"/>
+              <ellipse cx="90" cy="19" rx="14" ry="3.6" fill="url(#plaidT)"/>
+              <ellipse cx="32" cy="19" rx="11" ry="3.4" fill="#8f7a3e"/>
+              <rect x="43" y="15" width="8" height="18" rx="3.5" fill="#8f7a3e"/>
+              <path d="M52,4 L60,0 L60,7 Z" fill="#8f7a3e"/><path d="M70,4 L62,0 L62,7 Z" fill="#8f7a3e"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div>
+
+    <!-- ============ WATSON (same rig; parked at the opposite dock, Screenplay v2) ============ -->
+    <div class="char idle penciltap" id="watson">
+      <div class="jumpwrap"><div class="flipwrap flip" id="watsonFlip">
+      <svg width="100" height="104" viewBox="0 0 134 140" aria-hidden="true">
+        <defs>
+          <pattern id="plaidW" width="14" height="14" patternUnits="userSpaceOnUse">
+            <rect width="14" height="14" fill="#8a6a44"/><rect width="14" height="4.5" y="4.5" fill="#96754c"/><rect width="4.5" height="14" x="4.5" fill="#96754c"/>
+            <path d="M0,11.5 L14,11.5 M11.5,0 L11.5,14" stroke="#5d4326" stroke-width=".9" opacity=".5"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:66px 92px">
+          <path d="M66,92 L66,128" stroke="#4e3d2b" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="62" cy="133" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 92px">
+          <path d="M52,92 L52,128" stroke="#5a4632" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="48" cy="133" rx="9" ry="4.2" fill="#33261a"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-pose arm-note" style="transform-origin:82px 54px">
+            <path d="M82,54 L90,84" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="90" cy="86" r="4.4" fill="#eebd93"/>
+            <g class="notebook" transform="rotate(8 90 98)">
+              <rect x="78" y="84" width="24" height="30" rx="2.5" fill="#f3e9cf" stroke="#c9b98f" stroke-width="1.6"/>
+              <path d="M83,92 L97,92 M83,99 L97,99 M83,106 L93,106" stroke="#b7a678" stroke-width="1.6"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 110px">
+            <path d="M28,46 C21,68 23,90 27,110 L93,110 C97,90 99,68 92,46 C74,37 46,37 28,46 Z" fill="url(#plaidW)"/>
+            <path d="M52,44 L68,44 L70,110 L50,110 Z" fill="#f0e6d2"/>
+            <path d="M58,47 L62,47 L61.5,66 L58.5,66 Z" fill="#7a5230"/>
+            <circle cx="43" cy="70" r="1.8" fill="#5d4326"/><circle cx="43" cy="89" r="1.8" fill="#5d4326"/>
+            <circle cx="77" cy="70" r="1.8" fill="#5d4326"/><circle cx="77" cy="89" r="1.8" fill="#5d4326"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:36px 54px">
+            <path d="M36,54 L27,86" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="26" cy="89" r="4.6" fill="#eebd93"/>
+          </g>
+          <g class="head" style="transform-origin:60px 50px">
+            <path d="M36,16 Q60,6 84,16 L86,34 Q84,52 60,54 Q36,52 34,34 Z" fill="#eebd93"/>
+            <path d="M35,29 L27,34 L35,38 Z" fill="#eebd93"/>
+            <circle cx="40" cy="35" r="4.5" fill="#e89b7a" opacity=".55"/>
+            <circle cx="81" cy="33" r="3.6" fill="#e0aa7e"/>
+            <rect x="43" y="38" width="29" height="8" rx="4" fill="#c07a3a"/>
+            <path d="M50,39.5 L50,45 M57.5,39.5 L57.5,45 M65,39.5 L65,45" stroke="#a5662c" stroke-width="1.4"/>
+            <g class="face-neutral">
+              <path d="M41,21 L54,23.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M47,49.5 Q54,52.5 61,49.5" fill="none" stroke="#a06a42" stroke-width="1.7" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M41,17.5 L54,20" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="54" cy="50" rx="3" ry="4" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M41,19 L54,21.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <path d="M44.5,27.5 Q48,24.2 51.5,27.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M45,47.5 Q54,56 63,47.5 Q54,52 45,47.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat">
+              <path d="M33,15 Q60,-6 87,15 L87,18 L33,18 Z" fill="#4a3826"/>
+              <ellipse cx="60" cy="18" rx="33" ry="5.2" fill="#4a3826"/>
+              <rect x="33" y="10" width="54" height="5" fill="#33261a"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div>
+
+    <div id="slate">PROTOTYPE · WAYPOINT COMPANION DEMO</div>
+  </div>
+
+  <div id="sheet">
+    <div class="handle"></div>
+    <div class="eyebrow">YOU TAPPED</div>
+    <div class="placename">Bogotá, Colombia</div>
+    <div class="dismiss">✕</div>
+    <div class="btn btn-guess">Guess this place</div>
+    <div class="btn btn-not" id="btnNot">Not this one</div>
+  </div>
+
+  <div class="bottombar"><span class="left">5 guesses left</span><span>Tap a place to guess</span></div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const holmes = $("holmes"), watson = $("watson");
+  const holmesFlip = $("holmesFlip");
+  const finger = $("fingerMove"), fingerDot = $("fingerDot");
+  const mapinner = $("mapinner"), sheet = $("sheet"), slate = $("slate");
+  const statusLine = $("statusLine"), btnNot = $("btnNot");
+  const params = new URLSearchParams(location.search);
+  const hold = params.get("hold");
+
+  /* Stage geometry (stage px == dp on this 480-wide phone layout).
+     Holmes renders 81x120; wrapper translate = his box's top-left. */
+  const DOCK = { x: 12, y: 430 };            // feet rest 10px above the map's bottom edge, 12px in from the left
+  const WDOCK = { x: 368, y: 448 };          // Watson parked at the opposite edge (Screenplay v2)
+  const SPOT_A = { x: 95, y: 180 };          // pause 1 — near the left edge: the NW berth would leave the stage, so he takes NE
+  const BERTH_A = { x: 150, y: 20 };         // box [150,231]x[20,140]: centre 138px from the spot, nearest edge 68px
+  const SPOT_B = { x: 308, y: 171 };         // pause 2 — the Europe dot's screen position AFTER the pan (-61,+59)
+  const BERTH_B = { x: 173, y: 8 };          // box [173,254]x[8,128]: centre 140px from the spot, nearest edge 69px
+  const VIA = { x: 250, y: 300 };            // walk-1 waypoint: swings wide so the approach never crosses spot A
+  const HURRY_VIA = { x: 30, y: 200 };       // cancel-exit waypoint: down the left edge, clear of the dragging finger
+
+  const EASE_OUT = "cubic-bezier(.25,.8,.35,1)";   // walks land decelerating (council Q2.3 / Law 5)
+  const EASE_INOUT = "cubic-bezier(.45,.05,.35,1)";
+  const ACCEL = "cubic-bezier(.55,0,.9,.5)";        // exits accelerate (Law 5)
+  const DRAG = "cubic-bezier(.3,.7,.3,1)";
+
+  let state = "dock";
+  window.__hstate = state;
+  function setState(s){ state = s; window.__hstate = s; }
+
+  function place(el, x, y){ el.style.transition = "none"; el.style.transform = "translate(" + x + "px," + y + "px)"; }
+  function move(el, x, y, secs, ease){ el.style.transition = "transform " + secs + "s " + (ease || EASE_OUT); el.style.transform = "translate(" + x + "px," + y + "px)"; }
+  function walk(el, x, y, secs, ease, done){ el.classList.add("walking"); el.classList.remove("idle"); move(el, x, y, secs, ease);
+    setTimeout(()=>{ el.classList.remove("walking"); el.classList.add("idle"); if (done) done(); }, secs*1000); }
+  function fingerTo(x, y, secs, ease){ move(finger, x, y, secs, ease || EASE_INOUT); }
+  function fingerShow(on){ finger.style.transition = "opacity .25s ease"; finger.style.opacity = on ? "1" : "0"; }
+  function fingerDip(on){ fingerDot.style.transform = on ? "scale(.9)" : "scale(1)"; }
+  function flip(on){ holmesFlip.classList.toggle("flip", on); }
+  function think(on){ holmes.classList.toggle("pose-think", on); }
+  function plant(){ holmes.classList.add("planting"); setTimeout(()=>holmes.classList.remove("planting"), 260); }
+  function status(t){ statusLine.textContent = t; }
+
+  /* initial settled scene */
+  place(holmes, DOCK.x, DOCK.y);
+  place(watson, WDOCK.x, WDOCK.y);
+  place(finger, 350, 450);
+
+  /* ---------- geometry trace for the clearance audit ---------- */
+  const stage = $("stage");
+  window.__trace = [];
+  const wall0 = performance.now();
+  const sampler = setInterval(()=>{
+    const sr = stage.getBoundingClientRect();
+    const rel = el => { const r = el.getBoundingClientRect(); return [r.left - sr.left, r.top - sr.top, r.width, r.height]; };
+    const fr = finger.getBoundingClientRect();
+    window.__trace.push({
+      t: (performance.now() - wall0)/1000 - 0.9,
+      state,
+      h: rel(holmes), w: rel(watson),
+      f: [fr.left - sr.left + fr.width/2, fr.top - sr.top + fr.height/2],
+      fvis: Number(finger.style.opacity || 0) > 0.5 && !finger.classList.contains("gone"),
+      sheet: sheet.classList.contains("open"),
+      habsent: holmes.classList.contains("absent")
+    });
+  }, 50);
+
+  /* ---------- settled poses for stills ---------- */
+  function settle(kind){
+    document.body.classList.add("noanim");
+    clearInterval(sampler);
+    if (kind === "thinking"){
+      place(holmes, BERTH_A.x, BERTH_A.y); flip(true); think(true);
+      finger.style.opacity = "1"; place(finger, SPOT_A.x, SPOT_A.y);
+    }
+    /* "docked" = the initial settled scene as placed above */
+  }
+  if (hold){ settle(hold); return; }
+
+  /* ---------- the show (show-time seconds; wall = show + 0.9s preroll) ---------- */
+  const T = [
+    [0.00, ()=>{ $("flashbar").style.background = "#111111"; }],
+    [0.35, ()=>{ $("flashbar").style.background = "transparent"; }],
+    /* dock life: one glass-polish in the idle (council Q2.9) */
+    [2.60, ()=>{ holmes.classList.add("polishing"); }],
+    [3.90, ()=>{ holmes.classList.remove("polishing"); }],
+    /* the fingertip enters and explores */
+    [1.20, ()=>{ setState("explore"); fingerShow(true); }],
+    [1.40, ()=>{ fingerTo(265, 335, 2.2); }],
+    [3.80, ()=>{ fingerTo(185, 255, 2.0); }],
+    [5.90, ()=>{ fingerTo(SPOT_A.x, SPOT_A.y, 1.6); }],
+    [7.50, ()=>{ setState("pauseA"); fingerDip(true); }],
+    [7.68, ()=>{ fingerDip(false); }],
+    /* PAUSE confirmed (450 ms still + 120 ms): Holmes walks over, wide swing, then in */
+    [8.10, ()=>{ setState("walk1"); walk(holmes, VIA.x, VIA.y, 1.05); }],
+    [9.15, ()=>{ walk(holmes, BERTH_A.x, BERTH_A.y, 1.15, EASE_OUT, ()=>{ flip(true); think(true); plant(); setState("thinkA"); }); }],
+    /* the thinking hold: one gaze shift — at the finger, then out at the map */
+    [12.80, ()=>{ holmes.classList.add("pose-gaze"); }],
+    [14.00, ()=>{ holmes.classList.remove("pose-gaze"); }],
+    /* the finger stirs and DRAGS: the map pans under it... */
+    [15.60, ()=>{ setState("stir"); fingerTo(235, 320, 1.2); }],
+    [16.95, ()=>{ fingerDip(true); }],
+    [17.05, ()=>{ setState("pan"); fingerTo(180, 375, 1.55, DRAG); move(mapinner, -58, 57, 1.55, DRAG); }],
+    /* ...and Holmes CANCELS the instant the gesture starts: hurry back to the dock */
+    [17.20, ()=>{ setState("hurry"); think(false); holmes.classList.add("hurrying");
+                 walk(holmes, HURRY_VIA.x, HURRY_VIA.y, 0.85, ACCEL); }],
+    [18.05, ()=>{ walk(holmes, DOCK.x, DOCK.y, 0.95, ACCEL, ()=>{ holmes.classList.remove("hurrying"); flip(false); plant(); setState("dock2"); }); }],
+    [18.60, ()=>{ move(mapinner, -61, 59, 0.7); fingerDip(false); }],
+    [19.10, ()=>{ fingerShow(false); }],
+    /* a place tap: the finger lands on the South America dot (post-pan screen 197,322) */
+    [20.40, ()=>{ setState("tap"); place(finger, 197, 322); fingerShow(true); }],
+    [20.90, ()=>{ fingerDip(true); }],
+    [21.05, ()=>{ fingerDip(false); fingerShow(false); }],
+    /* the SHEET rises — and both companions are ABSENT, cut out within the same beat */
+    [21.20, ()=>{ setState("sheet"); sheet.classList.add("open"); status("You tapped Bogotá, Colombia.");
+                 holmes.classList.add("absent"); watson.classList.add("absent"); }],
+    [26.30, ()=>{ btnNot.classList.add("pulse"); }],
+    [26.90, ()=>{ sheet.classList.remove("open"); status("Keep exploring — tap a place on the map."); }],
+    [27.45, ()=>{ holmes.classList.remove("absent"); watson.classList.remove("absent"); setState("dock3"); }],
+    /* the fingertip returns and explores to a SECOND pause, a different spot */
+    [28.10, ()=>{ setState("explore2"); place(finger, 140, 440); fingerShow(true); }],
+    [28.30, ()=>{ fingerTo(215, 315, 2.4); }],
+    [30.90, ()=>{ fingerTo(272, 228, 2.3); }],
+    [33.40, ()=>{ fingerTo(SPOT_B.x, SPOT_B.y, 1.7); }],
+    [35.10, ()=>{ setState("pauseB"); fingerDip(true); }],
+    [35.28, ()=>{ fingerDip(false); }],
+    /* PAUSE 2 confirmed: Holmes walks over again and thinks beside the new spot */
+    [35.70, ()=>{ setState("walk2"); walk(holmes, BERTH_B.x, BERTH_B.y, 2.1, EASE_OUT, ()=>{ think(true); plant(); setState("thinkB"); }); }],
+    /* the held thinking beat the video ends on: one gaze shift, then stillness + slate */
+    [41.00, ()=>{ holmes.classList.add("pose-gaze"); }],
+    [42.20, ()=>{ holmes.classList.remove("pose-gaze"); }],
+    [49.20, ()=>{ setState("end"); slate.classList.add("on"); }],
+  ];
+  T.forEach(([t, fn]) => setTimeout(fn, (t + 0.9)*1000));
+  window.__showLength = 52.0;
+})();
+</script>
+</body>
+</html>
