@@ -1580,6 +1580,17 @@ body:has(.home-v5) {
     transform: rotate(4.5deg);
   }
 }
+/* Trekker prototype overlay (branch design/hero-trekker-prototype):
+   a second SVG stacked over the trail overlay, sliced identically.
+   All of its motion is SMIL on one 18s master clock inside the
+   component; its still gate pauses that clock on the hold frame. */
+.home-v5 .hv5-trekker {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
 @media (max-width: 1080px) {
   /* Mirrors the shipped rule for the bare img: no mountain art at
      these widths, in any variant. */

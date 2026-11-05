@@ -4057,7 +4057,7 @@ function startNoticeTarget(
  * (hero has no perceptible motion; the Capitals & Flags doorway is
  * off-theme and its placement should move beside the About card) are
  * switchable via URL params so he can pick in place:
- *   ?ui=1&hero=v1|v2&doorway=about|about-slim|map
+ *   ?ui=1&hero=v1|v2|trekker&doorway=about|about-slim|map
  * With no `ui` param the home page renders exactly as production.
  */
 function homeVariantParam(name: string): string | null {
@@ -4114,6 +4114,318 @@ function HeroTrailOverlay() {
           <line x1="503" y1="134" x2="503" y2="106" stroke="#4c3a14" strokeWidth="2.5" strokeLinecap="round" />
           <path d="M503 107 L525 112 L503 118 Z" fill="#8a6d2f" />
         </g>
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * Hero prototype — "Catch It, Pin It, On the Wind" (branch
+ * design/hero-trekker-prototype — test harness, NOT production
+ * behaviour). The owner's 2026-11-04 order: prototype the trekker
+ * beat the Game Developer + UX Researcher brainstorm converged on.
+ * A kid trekker (rust-orange headwrap streaming in the wind, teal
+ * backpack — a new figure, not Grandpa, not Jolly) walks one leg of
+ * the painted switchback trail; a gust steals his map sheet; he
+ * catches it with both hands and holds it up TO THE VIEWER:
+ * coastline blob, dotted route, one big red pin already set — no
+ * "X", no words (Meridian's maps are unlabeled; the pin is the
+ * honesty bridge to the game). The held map is 164 of the 800-unit
+ * viewBox ≈ 20% of hero width, the brainstorm's agreed floor.
+ *
+ * Every beat rides ONE 18s SMIL master clock (2× the pulse loop),
+ * so captures can pause/seek it deterministically:
+ *   0–8s      walks up the leg (fades in inside the valley mist)
+ *   8–9s      gust: headwrap tail snaps ~45% longer, small stumble,
+ *             the sheet escapes his hand and drifts
+ *   9–11s     the sheet tumbles exactly 1.5 flips (540°, capped)
+ *   11–12s    catch with both hands; the map scales up in his grip
+ *   12–15.5s  HOLD — map to the viewer, face peeking over the top
+ *   15.5–16.6s map tucked (pose swap), he points up-trail
+ *   16.6–17.8s turns and walks back down into the mist
+ *   17.8–18s  reset happens invisible inside the mist — no jump cut
+ * Clouds drift across the summit band on their own slow clocks;
+ * the valley mist is on the master clock so it is thick exactly at
+ * the loop point and at the exit, thin while he performs.
+ *
+ * Gates mirror CardFilm (card-film.tsx): prefers-reduced-motion
+ * (the shared hook), Save-Data, or deviceMemory ≤ 2 get the STILL
+ * instead — the same SVG with its clock paused on the composed
+ * hold-up frame (t = 13.2s). The loop itself never stops on a
+ * timer; like the V1 overlay it is ambient, aria-hidden art.
+ */
+const TREKKER_WALK_PATH =
+  "M322 470 C 340 462, 352 455, 350 440 C 348 420, 300 425, 294 406 C 288 386, 315 362, 342 351 C 368 340, 398 336, 402 321";
+const TREKKER_PAPER_PATH =
+  "M415 288 C 450 244, 488 240, 479 266 C 472 287, 442 290, 428 282 C 419 277, 410 268, 404 262";
+
+/** Save-Data / low-memory gate, mirroring LockedTileFilm's mount read. */
+function trekkerStaticGateAtMount(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & {
+    connection?: { saveData?: boolean };
+    deviceMemory?: number;
+  };
+  if (nav.connection?.saveData) return true;
+  const mem = nav.deviceMemory;
+  return typeof mem === "number" && mem > 0 && mem <= 2;
+}
+
+/** The held map's face: coastline, dotted route, one red pin. No words. */
+function TrekkerMapFace() {
+  return (
+    <g>
+      <rect x="-82" y="-62" width="164" height="124" rx="5" fill="#f7efdb" stroke="#b09b6a" strokeWidth="2" />
+      <path
+        d="M-82 18 C -52 2, -30 16, -12 8 C 6 0, 10 -18, 30 -22 C 52 -26, 70 -14, 82 -20 L 82 62 L -82 62 Z"
+        fill="#b3bfa4"
+        opacity="0.75"
+      />
+      <path
+        d="M-58 34 C -32 18, -8 22, 6 0 C 16 -15, 32 -21, 45 -29"
+        fill="none"
+        stroke="#7c5a1e"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeDasharray="0.1 8"
+      />
+      <path
+        d="M45 -51 C 56 -51, 61 -42, 61 -35 C 61 -25, 45 -13, 45 -13 C 45 -13, 29 -25, 29 -35 C 29 -42, 34 -51, 45 -51 Z"
+        fill="#c8352a"
+      />
+      <circle cx="45" cy="-36" r="5.5" fill="#fff7ea" />
+    </g>
+  );
+}
+
+function HeroTrekkerOverlay() {
+  const reducedMotion = usePrefersReducedMotion();
+  const [staticGate] = useState<boolean>(trekkerStaticGateAtMount);
+  const still = reducedMotion || staticGate;
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  useEffect(() => {
+    if (!still) return;
+    const svg = svgRef.current;
+    if (!svg) return;
+    // The still IS the hold-up frame: freeze the master clock on it.
+    svg.pauseAnimations();
+    svg.setCurrentTime(13.2);
+  }, [still]);
+  return (
+    <svg
+      ref={svgRef}
+      className="hv5-trekker"
+      viewBox="0 0 800 533"
+      preserveAspectRatio="xMaxYMax slice"
+      aria-hidden="true"
+    >
+      <defs>
+        <radialGradient id="tk-cloud" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#fffdf6" stopOpacity="0.85" />
+          <stop offset="55%" stopColor="#fffdf6" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#fffdf6" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="tk-mist" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#fffdf6" stopOpacity="0.95" />
+          <stop offset="60%" stopColor="#fffdf6" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#fffdf6" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      {/* Ambient clouds across the peaks / summit band (own slow clocks). */}
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="-46 0;46 0;-46 0" keyTimes="0;0.5;1" dur="52s" repeatCount="indefinite" />
+        <ellipse cx="270" cy="92" rx="62" ry="17" fill="url(#tk-cloud)" />
+        <ellipse cx="238" cy="101" rx="40" ry="13" fill="url(#tk-cloud)" />
+        <ellipse cx="305" cy="101" rx="44" ry="14" fill="url(#tk-cloud)" />
+      </g>
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="38 0;-38 0;38 0" keyTimes="0;0.5;1" dur="38s" repeatCount="indefinite" />
+        <ellipse cx="628" cy="62" rx="70" ry="19" fill="url(#tk-cloud)" />
+        <ellipse cx="588" cy="73" rx="44" ry="14" fill="url(#tk-cloud)" />
+        <ellipse cx="668" cy="73" rx="46" ry="15" fill="url(#tk-cloud)" />
+      </g>
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="-24 0;24 0;-24 0" keyTimes="0;0.5;1" dur="29s" repeatCount="indefinite" />
+        <ellipse cx="452" cy="126" rx="48" ry="13" fill="url(#tk-cloud)" />
+        <ellipse cx="426" cy="134" rx="30" ry="10" fill="url(#tk-cloud)" />
+      </g>
+
+      {/* The trekker rig: one group riding the trail leg on the 18s clock. */}
+      <g opacity="0">
+        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.07;0.9611;0.9889;1" dur="18s" repeatCount="indefinite" />
+        <animateMotion
+          path={TREKKER_WALK_PATH}
+          keyPoints="0;1;1;0;0"
+          keyTimes="0;0.4444;0.9222;0.9889;1"
+          calcMode="linear"
+          dur="18s"
+          repeatCount="indefinite"
+        />
+        {/* Facing: +x up-trail; flips for the walk back down (the turn
+            reads as him turning around; the flip back happens in mist). */}
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="scale"
+            values="1 1;1 1;-1 1;-1 1;-1 1;1 1"
+            keyTimes="0;0.9222;0.928;0.99;0.996;1"
+            dur="18s"
+            repeatCount="indefinite"
+          />
+          {/* Walk pose (side view), with the gust stumble tilt. */}
+          <g>
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              values="0;0;-6;2.5;0;0"
+              keyTimes="0;0.4444;0.465;0.49;0.53;1"
+              dur="18s"
+              repeatCount="indefinite"
+            />
+            <g>
+              <animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.6083;0.6139;0.8583;0.8639;1" dur="18s" repeatCount="indefinite" />
+              {/* Legs while walking: opposite swings on the hip. */}
+              <g>
+                <animate attributeName="opacity" values="1;1;0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.9194;0.925;0.9861;0.9917;1" dur="18s" repeatCount="indefinite" />
+                <path d="M0 -27 L-5 -13 L-3 -1" fill="none" stroke="#5a4632" strokeWidth="4.5" strokeLinecap="round">
+                  <animateTransform attributeName="transform" type="rotate" values="14 0 -27;-14 0 -27;14 0 -27" keyTimes="0;0.5;1" dur="0.8s" repeatCount="indefinite" />
+                </path>
+                <path d="M0 -27 L5 -13 L3 -1" fill="none" stroke="#5a4632" strokeWidth="4.5" strokeLinecap="round">
+                  <animateTransform attributeName="transform" type="rotate" values="-14 0 -27;14 0 -27;-14 0 -27" keyTimes="0;0.5;1" dur="0.8s" repeatCount="indefinite" />
+                </path>
+              </g>
+              {/* Legs while standing (gust, catch wait, point). */}
+              <g opacity="0">
+                <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.9194;0.925;1" dur="18s" repeatCount="indefinite" />
+                <path d="M-1 -27 L-4 -1 M1 -27 L4 -1" fill="none" stroke="#5a4632" strokeWidth="4.5" strokeLinecap="round" />
+              </g>
+              {/* Teal backpack behind the torso; torso over it. */}
+              <rect x="-16" y="-50" width="10" height="23" rx="4.5" fill="#177e70" />
+              <rect x="-6" y="-52" width="16" height="28" rx="6" fill="#9c4a24" />
+              {/* Arms while walking: gentle counter-swing; front hand
+                  carries the map sheet until the gust takes it. */}
+              <g>
+                <animate attributeName="opacity" values="1;1;0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.9194;0.925;0.9861;0.9917;1" dur="18s" repeatCount="indefinite" />
+                <path d="M-2 -47 L-10 -31" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round">
+                  <animateTransform attributeName="transform" type="rotate" values="10 0 -47;-8 0 -47;10 0 -47" keyTimes="0;0.5;1" dur="0.8s" repeatCount="indefinite" />
+                </path>
+                <path d="M4 -47 L13 -34" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round">
+                  <animateTransform attributeName="transform" type="rotate" values="-8 0 -47;10 0 -47;-8 0 -47" keyTimes="0;0.5;1" dur="0.8s" repeatCount="indefinite" />
+                </path>
+                <circle cx="13" cy="-33" r="3" fill="#caa06a" />
+                <g transform="translate(16 -38) rotate(10)">
+                  <rect x="-6" y="-4.5" width="12" height="9" rx="1" fill="#f7efdb" stroke="#b09b6a" strokeWidth="1">
+                    <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.4417;0.4472;1" dur="18s" repeatCount="indefinite" />
+                  </rect>
+                </g>
+              </g>
+              {/* Arms while standing; the point up-trail swaps the front
+                  arm for the pointing arm at 16.0–16.6s. */}
+              <g opacity="0">
+                <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.9194;0.925;1" dur="18s" repeatCount="indefinite" />
+                <path d="M-2 -47 L-8 -28" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
+                <g>
+                  <animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.8861;0.8917;0.9194;0.925;1" dur="18s" repeatCount="indefinite" />
+                  <path d="M4 -47 L10 -29" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
+                  <circle cx="10" cy="-28" r="3" fill="#caa06a" />
+                </g>
+                <g opacity="0">
+                  <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.8861;0.8917;0.9194;0.925;1" dur="18s" repeatCount="indefinite" />
+                  <path d="M4 -47 L17 -59" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
+                  <circle cx="18" cy="-60" r="3" fill="#caa06a" />
+                </g>
+              </g>
+              {/* Head + rust-orange headwrap; the tail streams behind,
+                  flutters on its own clock, and snaps longer in the gust. */}
+              <circle cx="3" cy="-61" r="8.5" fill="#caa06a" />
+              <path d="M-5.5 -61 A 8.5 8.5 0 0 1 11.5 -61 Z" fill="#e07b2a" />
+              <rect x="-5.5" y="-63.5" width="17" height="3.6" rx="1.8" fill="#c25e2e" />
+              <g transform="translate(-5 -62)">
+                <g>
+                  <animateTransform
+                    attributeName="transform"
+                    type="scale"
+                    values="1 1;1 1;1.45 1.2;1.1 1.05;1 1"
+                    keyTimes="0;0.4444;0.475;0.6111;1"
+                    dur="18s"
+                    repeatCount="indefinite"
+                  />
+                  <g>
+                    <animateTransform attributeName="transform" type="rotate" values="-4;5;-4" keyTimes="0;0.5;1" dur="0.55s" repeatCount="indefinite" />
+                    <path d="M0 0 C -7 0, -12 3, -16 9" fill="none" stroke="#e07b2a" strokeWidth="4" strokeLinecap="round" />
+                  </g>
+                </g>
+              </g>
+            </g>
+          </g>
+          {/* Hold pose (front view): both hands on the map's top
+              corners, face peeking over the top edge. */}
+          <g opacity="0">
+            <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.6083;0.6139;0.8583;0.8639;1" dur="18s" repeatCount="indefinite" />
+            <path d="M-3 -26 L-4 0 M3 -26 L4 0" fill="none" stroke="#5a4632" strokeWidth="4.5" strokeLinecap="round" />
+            <rect x="-9" y="-50" width="18" height="27" rx="6" fill="#9c4a24" />
+            <path d="M-7 -46 L-90 -58 L-81 -113" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
+            <path d="M7 -46 L90 -58 L81 -113" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
+            <g transform="translate(0 -60)">
+              <g>
+                <animateTransform
+                  attributeName="transform"
+                  type="scale"
+                  values="0.16;0.16;1;1"
+                  keyTimes="0;0.6111;0.6667;1"
+                  dur="18s"
+                  repeatCount="indefinite"
+                />
+                <TrekkerMapFace />
+              </g>
+            </g>
+            <circle cx="-79" cy="-117" r="4.2" fill="#caa06a" />
+            <circle cx="79" cy="-117" r="4.2" fill="#caa06a" />
+            <ellipse cx="-5" cy="0.5" rx="5" ry="2.6" fill="#4c3a14" />
+            <ellipse cx="5" cy="0.5" rx="5" ry="2.6" fill="#4c3a14" />
+            <circle cx="0" cy="-128" r="9.5" fill="#caa06a" />
+            <path d="M-9.5 -130 A 9.5 9.5 0 0 1 9.5 -130 Z" fill="#e07b2a" />
+            <rect x="-9.5" y="-132.5" width="19" height="4" rx="2" fill="#c25e2e" />
+            <circle cx="11" cy="-130" r="3" fill="#c25e2e" />
+          </g>
+        </g>
+      </g>
+
+      {/* The escaped sheet: drifts in the gust second, then tumbles
+          exactly 1.5 flips into his hands. Lives in overlay space —
+          its path is drawn in hero coordinates, not figure space. */}
+      <g opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.6083;0.6139;1" dur="18s" repeatCount="indefinite" />
+        <animateMotion
+          path={TREKKER_PAPER_PATH}
+          keyPoints="0;0;1;1"
+          keyTimes="0;0.4444;0.6111;1"
+          calcMode="linear"
+          dur="18s"
+          repeatCount="indefinite"
+        />
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            values="0;0;0;540;540"
+            keyTimes="0;0.4444;0.5;0.6111;1"
+            dur="18s"
+            repeatCount="indefinite"
+          />
+          <rect x="-13" y="-9" width="26" height="18" rx="1.5" fill="#f7efdb" stroke="#b09b6a" strokeWidth="1.2" />
+          <path d="M-13 0 L13 0" stroke="#d8c9a3" strokeWidth="1" />
+        </g>
+      </g>
+
+      {/* Valley mist over the leg's foot: thick at the loop point and
+          for the exit, thin while he performs. Front-most layer. */}
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="-6 0;6 0;-6 0" keyTimes="0;0.5;1" dur="18s" repeatCount="indefinite" />
+        <ellipse cx="330" cy="452" rx="150" ry="62" fill="url(#tk-mist)">
+          <animate attributeName="opacity" values="0.95;0.5;0.22;0.22;0.55;0.95" keyTimes="0;0.09;0.22;0.9;0.97;1" dur="18s" repeatCount="indefinite" />
+        </ellipse>
       </g>
     </svg>
   );
@@ -4212,6 +4524,7 @@ function Choose({
       <span>Hero:</span>
       <a href={variantHref("v1", doorwayVariant ?? "about")} aria-current={heroVariant === "v1"}>V1 trail</a>
       <a href={variantHref("v2", doorwayVariant ?? "about")} aria-current={heroVariant === "v2"}>V2 drift</a>
+      <a href={variantHref("trekker", doorwayVariant ?? "map")} aria-current={heroVariant === "trekker"}>Trekker proto</a>
       <span>Doorway:</span>
       <a href={variantHref(heroVariant ?? "v1", "about")} aria-current={doorwayVariant === "about"}>Beside About</a>
       <a href={variantHref(heroVariant ?? "v1", "about-slim")} aria-current={doorwayVariant === "about-slim"}>Beside About · slim</a>
@@ -4490,14 +4803,15 @@ function Choose({
               <svg width="15" height="11" viewBox="0 0 15 11" aria-hidden="true"><path d="M1 5.5h12M9 1l4.5 4.5L9 10" stroke="currentColor" fill="none" strokeWidth="1.7" /></svg>
             </button>
           </div>
-          {heroVariant === "v1" || heroVariant === "v2" ? (
+          {heroVariant === "v1" || heroVariant === "v2" || heroVariant === "trekker" ? (
             <div className="hv5-mtn-wrap" aria-hidden="true">
               <img
                 className={`hv5-mtn-img${heroVariant === "v2" ? " hv5-mtn-v2" : ""}`}
                 src={heroMountainUrl}
                 alt=""
               />
-              {heroVariant === "v1" ? <HeroTrailOverlay /> : null}
+              {heroVariant === "v1" || heroVariant === "trekker" ? <HeroTrailOverlay /> : null}
+              {heroVariant === "trekker" ? <HeroTrekkerOverlay /> : null}
             </div>
           ) : (
             <img className="hv5-mountain" src={heroMountainUrl} alt="" aria-hidden="true" />

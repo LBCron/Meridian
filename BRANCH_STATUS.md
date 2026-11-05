@@ -1,3 +1,28 @@
+# Branch status — design/hero-trekker-prototype (Trekker hero beat — DESIGN PROTOTYPE, no PR)
+
+- **Branch:** `design/hero-trekker-prototype`
+- **Base:** `design/home-rework-variants` @ `266c00c` (hero V1 tip; the parallel V1b strengthening runs in its own worktree and is NOT in this base)
+- **Authority:** owner order 2026-11-04 (voice): "We need to prototype it. Let's prototype it." — the "Catch It, Pin It, On the Wind" beat from the Game Developer + UX Researcher brainstorm (both seats converged; no re-brainstorm).
+- **Scope:** prototype-for-pick, same pattern as hero V1/V2. Harness only: `?ui=1&hero=trekker` adds the trekker overlay over V1; no params = production rendering untouched. No PR, no merge.
+
+## Task capsule
+
+- TASK: working prototype of the trekker beat + a capture video for the owner's eye test.
+- Tier: prototype (design branch, harness-gated; production gates noted, panel/PR process does not apply until a ship decision).
+- Done condition: branch pushed · harness serves `hero=trekker` locally · ~20s capture at 1440 control framing with the hold-up beat readable in the video · reduced-motion still PNG (the composed t≈13s frame) · honest beat-readability + layer/node/KB counts in the run report.
+- Files in scope: `src/components/game-app.tsx` (HeroTrekkerOverlay + harness wiring), `src/components/home-v5.css` (overlay positioning), this file. Out of scope: doorway, cards, copy, main.
+
+## The beat (18s SMIL master clock)
+
+- [x] Kid trekker rig: rust-orange headwrap (tail streams + flutters), teal backpack, side walk pose + front hold pose.
+- [x] 0–8s walk up one painted switchback leg · 8–9s gust (tail snaps longer, stumble, sheet escapes) · 9–11s sheet tumbles exactly 1.5 flips · 11–12s both-hands catch, map scales up · 12–15.5s hold: map at 164/800 ≈ 20% of hero width, coastline + dotted route + one red pin, no X, no words · 15.5–16.6s tuck (pose swap) + point up-trail · 16.6–17.8s walk back down · reset invisible inside the valley mist.
+- [x] Ambient clouds drifting across the summit band (base tip had no clouds layer — V1b's are uncommitted in the parallel worktree — so simple gradient cloud forms + a master-clock valley mist are part of this prototype stage).
+- [x] Motion layers: 6 total (art, trail march, pulse, flag, clouds+mist, trekker+paper rig) — at the ceiling, not over.
+- [x] Gates mirror CardFilm: reduced-motion (shared hook) / Save-Data / deviceMemory ≤ 2 → the still, which is this same SVG paused on the t = 13.2s hold-up frame. Loop never stops on a timer.
+- [ ] Captures: video + reduced-motion still in `~/workspace/meridian-trekker-evidence/` (filled in by the capture commit).
+
+---
+
 # Branch status — design/home-rework-variants (Home rework variants — DESIGN PROTOTYPES, no PR)
 
 - **Branch:** `design/home-rework-variants`
