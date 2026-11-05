@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Detective Moments — ANIMATED prototype (design branch only)</title>
+<!--
+  DETECTIVE MOMENTS — ANIMATED BUILD (2026-11-05, owner amendment)
+  design/detective-moments-prototype · prototype harness only, no PR.
+
+  The owner's word: "while reading each line sherlock and watson walk up
+  use the magnifying glass and read out the questions in warm UK
+  questioning tone or clue finding suspense tone, emotion is key and
+  holmes and watson are from UK so we like to retain that originality,
+  once the case is solved they jump hi5 and clap at the player with a
+  message read out celebrating."
+  Screenplay amendment: "geodetective is following the clues to solve
+  the case so the screenplay should match" — the beats follow the real
+  clue ladder of ONE shipped case: Henderson, Nevada
+  (public/loop/clues/137.json), Geography → Climate → History → Hook →
+  Giveaway → the solve. Spoken copy is the game's own words, verbatim;
+  sources are cited in BRANCH_STATUS.md and the run report.
+
+  Drawing cures from the mockup crew's unanimous BLOCK are built into
+  this rig: real high-five hand contact (Watson jumps to reach, apex
+  held), Watson's moustache shrunk with a visible mouth beneath (the
+  mouth flaps while he speaks), brows + a 3-expression face set,
+  Watson ≈75% of Holmes's height and wider, a distinct blocking per
+  beat, and NO PIPE (Brand Guardian — owner-reversible with one word).
+  No text pill anywhere: the pair SPEAK; the screen shows only the
+  game's own case screen.
+-->
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:#e9dfc8; }
+  body { font-family: ui-sans-system, system-ui, "Segoe UI", Roboto, sans-serif; color:#3a3128; }
+  #screen { width:480px; margin:0 auto; background:#f4ecda; position:relative; overflow:hidden; }
+  #flashbar { height:10px; background:transparent; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; padding:8px 16px 0; font-size:13px; color:#6b5d49; }
+  .topbar .back { font-weight:600; }
+  h1.title { font-family: Georgia, "Times New Roman", serif; font-size:40px; font-weight:700; padding:6px 16px 0; color:#33291d; }
+  .instructions { padding:4px 16px 10px; font-size:15.5px; line-height:1.35; max-width:400px; }
+  .mapwrap { margin:2px 14px 0; border-radius:14px; overflow:hidden; box-shadow:0 2px 8px rgba(60,45,20,.18); }
+  .statusline { padding:7px 18px 2px; font-size:13.5px; color:#6b5d49; font-style:italic; min-height:22px; }
+  .clues { padding:4px 14px 0; display:flex; flex-direction:column; gap:8px; }
+  .clue { background:#fffdf6; border-radius:10px; padding:9px 13px 10px; box-shadow:0 1px 4px rgba(60,45,20,.12); position:relative; transition: box-shadow .5s ease, background .5s ease; }
+  .clue .eyebrow { font-size:10px; letter-spacing:.14em; font-weight:700; color:#a07d2c; margin-bottom:3px; }
+  .clue .text { font-size:13.5px; line-height:1.38; }
+  .clue.locked { background:#e7dcc2; }
+  .clue.locked .text { color:#8a7a5c; font-style:italic; }
+  .clue.revealing { box-shadow:0 0 0 3px #e8b64c, 0 0 26px 6px rgba(232,182,76,.55); }
+  .guesses { padding:10px 14px 0; }
+  .guesses h2 { font-size:11px; letter-spacing:.14em; color:#8a7a5c; margin-bottom:6px; }
+  .guess { display:flex; align-items:center; gap:10px; background:#fffdf6; border-radius:10px; padding:7px 12px; margin-bottom:7px; box-shadow:0 1px 4px rgba(60,45,20,.10); font-size:13.5px; }
+  .guess .n { background:#efe3c2; border-radius:6px; font-weight:700; font-size:11px; padding:2px 6px; color:#7a5f1e; }
+  .guess .dist { margin-left:auto; text-align:right; font-weight:700; }
+  .guess .dist small { display:block; font-weight:600; font-size:9.5px; letter-spacing:.08em; color:#b0562f; }
+  .guess.win { background:#fdf3d0; box-shadow:0 0 0 2px #e8b64c; }
+  .guess.win .dist { color:#7a5f1e; }
+  #winGuess { transform:translateY(-8px); opacity:0; transition:all .5s ease; }
+  #winGuess.on { transform:none; opacity:1; }
+
+  /* ---------- stage ---------- */
+  .stage { position:relative; height:230px; margin-top:8px;
+    background:linear-gradient(180deg,#efe3c4 0%,#e2d0a4 55%,#d3ba85 100%);
+    border-top:2px solid #c9b183; overflow:hidden; }
+  .stage .backdrop { position:absolute; inset:0; opacity:.5; }
+  .char { position:absolute; bottom:8px; left:0; will-change:transform; }
+  .char .shadow { position:absolute; left:50%; bottom:-4px; width:78%; height:13px; transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(74,55,25,.35), rgba(74,55,25,0) 70%); }
+  .char svg { display:block; overflow:visible; }
+  .jumpwrap, .flipwrap { will-change:transform; }
+  .flip { transform:scaleX(-1); }
+
+  /* walk cycle — legs swing from the hip, arms counter-swing, body bobs */
+  .leg, .arm { transform-box: view-box; }
+  @keyframes swingA { from { transform:rotate(17deg); } to { transform:rotate(-17deg); } }
+  @keyframes swingB { from { transform:rotate(-17deg); } to { transform:rotate(17deg); } }
+  @keyframes bob { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-2.6px); } }
+  @keyframes breath { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-1px); } }
+  @keyframes flap { from { transform:scaleY(.45); } to { transform:scaleY(1.2); } }
+  .walking .leg-a { animation:swingA .36s ease-in-out infinite alternate; }
+  .walking .leg-b { animation:swingB .36s ease-in-out infinite alternate; }
+  .walking .arm-swing { animation:swingB .36s ease-in-out infinite alternate; }
+  .walking .bob { animation:bob .36s ease-in-out infinite; }
+  .idle .bob { animation:breath 2.8s ease-in-out infinite; }
+  .speaking .head { animation:bob .3s ease-in-out infinite; }
+  .mouth { transform-box: fill-box; transform-origin: 50% 20%; }
+  .speaking .mouth { animation:flap .26s ease-in-out infinite alternate; }
+  .torso, .head, .arm-pose { transition:transform .45s ease; transform-box:view-box; }
+
+  /* expressions — exactly one face set visible per char */
+  .face-surprised, .face-delighted { display:none; }
+  .expr-surprised .face-neutral, .expr-surprised .face-delighted { display:none; }
+  .expr-surprised .face-surprised { display:block; }
+  .expr-delighted .face-neutral, .expr-delighted .face-surprised { display:none; }
+  .expr-delighted .face-delighted { display:block; }
+
+  /* poses */
+  .pose-lean .torso { transform:rotate(6.5deg); }
+  .pose-leanmore .torso { transform:rotate(10deg); }
+  .pose-glass .arm-front { transform:rotate(-38deg); }
+  .pose-glasshi .arm-front { transform:rotate(-58deg); }
+  .pose-lookup .head { transform:rotate(-6deg) translateY(-1.5px); }
+  #holmes.pose-hi .arm-front { transform:rotate(-118deg); }
+  #watson.pose-hi .arm-front { transform:rotate(148deg); }
+  .pose-crouch .bob { transform:translateY(7px); }
+  .pose-notebookup .arm-note { transform:rotate(-28deg); }
+  .pose-gasp .arm-front { transform:rotate(-96deg); }
+  .pose-gasp .head { transform:rotate(-4deg); }
+  .pose-tip .hat { transform:translateY(-3px) rotate(-9deg); }
+  .pose-cheer .bob { animation:bob .3s ease-in-out infinite; }
+  .cluecard { display:none; }
+  .pose-card .cluecard { display:block; }
+  .clapping .notebook { display:none; }
+  .pose-claptogether .notebook { display:none; }
+  #holmes.pose-claptogether .arm-front { transform:rotate(38deg); }
+  #holmes.pose-claptogether .arm-swing { transform:rotate(-38deg); }
+  #watson.pose-claptogether .arm-front { transform:rotate(-52deg); }
+  #watson.pose-claptogether .arm-note { transform:rotate(40deg); }
+  @keyframes clapA { from { transform:rotate(-32deg); } to { transform:rotate(40deg); } }
+  @keyframes clapB { from { transform:rotate(32deg); } to { transform:rotate(-40deg); } }
+  .clapping .bob { animation:bob .15s ease-in-out infinite; }
+  #holmes.clapping .arm-front { animation:clapA .17s ease-in-out infinite alternate; }
+  #holmes.clapping .arm-swing { animation:clapB .17s ease-in-out infinite alternate; }
+  #watson.clapping .arm-front { animation:clapB .17s ease-in-out infinite alternate; }
+  #watson.clapping .arm-note { animation:clapA .17s ease-in-out infinite alternate; }
+
+  /* jumps — Watson's is the big one: apex HELD so the high-five connects */
+  @keyframes jumpW { 0% { transform:translateY(0); } 22% { transform:translateY(-40px); } 58% { transform:translateY(-40px); } 82% { transform:translateY(0); } 100% { transform:translateY(0); } }
+  @keyframes jumpH { 0% { transform:translateY(0); } 25% { transform:translateY(-13px); } 55% { transform:translateY(-13px); } 80% { transform:translateY(0); } 100% { transform:translateY(0); } }
+  @keyframes shadowW { 0%,100% { transform:translateX(-50%) scale(1); opacity:1; } 22%,58% { transform:translateX(-50%) scale(.62); opacity:.65; } 82% { transform:translateX(-50%) scale(1); } }
+  #watson.jumping .jumpwrap { animation:jumpW 1.15s ease-in-out; }
+  #holmes.jumping .jumpwrap { animation:jumpH 1.15s ease-in-out; }
+  #watson.jumping .shadow { animation:shadowW 1.15s ease-in-out; }
+  #holmes.jumping .shadow { animation:shadowW 1.15s ease-in-out; }
+  @keyframes hop { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-9px); } }
+  .hopping .jumpwrap { animation:hop .34s ease-in-out infinite; }
+
+  /* impact lines sit ABOVE the joined hands — never over them (cure 1) */
+  #spark { position:absolute; width:40px; height:40px; margin:-20px 0 0 -20px; opacity:0; pointer-events:none; }
+  #spark.on { animation:sparkpop .55s ease-out forwards; }
+  @keyframes sparkpop { 0% { opacity:0; transform:scale(.3) rotate(0deg); } 35% { opacity:1; } 100% { opacity:0; transform:scale(1.4) rotate(25deg); } }
+  #slate { position:absolute; left:0; right:0; bottom:8px; text-align:center; font-size:11px; letter-spacing:.22em; color:#8a7a5c; opacity:0; transition:opacity .8s ease; }
+  #slate.on { opacity:1; }
+  .noanim * { transition:none !important; animation:none !important; }
+</style>
+</head>
+<body>
+<div id="screen">
+  <div id="flashbar"></div>
+  <div class="topbar"><span class="back">‹ Editions</span><span>Case #7</span></div>
+  <h1 class="title">GeoDetective</h1>
+  <p class="instructions">Five guesses, one mystery place. Each guess unlocks another clue — and tells you how far off you were, and in which direction.</p>
+
+  <div class="mapwrap">
+    <svg width="452" height="238" viewBox="0 0 452 238" aria-hidden="true">
+      <defs>
+        <linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2b7a8c"/><stop offset="1" stop-color="#123c4e"/>
+        </linearGradient>
+      </defs>
+      <rect width="452" height="238" fill="url(#ocean)"/>
+      <path d="M40,18 L150,10 L196,38 L168,66 L96,60 L48,48 Z" fill="#7d9b6a"/>
+      <path d="M286,26 L356,16 L398,44 L372,74 L306,66 L282,48 Z" fill="#86a06b"/>
+      <path d="M238,86 L330,74 L392,104 L376,152 L292,158 L240,132 Z" fill="#d9b878"/>
+      <path d="M60,196 L392,190 L420,238 L30,238 Z" fill="#eef2f0"/>
+      <path d="M96,120 L150,108 L176,132 L140,152 L102,144 Z" fill="#a8b06a" opacity=".8"/>
+      <path d="M120,52 Q226,-30 330,86" fill="none" stroke="#e8b64c" stroke-width="2.4" opacity=".85"/>
+      <path d="M96,138 Q210,60 306,116" fill="none" stroke="#e8b64c" stroke-width="2" opacity=".6"/>
+      <circle cx="120" cy="52" r="4.5" fill="#7fd4ff"/>
+      <circle cx="96" cy="138" r="4.5" fill="#7fd4ff"/>
+      <circle cx="306" cy="116" r="4.5" fill="#7fd4ff"/>
+      <g id="mapstar" transform="translate(316,116) scale(0)">
+        <path d="M0,-15 L4.4,-4.6 L15,-4.6 L6.8,2.8 L9.8,13.4 L0,7.4 L-9.8,13.4 L-6.8,2.8 L-15,-4.6 L-4.4,-4.6 Z" fill="#f4c542" stroke="#a87c14" stroke-width="1.6"/>
+      </g>
+    </svg>
+  </div>
+  <p class="statusline" id="statusLine">The case is open — follow the clues.</p>
+
+  <div class="clues">
+    <div class="clue locked" id="clue1"><div class="eyebrow">CLUE 1 · GEOGRAPHY</div><div class="text">This Nevada city sits just south east of Las Vegas. It fills a broad, dry valley in the hot south of the state.</div></div>
+    <div class="clue locked" id="clue2"><div class="eyebrow">CLUE 2 · CLIMATE</div><div class="text">This is a hot desert city, yet snow can fall in winter. Summer storms can also strike fast and flood the dry streets.</div></div>
+    <div class="clue locked" id="clue3"><div class="eyebrow">CLUE 3 · HISTORY</div><div class="text">It was set up as a city in 1953. In the war just before, its plants made magnesium for the war push.</div></div>
+    <div class="clue locked" id="clue4"><div class="eyebrow">CLUE 4 · THE HOOK</div><div class="text">After the PEPCON disaster, this city built back strong. It grew fast with planned new towns, starting with Green Valley.</div></div>
+    <div class="clue locked" id="clue5"><div class="eyebrow">CLUE 5 · GIVEAWAY</div><div class="text">A web of long trails links its many parks, mile after mile. That green web is a proud mark of this desert city.</div></div>
+  </div>
+
+  <div class="guesses">
+    <h2>YOUR GUESSES</h2>
+    <div class="guess win" id="winGuess" style="display:none"><span class="n">#6</span> Henderson, Nevada <span class="dist">0 mi<small>BULLSEYE</small></span></div>
+    <div class="guess"><span class="n">#3</span> Russia <span class="dist">4,179 mi<small>WARMER · EAST</small></span></div>
+    <div class="guess"><span class="n">#2</span> Tongchuan, China <span class="dist">6,778 mi<small>BAISHEN · WEST</small></span></div>
+    <div class="guess"><span class="n">#1</span> Kasese, Uganda <span class="dist">9,077 mi<small>FIRST GUESS</small></span></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <svg class="backdrop" width="480" height="230" viewBox="0 0 480 230" aria-hidden="true">
+      <path d="M0,224 L480,224" stroke="#b99c66" stroke-width="3"/>
+      <path d="M0,214 L480,214" stroke="#cbb27e" stroke-width="1.4" opacity=".6"/>
+    </svg>
+
+    <!-- ============ HOLMES (rig: mockup art + cures, no pipe) ============ -->
+    <div class="char idle" id="holmes" style="transform:translateX(-170px)">
+      <div class="jumpwrap"><div class="flipwrap" id="holmesFlip">
+      <svg width="132" height="196" viewBox="0 0 120 178" aria-hidden="true">
+        <defs>
+          <pattern id="plaidH" width="15" height="15" patternUnits="userSpaceOnUse">
+            <rect width="15" height="15" fill="#3f6d72"/><rect width="15" height="5" y="5" fill="#487a7e"/><rect width="5" height="15" x="5" fill="#487a7e"/>
+            <path d="M0,12.5 L15,12.5 M12.5,0 L12.5,15" stroke="#d8c98a" stroke-width="1" opacity=".5"/>
+          </pattern>
+          <pattern id="plaidT" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="#b39b58"/><rect width="12" height="4" y="4" fill="#c2a967"/><rect width="4" height="12" x="4" fill="#c2a967"/>
+            <path d="M0,10 L12,10 M10,0 L10,12" stroke="#7a6535" stroke-width=".9" opacity=".55"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:64px 118px">
+          <path d="M64,118 L64,162" stroke="#3d4950" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="68" cy="167" rx="9" ry="4.2" fill="#241d16"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 118px">
+          <path d="M52,118 L52,162" stroke="#46525c" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="56" cy="167" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-swing" style="transform-origin:44px 58px">
+            <path d="M44,58 L37,95" stroke="#33585c" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="37" cy="98" r="4.6" fill="#f2c49b"/>
+            <g class="cluecard" transform="rotate(-8 30 96)">
+              <rect x="19" y="84" width="21" height="27" rx="2.5" fill="#fffdf6" stroke="#c9a83f" stroke-width="1.8"/>
+              <path d="M23.5,92 L35.5,92 M23.5,98 L35.5,98 M23.5,104 L32,104" stroke="#a07d2c" stroke-width="1.7"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 132px">
+            <path d="M40,52 C33,80 32,104 35,132 L86,132 C89,104 88,80 81,52 C68,45 53,45 40,52 Z" fill="url(#plaidH)"/>
+            <path d="M52,50 L72,50 L74,132 L50,132 Z" fill="#38636a"/>
+            <path d="M54,48 L70,48 L62,66 Z" fill="#f0e6d2"/>
+            <path d="M60,55 L64,55 L63,74 L61,74 Z" fill="#7a2e3a"/>
+            <circle cx="62" cy="88" r="1.9" fill="#274a4e"/><circle cx="62" cy="103" r="1.9" fill="#274a4e"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:78px 58px">
+            <path d="M78,58 L86,80" stroke="#38636a" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="87" cy="83" r="4.6" fill="#f2c49b"/>
+            <path d="M89,79 L98,66" stroke="#6e5636" stroke-width="3.6" stroke-linecap="round"/>
+            <circle cx="104" cy="59" r="12.5" fill="#cfe8ef" fill-opacity=".5" stroke="#6e5636" stroke-width="3.2"/>
+            <circle cx="100" cy="55" r="3.4" fill="#ffffff" opacity=".55"/>
+          </g>
+          <g class="head" style="transform-origin:62px 54px">
+            <path d="M46,14 Q62,5 76,14 L79,38 Q78,56 63,59 Q48,57 45,40 Z" fill="#f2c49b"/>
+            <path d="M77,30 L93,37 L77,44 Z" fill="#f2c49b"/>
+            <circle cx="43" cy="31" r="4" fill="#6e5136"/><circle cx="42" cy="39" r="4" fill="#6e5136"/>
+            <g class="face-neutral">
+              <path d="M61,24.5 L75,24.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M65,50 Q70,52.5 75,50.5" fill="none" stroke="#b57e52" stroke-width="1.8" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M61,20 L75,21.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="70" cy="51.5" rx="2.8" ry="3.8" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M61,22 L75,22" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M64.5,28.5 Q68,25 71.5,28.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M63,48.5 Q70.5,56.5 78,48.5 Q70.5,53 63,48.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat" style="transform-origin:61px 14px">
+              <path d="M42,16 Q61,-4 80,16 L80,20 L42,20 Z" fill="url(#plaidT)"/>
+              <ellipse cx="90" cy="19" rx="14" ry="3.6" fill="url(#plaidT)"/>
+              <ellipse cx="32" cy="19" rx="11" ry="3.4" fill="#8f7a3e"/>
+              <rect x="43" y="15" width="8" height="18" rx="3.5" fill="#8f7a3e"/>
+              <path d="M52,4 L60,0 L60,7 Z" fill="#8f7a3e"/><path d="M70,4 L62,0 L62,7 Z" fill="#8f7a3e"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div>
+
+    <!-- ============ WATSON (rig: mockup art + cures) ============ -->
+    <div class="char idle" id="watson" style="transform:translateX(520px)">
+      <div class="jumpwrap"><div class="flipwrap" id="watsonFlip">
+      <svg width="140" height="146" viewBox="0 0 134 140" aria-hidden="true">
+        <defs>
+          <pattern id="plaidW" width="14" height="14" patternUnits="userSpaceOnUse">
+            <rect width="14" height="14" fill="#8a6a44"/><rect width="14" height="4.5" y="4.5" fill="#96754c"/><rect width="4.5" height="14" x="4.5" fill="#96754c"/>
+            <path d="M0,11.5 L14,11.5 M11.5,0 L11.5,14" stroke="#5d4326" stroke-width=".9" opacity=".5"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:66px 92px">
+          <path d="M66,92 L66,128" stroke="#4e3d2b" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="62" cy="133" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 92px">
+          <path d="M52,92 L52,128" stroke="#5a4632" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="48" cy="133" rx="9" ry="4.2" fill="#33261a"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-pose arm-note" style="transform-origin:82px 54px">
+            <path d="M82,54 L90,84" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="90" cy="86" r="4.4" fill="#eebd93"/>
+            <g class="notebook" transform="rotate(8 90 98)">
+              <rect x="78" y="84" width="24" height="30" rx="2.5" fill="#f3e9cf" stroke="#c9b98f" stroke-width="1.6"/>
+              <path d="M83,92 L97,92 M83,99 L97,99 M83,106 L93,106" stroke="#b7a678" stroke-width="1.6"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 110px">
+            <path d="M28,46 C21,68 23,90 27,110 L93,110 C97,90 99,68 92,46 C74,37 46,37 28,46 Z" fill="url(#plaidW)"/>
+            <path d="M52,44 L68,44 L70,110 L50,110 Z" fill="#f0e6d2"/>
+            <path d="M58,47 L62,47 L61.5,66 L58.5,66 Z" fill="#7a5230"/>
+            <circle cx="43" cy="70" r="1.8" fill="#5d4326"/><circle cx="43" cy="89" r="1.8" fill="#5d4326"/>
+            <circle cx="77" cy="70" r="1.8" fill="#5d4326"/><circle cx="77" cy="89" r="1.8" fill="#5d4326"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:36px 54px">
+            <path d="M36,54 L27,86" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="26" cy="89" r="4.6" fill="#eebd93"/>
+          </g>
+          <g class="head" style="transform-origin:60px 50px">
+            <path d="M36,16 Q60,6 84,16 L86,34 Q84,52 60,54 Q36,52 34,34 Z" fill="#eebd93"/>
+            <path d="M35,29 L27,34 L35,38 Z" fill="#eebd93"/>
+            <circle cx="40" cy="35" r="4.5" fill="#e89b7a" opacity=".55"/>
+            <circle cx="81" cy="33" r="3.6" fill="#e0aa7e"/>
+            <rect x="43" y="38" width="29" height="8" rx="4" fill="#c07a3a"/>
+            <path d="M50,39.5 L50,45 M57.5,39.5 L57.5,45 M65,39.5 L65,45" stroke="#a5662c" stroke-width="1.4"/>
+            <g class="face-neutral">
+              <path d="M41,21 L54,23.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M47,49.5 Q54,52.5 61,49.5" fill="none" stroke="#a06a42" stroke-width="1.7" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M41,17.5 L54,20" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="54" cy="50" rx="3" ry="4" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M41,19 L54,21.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <path d="M44.5,27.5 Q48,24.2 51.5,27.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M45,47.5 Q54,56 63,47.5 Q54,52 45,47.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat">
+              <path d="M33,15 Q60,-6 87,15 L87,18 L33,18 Z" fill="#4a3826"/>
+              <ellipse cx="60" cy="18" rx="33" ry="5.2" fill="#4a3826"/>
+              <rect x="33" y="10" width="54" height="5" fill="#33261a"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div>
+
+    <svg id="spark" viewBox="0 0 54 54" aria-hidden="true">
+      <path d="M27,2 L32,20 L50,14 L36,26 L48,38 L31,34 L27,52 L23,34 L6,38 L18,26 L4,14 L22,20 Z" fill="#f4c542" stroke="#a87c14" stroke-width="1.6"/>
+    </svg>
+    <div id="slate">PROTOTYPE · DETECTIVE MOMENTS · ANIMATED</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const holmes = $("holmes"), watson = $("watson");
+  const holmesFlip = $("holmesFlip"), watsonFlip = $("watsonFlip");
+  const statusLine = $("statusLine");
+  const winGuess = $("winGuess"), mapstar = $("mapstar"), spark = $("spark"), slate = $("slate");
+  const clues = [null, $("clue1"), $("clue2"), $("clue3"), $("clue4"), $("clue5")];
+  const params = new URLSearchParams(location.search);
+  const hold = params.get("hold");
+
+  // Lock the guesses block at its win-state height from the start.
+  const guessesBox = document.querySelector(".guesses");
+  winGuess.style.display = "flex";
+  guessesBox.style.height = guessesBox.offsetHeight + "px";
+  winGuess.style.display = "none";
+
+  // Stage positions (stage is 480 wide; characters walk the floor).
+  const POS = {
+    offH: -170, offW: 520,
+    openH: 70,  openW: 272,
+    paceH: 120, paceW: 322,
+    c1H: 38,    c1W: 232,
+    c2H: 98,    c2W: 292,
+    c3H: 150,   c3W: 318,
+    hookH: 180, hookW: 335,
+    giveH: 92,  giveW: 258,
+    winH: 105,  winW: 193   // hands meet at stage x≈225 (see report math)
+  };
+  function move(el, x, secs){ el.style.transition = "transform " + secs + "s linear"; el.style.transform = "translateX(" + x + "px)"; }
+  function walk(el, x, secs){ el.classList.add("walking"); el.classList.remove("idle"); move(el, x, secs);
+    setTimeout(()=>{ el.classList.remove("walking"); el.classList.add("idle"); }, secs*1000); }
+  function flip(el, on){ el.classList.toggle("flip", on); }
+  function pose(el, name, on){ el.classList.toggle(name, on); }
+  function speak(el, on){ el.classList.toggle("speaking", on); }
+  function expr(el, name){ el.classList.remove("expr-surprised","expr-delighted"); if (name) el.classList.add("expr-" + name); }
+  function unlock(n){ const c = clues[n]; c.classList.remove("locked"); c.classList.add("revealing");
+    setTimeout(()=>c.classList.remove("revealing"), 2800); }
+  function winState(){ statusLine.textContent = "Case closed — the gold star marks the answer.";
+    winGuess.style.display = "flex"; requestAnimationFrame(()=>winGuess.classList.add("on"));
+    mapstar.style.transition = "transform .5s cubic-bezier(.2,2.2,.4,1)";
+    mapstar.setAttribute("transform","translate(316,116) scale(1)"); }
+
+  // ---------- settled poses for stills ----------
+  function settle(kind){
+    document.body.classList.add("noanim");
+    const unlockTo = { instr:1, clue:2, hook:4, give:5, win:5 }[kind] || 0;
+    for (let i = 1; i <= unlockTo; i++){ clues[i].classList.remove("locked"); }
+    if (kind === "instr"){
+      move(holmes, POS.openH, 0); move(watson, POS.openW, 0); pose(watson, "pose-notebookup", true);
+    } else if (kind === "clue"){
+      move(holmes, POS.c2H, 0); move(watson, POS.c2W, 0);
+      pose(holmes, "pose-lookup", true); pose(watson, "pose-lookup", true); pose(holmes, "pose-glass", true);
+    } else if (kind === "hook"){
+      move(holmes, POS.hookH, 0); move(watson, POS.hookW, 0);
+      pose(holmes, "pose-lean", true); pose(holmes, "pose-glasshi", true);
+      pose(watson, "pose-gasp", true); expr(holmes, "surprised"); expr(watson, "surprised");
+    } else if (kind === "give"){
+      move(holmes, POS.giveH, 0); move(watson, POS.giveW, 0);
+      pose(holmes, "pose-card", true); expr(holmes, "delighted"); expr(watson, "delighted");
+    } else if (kind === "win"){
+      winState();
+      move(holmes, POS.winH, 0); move(watson, POS.winW, 0);
+      pose(holmes, "pose-hi", true); pose(watson, "pose-hi", true); pose(holmes, "pose-crouch", true);
+      expr(holmes, "delighted"); expr(watson, "delighted");
+      holmes.querySelector(".jumpwrap").style.transform = "translateY(-13px)";
+      watson.querySelector(".jumpwrap").style.transform = "translateY(-40px)";
+      watson.querySelector(".shadow").style.transform = "translateX(-50%) scale(.62)";
+      spark.style.left = "214px"; spark.style.top = "22px"; spark.style.opacity = "1";
+    }
+  }
+  if (hold){ settle(hold); return; }
+
+  // ---------- the show ----------
+  // Audio cues (muxed in post at these exact offsets):
+  //   instr-holmes 3.70 · instr-watson 7.00 · clue1-watson 16.45 ·
+  //   clue2-holmes 27.65 · clue3-watson 38.40 · hook-holmes 49.30 ·
+  //   hook-watson 56.55 · clue4-holmes 60.45 · clue5-watson 72.60 ·
+  //   win-holmes 85.75 · win-watson 87.50
+  const T = [
+    [0.00, ()=>{ $("flashbar").style.background = "#111111"; }],
+    [0.12, ()=>{ $("flashbar").style.background = "transparent"; }],
+    // BEAT 0 — CASE OPENS: walk-in, instructions read as a duo
+    [1.00, ()=>{ walk(holmes, POS.openH, 2.4); walk(watson, POS.openW, 2.4); }],
+    [3.70, ()=>{ speak(holmes, true); pose(holmes, "pose-glass", true); }],
+    [6.65, ()=>{ speak(holmes, false); pose(holmes, "pose-glass", false); }],
+    [7.00, ()=>{ speak(watson, true); pose(watson, "pose-notebookup", true); }],
+    [8.00, ()=>{ flip(watsonFlip, true); walk(holmes, POS.paceH, 3.0); walk(watson, POS.paceW, 3.0); }],
+    [11.20, ()=>{ flip(holmesFlip, true); flip(watsonFlip, false); walk(holmes, POS.openH, 3.0); walk(watson, POS.openW, 3.0); }],
+    [13.91, ()=>{ speak(watson, false); }],
+    [14.30, ()=>{ pose(watson, "pose-notebookup", false); flip(holmesFlip, false); }],
+    // BEAT 1 — CLUE 1 · GEOGRAPHY (Watson; glass to the map)
+    [14.60, ()=>{ walk(holmes, POS.c1H, 1.6); walk(watson, POS.c1W, 1.6); }],
+    [16.20, ()=>{ unlock(1); pose(holmes, "pose-glasshi", true); pose(holmes, "pose-lookup", true); }],
+    [16.45, ()=>{ speak(watson, true); }],
+    [25.40, ()=>{ speak(watson, false); }],
+    [25.50, ()=>{ pose(holmes, "pose-glasshi", false); pose(holmes, "pose-lookup", false); }],
+    // BEAT 2 — CLUE 2 · CLIMATE (Holmes; both look up at the sky)
+    [25.90, ()=>{ walk(holmes, POS.c2H, 1.5); walk(watson, POS.c2W, 1.5); }],
+    [27.40, ()=>{ unlock(2); pose(holmes, "pose-lookup", true); pose(watson, "pose-lookup", true); pose(holmes, "pose-glass", true); }],
+    [27.65, ()=>{ speak(holmes, true); }],
+    [36.24, ()=>{ speak(holmes, false); }],
+    [36.35, ()=>{ pose(holmes, "pose-lookup", false); pose(watson, "pose-lookup", false); pose(holmes, "pose-glass", false); }],
+    // BEAT 3 — CLUE 3 · HISTORY (Watson; suspense rising)
+    [36.75, ()=>{ walk(holmes, POS.c3H, 1.4); walk(watson, POS.c3W, 1.4); }],
+    [38.15, ()=>{ unlock(3); pose(watson, "pose-notebookup", true); pose(holmes, "pose-glass", true); pose(holmes, "pose-lean", true); }],
+    [38.40, ()=>{ speak(watson, true); }],
+    [47.33, ()=>{ speak(watson, false); }],
+    [47.45, ()=>{ pose(watson, "pose-notebookup", false); pose(holmes, "pose-glass", false); pose(holmes, "pose-lean", false); }],
+    // BEAT 4 — THE HOOK ANNOUNCEMENT (peak suspense)
+    [47.85, ()=>{ walk(holmes, POS.hookH, 1.2); walk(watson, POS.hookW, 1.2); }],
+    [49.05, ()=>{ pose(holmes, "pose-lean", true); pose(holmes, "pose-glasshi", true); }],
+    [49.30, ()=>{ speak(holmes, true); }],
+    [50.60, ()=>{ expr(holmes, "surprised"); expr(watson, "surprised"); pose(watson, "pose-gasp", true); }],
+    [55.61, ()=>{ speak(holmes, false); }],
+    [56.55, ()=>{ speak(watson, true); pose(watson, "pose-gasp", false); pose(watson, "pose-notebookup", true); }],
+    [59.74, ()=>{ speak(watson, false); pose(watson, "pose-notebookup", false); }],
+    // BEAT 5 — CLUE 4 · THE HOOK ITSELF (Holmes)
+    [59.85, ()=>{ unlock(4); pose(holmes, "pose-lean", false); pose(holmes, "pose-leanmore", true); }],
+    [60.45, ()=>{ speak(holmes, true); }],
+    [61.00, ()=>{ expr(watson, null); }],
+    [62.10, ()=>{ expr(holmes, null); }],
+    [70.17, ()=>{ speak(holmes, false); }],
+    [70.30, ()=>{ pose(holmes, "pose-leanmore", false); pose(holmes, "pose-glasshi", false); }],
+    // BEAT 6 — CLUE 5 · GIVEAWAY (Watson; dawning certainty)
+    [70.55, ()=>{ walk(holmes, POS.giveH, 1.8); walk(watson, POS.giveW, 1.8); }],
+    [72.05, ()=>{ expr(holmes, "delighted"); expr(watson, "delighted"); }],
+    [72.35, ()=>{ unlock(5); pose(holmes, "pose-card", true); }],
+    [72.60, ()=>{ speak(watson, true); }],
+    [82.63, ()=>{ speak(watson, false); }],
+    [82.75, ()=>{ pose(holmes, "pose-card", false); }],
+    // BEAT 7 — THE SOLVE: jump + high-five + claps + celebration
+    [83.05, ()=>{ walk(holmes, POS.winH, 1.1); walk(watson, POS.winW, 1.1); }],
+    [84.25, ()=>{ winState(); }],
+    [84.40, ()=>{ pose(holmes, "pose-hi", true); pose(watson, "pose-hi", true); pose(holmes, "pose-crouch", true); }],
+    [84.55, ()=>{ holmes.classList.add("jumping"); watson.classList.add("jumping"); }],
+    [84.90, ()=>{ spark.style.left = "214px"; spark.style.top = "22px"; spark.classList.add("on"); }],
+    [85.75, ()=>{ speak(holmes, true); pose(holmes, "pose-cheer", true); pose(watson, "pose-cheer", true); }],
+    [85.90, ()=>{ holmes.classList.remove("jumping"); watson.classList.remove("jumping"); }],
+    [87.21, ()=>{ speak(holmes, false); }],
+    [87.25, ()=>{ pose(holmes, "pose-hi", false); pose(watson, "pose-hi", false); pose(holmes, "pose-crouch", false); }],
+    [87.35, ()=>{ pose(holmes, "pose-claptogether", true); pose(watson, "pose-claptogether", true); }],
+    [87.75, ()=>{ /* hold: arms land ~87.80 (the .45s pose transition), first full clap pose reads */ }],
+    [88.15, ()=>{ pose(holmes, "pose-claptogether", false); pose(watson, "pose-claptogether", false); holmes.classList.add("clapping"); watson.classList.add("clapping"); }],
+    [87.50, ()=>{ speak(watson, true); }],
+    [90.85, ()=>{ holmes.classList.remove("clapping"); watson.classList.remove("clapping"); }],
+    [90.95, ()=>{ pose(holmes, "pose-tip", true); }],
+    [91.08, ()=>{ speak(watson, false); }],
+    [92.45, ()=>{ pose(holmes, "pose-tip", false); pose(holmes, "pose-cheer", false); pose(watson, "pose-cheer", false); }],
+    [92.85, ()=>{ slate.classList.add("on"); }],
+  ];
+  const t0 = performance.now();
+  window.__showStartedAt = t0;
+  T.forEach(([t, fn]) => setTimeout(fn, t*1000));
+  window.__showLength = 94.0;
+})();
+</script>
+</body>
+</html>
+

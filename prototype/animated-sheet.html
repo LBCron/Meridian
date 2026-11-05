@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Holmes &amp; Watson — cured character sheet (animated build)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: ui-sans-system, system-ui, "Segoe UI", Roboto, sans-serif; background:#f4ecda; color:#3a3128; width:480px; margin:0 auto; }
+  h1 { font-family: Georgia, serif; font-size:30px; padding:18px 20px 0; color:#33291d; }
+  .sub { padding:2px 20px 8px; font-size:12px; letter-spacing:.18em; color:#8a7a5c; }
+  .pair { position:relative; height:250px; background:linear-gradient(180deg,#efe3c4,#d3ba85); border-top:2px solid #c9b183; border-bottom:2px solid #c9b183; }
+  .sheetchar { position:absolute; bottom:10px; }
+  .pair #holmes { left:56px; } .pair #watson { left:238px; }
+  .char svg { display:block; overflow:visible; }
+  .char .shadow { position:absolute; left:50%; bottom:-4px; width:78%; height:13px; transform:translateX(-50%); background:radial-gradient(ellipse at center, rgba(74,55,25,.35), rgba(74,55,25,0) 70%); }
+  .names { display:flex; gap:0; padding:8px 20px 0; font-size:13px; }
+  .names div { width:50%; } .names b { display:block; font-size:15px; } .names span { color:#8a7a5c; font-size:12px; }
+  h2 { font-size:12px; letter-spacing:.18em; color:#8a7a5c; padding:16px 20px 6px; }
+  .row { display:flex; gap:10px; padding:0 20px 6px; }
+  .bustwrap { text-align:center; }
+  .bustwrap p { font-size:11.5px; color:#6b5d49; padding-top:2px; }
+  .bust { width:132px; height:118px; overflow:hidden; position:relative; background:#efe3c4; border-radius:12px; }
+  .bust .sheetchar { position:absolute; }
+  .bust .shadow { display:none; }
+  .bust.holmesbust .sheetchar { left:50%; bottom:auto; top:2px; transform:translateX(-50%) scale(1.55); transform-origin:top center; }
+  .bust.watsonbust .sheetchar { left:50%; bottom:auto; top:2px; transform:translateX(-54%) scale(1.6); transform-origin:top center; }
+  .face-surprised, .face-delighted { display:none; }
+  .expr-surprised .face-neutral, .expr-surprised .face-delighted { display:none; }
+  .expr-surprised .face-surprised { display:block; }
+  .expr-delighted .face-neutral, .expr-delighted .face-surprised { display:none; }
+  .expr-delighted .face-delighted { display:block; }
+  .cluecard { display:none; }
+  .notebook { }
+  .foot { padding:10px 20px 18px; font-size:12px; color:#8a7a5c; line-height:1.5; }
+</style></head>
+<body>
+<h1>The Detectives</h1>
+<p class="sub">CHARACTER SHEET · ANIMATED BUILD · CURES APPLIED</p>
+<div class="pair"><div class="char sheetchar" id="holmes">
+      <div class="jumpwrap"><div class="flipwrap" id="holmesFlip">
+      <svg width="132" height="196" viewBox="0 0 120 178" aria-hidden="true">
+        <defs>
+          <pattern id="plaidH" width="15" height="15" patternUnits="userSpaceOnUse">
+            <rect width="15" height="15" fill="#3f6d72"/><rect width="15" height="5" y="5" fill="#487a7e"/><rect width="5" height="15" x="5" fill="#487a7e"/>
+            <path d="M0,12.5 L15,12.5 M12.5,0 L12.5,15" stroke="#d8c98a" stroke-width="1" opacity=".5"/>
+          </pattern>
+          <pattern id="plaidT" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="#b39b58"/><rect width="12" height="4" y="4" fill="#c2a967"/><rect width="4" height="12" x="4" fill="#c2a967"/>
+            <path d="M0,10 L12,10 M10,0 L10,12" stroke="#7a6535" stroke-width=".9" opacity=".55"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:64px 118px">
+          <path d="M64,118 L64,162" stroke="#3d4950" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="68" cy="167" rx="9" ry="4.2" fill="#241d16"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 118px">
+          <path d="M52,118 L52,162" stroke="#46525c" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="56" cy="167" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-swing" style="transform-origin:44px 58px">
+            <path d="M44,58 L37,95" stroke="#33585c" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="37" cy="98" r="4.6" fill="#f2c49b"/>
+            <g class="cluecard" transform="rotate(-8 30 96)">
+              <rect x="19" y="84" width="21" height="27" rx="2.5" fill="#fffdf6" stroke="#c9a83f" stroke-width="1.8"/>
+              <path d="M23.5,92 L35.5,92 M23.5,98 L35.5,98 M23.5,104 L32,104" stroke="#a07d2c" stroke-width="1.7"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 132px">
+            <path d="M40,52 C33,80 32,104 35,132 L86,132 C89,104 88,80 81,52 C68,45 53,45 40,52 Z" fill="url(#plaidH)"/>
+            <path d="M52,50 L72,50 L74,132 L50,132 Z" fill="#38636a"/>
+            <path d="M54,48 L70,48 L62,66 Z" fill="#f0e6d2"/>
+            <path d="M60,55 L64,55 L63,74 L61,74 Z" fill="#7a2e3a"/>
+            <circle cx="62" cy="88" r="1.9" fill="#274a4e"/><circle cx="62" cy="103" r="1.9" fill="#274a4e"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:78px 58px">
+            <path d="M78,58 L86,80" stroke="#38636a" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="87" cy="83" r="4.6" fill="#f2c49b"/>
+            <path d="M89,79 L98,66" stroke="#6e5636" stroke-width="3.6" stroke-linecap="round"/>
+            <circle cx="104" cy="59" r="12.5" fill="#cfe8ef" fill-opacity=".5" stroke="#6e5636" stroke-width="3.2"/>
+            <circle cx="100" cy="55" r="3.4" fill="#ffffff" opacity=".55"/>
+          </g>
+          <g class="head" style="transform-origin:62px 54px">
+            <path d="M46,14 Q62,5 76,14 L79,38 Q78,56 63,59 Q48,57 45,40 Z" fill="#f2c49b"/>
+            <path d="M77,30 L93,37 L77,44 Z" fill="#f2c49b"/>
+            <circle cx="43" cy="31" r="4" fill="#6e5136"/><circle cx="42" cy="39" r="4" fill="#6e5136"/>
+            <g class="face-neutral">
+              <path d="M61,24.5 L75,24.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M65,50 Q70,52.5 75,50.5" fill="none" stroke="#b57e52" stroke-width="1.8" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M61,20 L75,21.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="70" cy="51.5" rx="2.8" ry="3.8" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M61,22 L75,22" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M64.5,28.5 Q68,25 71.5,28.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M63,48.5 Q70.5,56.5 78,48.5 Q70.5,53 63,48.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat" style="transform-origin:61px 14px">
+              <path d="M42,16 Q61,-4 80,16 L80,20 L42,20 Z" fill="url(#plaidT)"/>
+              <ellipse cx="90" cy="19" rx="14" ry="3.6" fill="url(#plaidT)"/>
+              <ellipse cx="32" cy="19" rx="11" ry="3.4" fill="#8f7a3e"/>
+              <rect x="43" y="15" width="8" height="18" rx="3.5" fill="#8f7a3e"/>
+              <path d="M52,4 L60,0 L60,7 Z" fill="#8f7a3e"/><path d="M70,4 L62,0 L62,7 Z" fill="#8f7a3e"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div><div class="char sheetchar" id="watson">
+      <div class="jumpwrap"><div class="flipwrap" id="watsonFlip">
+      <svg width="140" height="146" viewBox="0 0 134 140" aria-hidden="true">
+        <defs>
+          <pattern id="plaidW" width="14" height="14" patternUnits="userSpaceOnUse">
+            <rect width="14" height="14" fill="#8a6a44"/><rect width="14" height="4.5" y="4.5" fill="#96754c"/><rect width="4.5" height="14" x="4.5" fill="#96754c"/>
+            <path d="M0,11.5 L14,11.5 M11.5,0 L11.5,14" stroke="#5d4326" stroke-width=".9" opacity=".5"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:66px 92px">
+          <path d="M66,92 L66,128" stroke="#4e3d2b" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="62" cy="133" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 92px">
+          <path d="M52,92 L52,128" stroke="#5a4632" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="48" cy="133" rx="9" ry="4.2" fill="#33261a"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-pose arm-note" style="transform-origin:82px 54px">
+            <path d="M82,54 L90,84" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="90" cy="86" r="4.4" fill="#eebd93"/>
+            <g class="notebook" transform="rotate(8 90 98)">
+              <rect x="78" y="84" width="24" height="30" rx="2.5" fill="#f3e9cf" stroke="#c9b98f" stroke-width="1.6"/>
+              <path d="M83,92 L97,92 M83,99 L97,99 M83,106 L93,106" stroke="#b7a678" stroke-width="1.6"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 110px">
+            <path d="M28,46 C21,68 23,90 27,110 L93,110 C97,90 99,68 92,46 C74,37 46,37 28,46 Z" fill="url(#plaidW)"/>
+            <path d="M52,44 L68,44 L70,110 L50,110 Z" fill="#f0e6d2"/>
+            <path d="M58,47 L62,47 L61.5,66 L58.5,66 Z" fill="#7a5230"/>
+            <circle cx="43" cy="70" r="1.8" fill="#5d4326"/><circle cx="43" cy="89" r="1.8" fill="#5d4326"/>
+            <circle cx="77" cy="70" r="1.8" fill="#5d4326"/><circle cx="77" cy="89" r="1.8" fill="#5d4326"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:36px 54px">
+            <path d="M36,54 L27,86" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="26" cy="89" r="4.6" fill="#eebd93"/>
+          </g>
+          <g class="head" style="transform-origin:60px 50px">
+            <path d="M36,16 Q60,6 84,16 L86,34 Q84,52 60,54 Q36,52 34,34 Z" fill="#eebd93"/>
+            <path d="M35,29 L27,34 L35,38 Z" fill="#eebd93"/>
+            <circle cx="40" cy="35" r="4.5" fill="#e89b7a" opacity=".55"/>
+            <circle cx="81" cy="33" r="3.6" fill="#e0aa7e"/>
+            <rect x="43" y="38" width="29" height="8" rx="4" fill="#c07a3a"/>
+            <path d="M50,39.5 L50,45 M57.5,39.5 L57.5,45 M65,39.5 L65,45" stroke="#a5662c" stroke-width="1.4"/>
+            <g class="face-neutral">
+              <path d="M41,21 L54,23.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M47,49.5 Q54,52.5 61,49.5" fill="none" stroke="#a06a42" stroke-width="1.7" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M41,17.5 L54,20" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="54" cy="50" rx="3" ry="4" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M41,19 L54,21.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <path d="M44.5,27.5 Q48,24.2 51.5,27.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M45,47.5 Q54,56 63,47.5 Q54,52 45,47.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat">
+              <path d="M33,15 Q60,-6 87,15 L87,18 L33,18 Z" fill="#4a3826"/>
+              <ellipse cx="60" cy="18" rx="33" ry="5.2" fill="#4a3826"/>
+              <rect x="33" y="10" width="54" height="5" fill="#33261a"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div></div>
+<div class="names">
+  <div><b>SHERLOCK HOLMES</b><span>deerstalker · plaid cape-coat · magnifying glass — no pipe</span></div>
+  <div><b>DR WATSON</b><span>bowler · small moustache, mouth beneath · notebook</span></div>
+</div>
+<h2>HOLMES — EXPRESSIONS</h2>
+<div class="row"><div class="bustwrap "><div class="bust holmesbust"><div class="char sheetchar">
+      <div class="jumpwrap"><div class="flipwrap" id="holmesFlip">
+      <svg width="132" height="196" viewBox="0 0 120 178" aria-hidden="true">
+        <defs>
+          <pattern id="plaidH" width="15" height="15" patternUnits="userSpaceOnUse">
+            <rect width="15" height="15" fill="#3f6d72"/><rect width="15" height="5" y="5" fill="#487a7e"/><rect width="5" height="15" x="5" fill="#487a7e"/>
+            <path d="M0,12.5 L15,12.5 M12.5,0 L12.5,15" stroke="#d8c98a" stroke-width="1" opacity=".5"/>
+          </pattern>
+          <pattern id="plaidT" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="#b39b58"/><rect width="12" height="4" y="4" fill="#c2a967"/><rect width="4" height="12" x="4" fill="#c2a967"/>
+            <path d="M0,10 L12,10 M10,0 L10,12" stroke="#7a6535" stroke-width=".9" opacity=".55"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:64px 118px">
+          <path d="M64,118 L64,162" stroke="#3d4950" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="68" cy="167" rx="9" ry="4.2" fill="#241d16"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 118px">
+          <path d="M52,118 L52,162" stroke="#46525c" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="56" cy="167" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-swing" style="transform-origin:44px 58px">
+            <path d="M44,58 L37,95" stroke="#33585c" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="37" cy="98" r="4.6" fill="#f2c49b"/>
+            <g class="cluecard" transform="rotate(-8 30 96)">
+              <rect x="19" y="84" width="21" height="27" rx="2.5" fill="#fffdf6" stroke="#c9a83f" stroke-width="1.8"/>
+              <path d="M23.5,92 L35.5,92 M23.5,98 L35.5,98 M23.5,104 L32,104" stroke="#a07d2c" stroke-width="1.7"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 132px">
+            <path d="M40,52 C33,80 32,104 35,132 L86,132 C89,104 88,80 81,52 C68,45 53,45 40,52 Z" fill="url(#plaidH)"/>
+            <path d="M52,50 L72,50 L74,132 L50,132 Z" fill="#38636a"/>
+            <path d="M54,48 L70,48 L62,66 Z" fill="#f0e6d2"/>
+            <path d="M60,55 L64,55 L63,74 L61,74 Z" fill="#7a2e3a"/>
+            <circle cx="62" cy="88" r="1.9" fill="#274a4e"/><circle cx="62" cy="103" r="1.9" fill="#274a4e"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:78px 58px">
+            <path d="M78,58 L86,80" stroke="#38636a" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="87" cy="83" r="4.6" fill="#f2c49b"/>
+            <path d="M89,79 L98,66" stroke="#6e5636" stroke-width="3.6" stroke-linecap="round"/>
+            <circle cx="104" cy="59" r="12.5" fill="#cfe8ef" fill-opacity=".5" stroke="#6e5636" stroke-width="3.2"/>
+            <circle cx="100" cy="55" r="3.4" fill="#ffffff" opacity=".55"/>
+          </g>
+          <g class="head" style="transform-origin:62px 54px">
+            <path d="M46,14 Q62,5 76,14 L79,38 Q78,56 63,59 Q48,57 45,40 Z" fill="#f2c49b"/>
+            <path d="M77,30 L93,37 L77,44 Z" fill="#f2c49b"/>
+            <circle cx="43" cy="31" r="4" fill="#6e5136"/><circle cx="42" cy="39" r="4" fill="#6e5136"/>
+            <g class="face-neutral">
+              <path d="M61,24.5 L75,24.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M65,50 Q70,52.5 75,50.5" fill="none" stroke="#b57e52" stroke-width="1.8" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M61,20 L75,21.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="70" cy="51.5" rx="2.8" ry="3.8" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M61,22 L75,22" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M64.5,28.5 Q68,25 71.5,28.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M63,48.5 Q70.5,56.5 78,48.5 Q70.5,53 63,48.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat" style="transform-origin:61px 14px">
+              <path d="M42,16 Q61,-4 80,16 L80,20 L42,20 Z" fill="url(#plaidT)"/>
+              <ellipse cx="90" cy="19" rx="14" ry="3.6" fill="url(#plaidT)"/>
+              <ellipse cx="32" cy="19" rx="11" ry="3.4" fill="#8f7a3e"/>
+              <rect x="43" y="15" width="8" height="18" rx="3.5" fill="#8f7a3e"/>
+              <path d="M52,4 L60,0 L60,7 Z" fill="#8f7a3e"/><path d="M70,4 L62,0 L62,7 Z" fill="#8f7a3e"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div></div><p>neutral</p></div><div class="bustwrap expr-surprised"><div class="bust holmesbust"><div class="char sheetchar" id="holmes">
+      <div class="jumpwrap"><div class="flipwrap" id="holmesFlip">
+      <svg width="132" height="196" viewBox="0 0 120 178" aria-hidden="true">
+        <defs>
+          <pattern id="plaidH" width="15" height="15" patternUnits="userSpaceOnUse">
+            <rect width="15" height="15" fill="#3f6d72"/><rect width="15" height="5" y="5" fill="#487a7e"/><rect width="5" height="15" x="5" fill="#487a7e"/>
+            <path d="M0,12.5 L15,12.5 M12.5,0 L12.5,15" stroke="#d8c98a" stroke-width="1" opacity=".5"/>
+          </pattern>
+          <pattern id="plaidT" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="#b39b58"/><rect width="12" height="4" y="4" fill="#c2a967"/><rect width="4" height="12" x="4" fill="#c2a967"/>
+            <path d="M0,10 L12,10 M10,0 L10,12" stroke="#7a6535" stroke-width=".9" opacity=".55"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:64px 118px">
+          <path d="M64,118 L64,162" stroke="#3d4950" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="68" cy="167" rx="9" ry="4.2" fill="#241d16"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 118px">
+          <path d="M52,118 L52,162" stroke="#46525c" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="56" cy="167" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-swing" style="transform-origin:44px 58px">
+            <path d="M44,58 L37,95" stroke="#33585c" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="37" cy="98" r="4.6" fill="#f2c49b"/>
+            <g class="cluecard" transform="rotate(-8 30 96)">
+              <rect x="19" y="84" width="21" height="27" rx="2.5" fill="#fffdf6" stroke="#c9a83f" stroke-width="1.8"/>
+              <path d="M23.5,92 L35.5,92 M23.5,98 L35.5,98 M23.5,104 L32,104" stroke="#a07d2c" stroke-width="1.7"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 132px">
+            <path d="M40,52 C33,80 32,104 35,132 L86,132 C89,104 88,80 81,52 C68,45 53,45 40,52 Z" fill="url(#plaidH)"/>
+            <path d="M52,50 L72,50 L74,132 L50,132 Z" fill="#38636a"/>
+            <path d="M54,48 L70,48 L62,66 Z" fill="#f0e6d2"/>
+            <path d="M60,55 L64,55 L63,74 L61,74 Z" fill="#7a2e3a"/>
+            <circle cx="62" cy="88" r="1.9" fill="#274a4e"/><circle cx="62" cy="103" r="1.9" fill="#274a4e"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:78px 58px">
+            <path d="M78,58 L86,80" stroke="#38636a" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="87" cy="83" r="4.6" fill="#f2c49b"/>
+            <path d="M89,79 L98,66" stroke="#6e5636" stroke-width="3.6" stroke-linecap="round"/>
+            <circle cx="104" cy="59" r="12.5" fill="#cfe8ef" fill-opacity=".5" stroke="#6e5636" stroke-width="3.2"/>
+            <circle cx="100" cy="55" r="3.4" fill="#ffffff" opacity=".55"/>
+          </g>
+          <g class="head" style="transform-origin:62px 54px">
+            <path d="M46,14 Q62,5 76,14 L79,38 Q78,56 63,59 Q48,57 45,40 Z" fill="#f2c49b"/>
+            <path d="M77,30 L93,37 L77,44 Z" fill="#f2c49b"/>
+            <circle cx="43" cy="31" r="4" fill="#6e5136"/><circle cx="42" cy="39" r="4" fill="#6e5136"/>
+            <g class="face-neutral">
+              <path d="M61,24.5 L75,24.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M65,50 Q70,52.5 75,50.5" fill="none" stroke="#b57e52" stroke-width="1.8" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M61,20 L75,21.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="70" cy="51.5" rx="2.8" ry="3.8" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M61,22 L75,22" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M64.5,28.5 Q68,25 71.5,28.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M63,48.5 Q70.5,56.5 78,48.5 Q70.5,53 63,48.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat" style="transform-origin:61px 14px">
+              <path d="M42,16 Q61,-4 80,16 L80,20 L42,20 Z" fill="url(#plaidT)"/>
+              <ellipse cx="90" cy="19" rx="14" ry="3.6" fill="url(#plaidT)"/>
+              <ellipse cx="32" cy="19" rx="11" ry="3.4" fill="#8f7a3e"/>
+              <rect x="43" y="15" width="8" height="18" rx="3.5" fill="#8f7a3e"/>
+              <path d="M52,4 L60,0 L60,7 Z" fill="#8f7a3e"/><path d="M70,4 L62,0 L62,7 Z" fill="#8f7a3e"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div></div><p>surprised</p></div><div class="bustwrap expr-delighted"><div class="bust holmesbust"><div class="char sheetchar" id="holmes">
+      <div class="jumpwrap"><div class="flipwrap" id="holmesFlip">
+      <svg width="132" height="196" viewBox="0 0 120 178" aria-hidden="true">
+        <defs>
+          <pattern id="plaidH" width="15" height="15" patternUnits="userSpaceOnUse">
+            <rect width="15" height="15" fill="#3f6d72"/><rect width="15" height="5" y="5" fill="#487a7e"/><rect width="5" height="15" x="5" fill="#487a7e"/>
+            <path d="M0,12.5 L15,12.5 M12.5,0 L12.5,15" stroke="#d8c98a" stroke-width="1" opacity=".5"/>
+          </pattern>
+          <pattern id="plaidT" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="#b39b58"/><rect width="12" height="4" y="4" fill="#c2a967"/><rect width="4" height="12" x="4" fill="#c2a967"/>
+            <path d="M0,10 L12,10 M10,0 L10,12" stroke="#7a6535" stroke-width=".9" opacity=".55"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:64px 118px">
+          <path d="M64,118 L64,162" stroke="#3d4950" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="68" cy="167" rx="9" ry="4.2" fill="#241d16"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 118px">
+          <path d="M52,118 L52,162" stroke="#46525c" stroke-width="10" stroke-linecap="round"/>
+          <ellipse cx="56" cy="167" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-swing" style="transform-origin:44px 58px">
+            <path d="M44,58 L37,95" stroke="#33585c" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="37" cy="98" r="4.6" fill="#f2c49b"/>
+            <g class="cluecard" transform="rotate(-8 30 96)">
+              <rect x="19" y="84" width="21" height="27" rx="2.5" fill="#fffdf6" stroke="#c9a83f" stroke-width="1.8"/>
+              <path d="M23.5,92 L35.5,92 M23.5,98 L35.5,98 M23.5,104 L32,104" stroke="#a07d2c" stroke-width="1.7"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 132px">
+            <path d="M40,52 C33,80 32,104 35,132 L86,132 C89,104 88,80 81,52 C68,45 53,45 40,52 Z" fill="url(#plaidH)"/>
+            <path d="M52,50 L72,50 L74,132 L50,132 Z" fill="#38636a"/>
+            <path d="M54,48 L70,48 L62,66 Z" fill="#f0e6d2"/>
+            <path d="M60,55 L64,55 L63,74 L61,74 Z" fill="#7a2e3a"/>
+            <circle cx="62" cy="88" r="1.9" fill="#274a4e"/><circle cx="62" cy="103" r="1.9" fill="#274a4e"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:78px 58px">
+            <path d="M78,58 L86,80" stroke="#38636a" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="87" cy="83" r="4.6" fill="#f2c49b"/>
+            <path d="M89,79 L98,66" stroke="#6e5636" stroke-width="3.6" stroke-linecap="round"/>
+            <circle cx="104" cy="59" r="12.5" fill="#cfe8ef" fill-opacity=".5" stroke="#6e5636" stroke-width="3.2"/>
+            <circle cx="100" cy="55" r="3.4" fill="#ffffff" opacity=".55"/>
+          </g>
+          <g class="head" style="transform-origin:62px 54px">
+            <path d="M46,14 Q62,5 76,14 L79,38 Q78,56 63,59 Q48,57 45,40 Z" fill="#f2c49b"/>
+            <path d="M77,30 L93,37 L77,44 Z" fill="#f2c49b"/>
+            <circle cx="43" cy="31" r="4" fill="#6e5136"/><circle cx="42" cy="39" r="4" fill="#6e5136"/>
+            <g class="face-neutral">
+              <path d="M61,24.5 L75,24.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M65,50 Q70,52.5 75,50.5" fill="none" stroke="#b57e52" stroke-width="1.8" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M61,20 L75,21.5" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="68" cy="28" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="70" cy="51.5" rx="2.8" ry="3.8" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M61,22 L75,22" stroke="#8a6a44" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M64.5,28.5 Q68,25 71.5,28.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M63,48.5 Q70.5,56.5 78,48.5 Q70.5,53 63,48.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat" style="transform-origin:61px 14px">
+              <path d="M42,16 Q61,-4 80,16 L80,20 L42,20 Z" fill="url(#plaidT)"/>
+              <ellipse cx="90" cy="19" rx="14" ry="3.6" fill="url(#plaidT)"/>
+              <ellipse cx="32" cy="19" rx="11" ry="3.4" fill="#8f7a3e"/>
+              <rect x="43" y="15" width="8" height="18" rx="3.5" fill="#8f7a3e"/>
+              <path d="M52,4 L60,0 L60,7 Z" fill="#8f7a3e"/><path d="M70,4 L62,0 L62,7 Z" fill="#8f7a3e"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div></div><p>delighted</p></div></div>
+<h2>WATSON — EXPRESSIONS</h2>
+<div class="row"><div class="bustwrap "><div class="bust watsonbust"><div class="char sheetchar" id="watson">
+      <div class="jumpwrap"><div class="flipwrap" id="watsonFlip">
+      <svg width="140" height="146" viewBox="0 0 134 140" aria-hidden="true">
+        <defs>
+          <pattern id="plaidW" width="14" height="14" patternUnits="userSpaceOnUse">
+            <rect width="14" height="14" fill="#8a6a44"/><rect width="14" height="4.5" y="4.5" fill="#96754c"/><rect width="4.5" height="14" x="4.5" fill="#96754c"/>
+            <path d="M0,11.5 L14,11.5 M11.5,0 L11.5,14" stroke="#5d4326" stroke-width=".9" opacity=".5"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:66px 92px">
+          <path d="M66,92 L66,128" stroke="#4e3d2b" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="62" cy="133" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 92px">
+          <path d="M52,92 L52,128" stroke="#5a4632" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="48" cy="133" rx="9" ry="4.2" fill="#33261a"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-pose arm-note" style="transform-origin:82px 54px">
+            <path d="M82,54 L90,84" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="90" cy="86" r="4.4" fill="#eebd93"/>
+            <g class="notebook" transform="rotate(8 90 98)">
+              <rect x="78" y="84" width="24" height="30" rx="2.5" fill="#f3e9cf" stroke="#c9b98f" stroke-width="1.6"/>
+              <path d="M83,92 L97,92 M83,99 L97,99 M83,106 L93,106" stroke="#b7a678" stroke-width="1.6"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 110px">
+            <path d="M28,46 C21,68 23,90 27,110 L93,110 C97,90 99,68 92,46 C74,37 46,37 28,46 Z" fill="url(#plaidW)"/>
+            <path d="M52,44 L68,44 L70,110 L50,110 Z" fill="#f0e6d2"/>
+            <path d="M58,47 L62,47 L61.5,66 L58.5,66 Z" fill="#7a5230"/>
+            <circle cx="43" cy="70" r="1.8" fill="#5d4326"/><circle cx="43" cy="89" r="1.8" fill="#5d4326"/>
+            <circle cx="77" cy="70" r="1.8" fill="#5d4326"/><circle cx="77" cy="89" r="1.8" fill="#5d4326"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:36px 54px">
+            <path d="M36,54 L27,86" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="26" cy="89" r="4.6" fill="#eebd93"/>
+          </g>
+          <g class="head" style="transform-origin:60px 50px">
+            <path d="M36,16 Q60,6 84,16 L86,34 Q84,52 60,54 Q36,52 34,34 Z" fill="#eebd93"/>
+            <path d="M35,29 L27,34 L35,38 Z" fill="#eebd93"/>
+            <circle cx="40" cy="35" r="4.5" fill="#e89b7a" opacity=".55"/>
+            <circle cx="81" cy="33" r="3.6" fill="#e0aa7e"/>
+            <rect x="43" y="38" width="29" height="8" rx="4" fill="#c07a3a"/>
+            <path d="M50,39.5 L50,45 M57.5,39.5 L57.5,45 M65,39.5 L65,45" stroke="#a5662c" stroke-width="1.4"/>
+            <g class="face-neutral">
+              <path d="M41,21 L54,23.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M47,49.5 Q54,52.5 61,49.5" fill="none" stroke="#a06a42" stroke-width="1.7" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M41,17.5 L54,20" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="54" cy="50" rx="3" ry="4" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M41,19 L54,21.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <path d="M44.5,27.5 Q48,24.2 51.5,27.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M45,47.5 Q54,56 63,47.5 Q54,52 45,47.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat">
+              <path d="M33,15 Q60,-6 87,15 L87,18 L33,18 Z" fill="#4a3826"/>
+              <ellipse cx="60" cy="18" rx="33" ry="5.2" fill="#4a3826"/>
+              <rect x="33" y="10" width="54" height="5" fill="#33261a"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div></div><p>neutral</p></div><div class="bustwrap expr-surprised"><div class="bust watsonbust"><div class="char sheetchar" id="watson">
+      <div class="jumpwrap"><div class="flipwrap" id="watsonFlip">
+      <svg width="140" height="146" viewBox="0 0 134 140" aria-hidden="true">
+        <defs>
+          <pattern id="plaidW" width="14" height="14" patternUnits="userSpaceOnUse">
+            <rect width="14" height="14" fill="#8a6a44"/><rect width="14" height="4.5" y="4.5" fill="#96754c"/><rect width="4.5" height="14" x="4.5" fill="#96754c"/>
+            <path d="M0,11.5 L14,11.5 M11.5,0 L11.5,14" stroke="#5d4326" stroke-width=".9" opacity=".5"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:66px 92px">
+          <path d="M66,92 L66,128" stroke="#4e3d2b" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="62" cy="133" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 92px">
+          <path d="M52,92 L52,128" stroke="#5a4632" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="48" cy="133" rx="9" ry="4.2" fill="#33261a"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-pose arm-note" style="transform-origin:82px 54px">
+            <path d="M82,54 L90,84" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="90" cy="86" r="4.4" fill="#eebd93"/>
+            <g class="notebook" transform="rotate(8 90 98)">
+              <rect x="78" y="84" width="24" height="30" rx="2.5" fill="#f3e9cf" stroke="#c9b98f" stroke-width="1.6"/>
+              <path d="M83,92 L97,92 M83,99 L97,99 M83,106 L93,106" stroke="#b7a678" stroke-width="1.6"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 110px">
+            <path d="M28,46 C21,68 23,90 27,110 L93,110 C97,90 99,68 92,46 C74,37 46,37 28,46 Z" fill="url(#plaidW)"/>
+            <path d="M52,44 L68,44 L70,110 L50,110 Z" fill="#f0e6d2"/>
+            <path d="M58,47 L62,47 L61.5,66 L58.5,66 Z" fill="#7a5230"/>
+            <circle cx="43" cy="70" r="1.8" fill="#5d4326"/><circle cx="43" cy="89" r="1.8" fill="#5d4326"/>
+            <circle cx="77" cy="70" r="1.8" fill="#5d4326"/><circle cx="77" cy="89" r="1.8" fill="#5d4326"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:36px 54px">
+            <path d="M36,54 L27,86" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="26" cy="89" r="4.6" fill="#eebd93"/>
+          </g>
+          <g class="head" style="transform-origin:60px 50px">
+            <path d="M36,16 Q60,6 84,16 L86,34 Q84,52 60,54 Q36,52 34,34 Z" fill="#eebd93"/>
+            <path d="M35,29 L27,34 L35,38 Z" fill="#eebd93"/>
+            <circle cx="40" cy="35" r="4.5" fill="#e89b7a" opacity=".55"/>
+            <circle cx="81" cy="33" r="3.6" fill="#e0aa7e"/>
+            <rect x="43" y="38" width="29" height="8" rx="4" fill="#c07a3a"/>
+            <path d="M50,39.5 L50,45 M57.5,39.5 L57.5,45 M65,39.5 L65,45" stroke="#a5662c" stroke-width="1.4"/>
+            <g class="face-neutral">
+              <path d="M41,21 L54,23.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M47,49.5 Q54,52.5 61,49.5" fill="none" stroke="#a06a42" stroke-width="1.7" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M41,17.5 L54,20" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="54" cy="50" rx="3" ry="4" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M41,19 L54,21.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <path d="M44.5,27.5 Q48,24.2 51.5,27.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M45,47.5 Q54,56 63,47.5 Q54,52 45,47.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat">
+              <path d="M33,15 Q60,-6 87,15 L87,18 L33,18 Z" fill="#4a3826"/>
+              <ellipse cx="60" cy="18" rx="33" ry="5.2" fill="#4a3826"/>
+              <rect x="33" y="10" width="54" height="5" fill="#33261a"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div></div><p>surprised</p></div><div class="bustwrap expr-delighted"><div class="bust watsonbust"><div class="char sheetchar" id="watson">
+      <div class="jumpwrap"><div class="flipwrap" id="watsonFlip">
+      <svg width="140" height="146" viewBox="0 0 134 140" aria-hidden="true">
+        <defs>
+          <pattern id="plaidW" width="14" height="14" patternUnits="userSpaceOnUse">
+            <rect width="14" height="14" fill="#8a6a44"/><rect width="14" height="4.5" y="4.5" fill="#96754c"/><rect width="4.5" height="14" x="4.5" fill="#96754c"/>
+            <path d="M0,11.5 L14,11.5 M11.5,0 L11.5,14" stroke="#5d4326" stroke-width=".9" opacity=".5"/>
+          </pattern>
+        </defs>
+        <g class="leg leg-b" style="transform-origin:66px 92px">
+          <path d="M66,92 L66,128" stroke="#4e3d2b" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="62" cy="133" rx="9" ry="4.2" fill="#2b2119"/>
+        </g>
+        <g class="leg leg-a" style="transform-origin:52px 92px">
+          <path d="M52,92 L52,128" stroke="#5a4632" stroke-width="10.5" stroke-linecap="round"/>
+          <ellipse cx="48" cy="133" rx="9" ry="4.2" fill="#33261a"/>
+        </g>
+        <g class="bob">
+          <g class="arm arm-pose arm-note" style="transform-origin:82px 54px">
+            <path d="M82,54 L90,84" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="90" cy="86" r="4.4" fill="#eebd93"/>
+            <g class="notebook" transform="rotate(8 90 98)">
+              <rect x="78" y="84" width="24" height="30" rx="2.5" fill="#f3e9cf" stroke="#c9b98f" stroke-width="1.6"/>
+              <path d="M83,92 L97,92 M83,99 L97,99 M83,106 L93,106" stroke="#b7a678" stroke-width="1.6"/>
+            </g>
+          </g>
+          <g class="torso" style="transform-origin:60px 110px">
+            <path d="M28,46 C21,68 23,90 27,110 L93,110 C97,90 99,68 92,46 C74,37 46,37 28,46 Z" fill="url(#plaidW)"/>
+            <path d="M52,44 L68,44 L70,110 L50,110 Z" fill="#f0e6d2"/>
+            <path d="M58,47 L62,47 L61.5,66 L58.5,66 Z" fill="#7a5230"/>
+            <circle cx="43" cy="70" r="1.8" fill="#5d4326"/><circle cx="43" cy="89" r="1.8" fill="#5d4326"/>
+            <circle cx="77" cy="70" r="1.8" fill="#5d4326"/><circle cx="77" cy="89" r="1.8" fill="#5d4326"/>
+          </g>
+          <g class="arm arm-pose arm-front" style="transform-origin:36px 54px">
+            <path d="M36,54 L27,86" stroke="#75572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="26" cy="89" r="4.6" fill="#eebd93"/>
+          </g>
+          <g class="head" style="transform-origin:60px 50px">
+            <path d="M36,16 Q60,6 84,16 L86,34 Q84,52 60,54 Q36,52 34,34 Z" fill="#eebd93"/>
+            <path d="M35,29 L27,34 L35,38 Z" fill="#eebd93"/>
+            <circle cx="40" cy="35" r="4.5" fill="#e89b7a" opacity=".55"/>
+            <circle cx="81" cy="33" r="3.6" fill="#e0aa7e"/>
+            <rect x="43" y="38" width="29" height="8" rx="4" fill="#c07a3a"/>
+            <path d="M50,39.5 L50,45 M57.5,39.5 L57.5,45 M65,39.5 L65,45" stroke="#a5662c" stroke-width="1.4"/>
+            <g class="face-neutral">
+              <path d="M41,21 L54,23.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="2.3" fill="#2c2318"/>
+              <path class="mouth" d="M47,49.5 Q54,52.5 61,49.5" fill="none" stroke="#a06a42" stroke-width="1.7" stroke-linecap="round"/>
+            </g>
+            <g class="face-surprised">
+              <path d="M41,17.5 L54,20" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="27" r="3.3" fill="#2c2318"/>
+              <ellipse class="mouth" cx="54" cy="50" rx="3" ry="4" fill="#7a4632"/>
+            </g>
+            <g class="face-delighted">
+              <path d="M41,19 L54,21.5" stroke="#6e5136" stroke-width="2" stroke-linecap="round"/>
+              <path d="M44.5,27.5 Q48,24.2 51.5,27.5" fill="none" stroke="#2c2318" stroke-width="1.9" stroke-linecap="round"/>
+              <path class="mouth" d="M45,47.5 Q54,56 63,47.5 Q54,52 45,47.5 Z" fill="#7a4632"/>
+            </g>
+            <g class="hat">
+              <path d="M33,15 Q60,-6 87,15 L87,18 L33,18 Z" fill="#4a3826"/>
+              <ellipse cx="60" cy="18" rx="33" ry="5.2" fill="#4a3826"/>
+              <rect x="33" y="10" width="54" height="5" fill="#33261a"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div></div>
+      <div class="shadow"></div>
+    </div></div><p>delighted</p></div></div>
+<p class="foot">Watson stands ≈75% of Holmes's height and wider — the reference's contrast. Both mouths sit clear of hat and moustache: they are speaking characters, and the mouth flaps on their lines.</p>
+</body></html>
