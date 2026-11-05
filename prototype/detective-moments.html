@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Detective Moments — prototype harness (design branch only)</title>
+<!--
+  DETECTIVE MOMENTS PROTOTYPE — design/detective-moments-prototype
+  Owner's idea (2026-11-05): the storyteller's black TEXT pill is replaced
+  by Sherlock Holmes & Watson, who WALK the case screen and SPEAK the
+  lines aloud in two different voices. No text pill anywhere in this
+  harness. Spoken copy is the game's own, verbatim (sources cited in
+  BRANCH_STATUS.md and the run report). Screen chrome labels are staging
+  for the mock screen only — nothing here ships as-is.
+-->
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:#e9dfc8; }
+  body { font-family: ui-sans-system, system-ui, "Segoe UI", Roboto, sans-serif; color:#3a3128; }
+  #screen { width:480px; margin:0 auto; background:#f4ecda; position:relative; overflow:hidden; }
+  #flashbar { height:10px; background:transparent; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; padding:8px 16px 0; font-size:13px; color:#6b5d49; }
+  .topbar .back { font-weight:600; }
+  h1.title { font-family: Georgia, "Times New Roman", serif; font-size:40px; font-weight:700; padding:6px 16px 0; color:#33291d; }
+  .instructions { padding:4px 16px 10px; font-size:15.5px; line-height:1.35; max-width:400px; }
+  .mapwrap { margin:2px 14px 0; border-radius:14px; overflow:hidden; box-shadow:0 2px 8px rgba(60,45,20,.18); }
+  .statusline { padding:7px 18px 2px; font-size:13.5px; color:#6b5d49; font-style:italic; min-height:22px; }
+  .clues { padding:4px 14px 0; display:flex; flex-direction:column; gap:8px; }
+  .clue { background:#fffdf6; border-radius:10px; padding:9px 13px 10px; box-shadow:0 1px 4px rgba(60,45,20,.12); position:relative; transition: box-shadow .5s ease; }
+  .clue .eyebrow { font-size:10px; letter-spacing:.14em; font-weight:700; color:#a07d2c; margin-bottom:3px; }
+  .clue .text { font-size:13.5px; line-height:1.38; }
+  .clue.locked { background:#e7dcc2; }
+  .clue.locked .text { color:#8a7a5c; font-style:italic; }
+  .clue.revealing { box-shadow:0 0 0 3px #e8b64c, 0 0 26px 6px rgba(232,182,76,.55); }
+  .guesses { padding:10px 14px 0; }
+  .guesses h2 { font-size:11px; letter-spacing:.14em; color:#8a7a5c; margin-bottom:6px; }
+  .guess { display:flex; align-items:center; gap:10px; background:#fffdf6; border-radius:10px; padding:7px 12px; margin-bottom:7px; box-shadow:0 1px 4px rgba(60,45,20,.10); font-size:13.5px; }
+  .guess .n { background:#efe3c2; border-radius:6px; font-weight:700; font-size:11px; padding:2px 6px; color:#7a5f1e; }
+  .guess .dist { margin-left:auto; text-align:right; font-weight:700; }
+  .guess .dist small { display:block; font-weight:600; font-size:9.5px; letter-spacing:.08em; color:#b0562f; }
+  .guess.win { background:#fdf3d0; box-shadow:0 0 0 2px #e8b64c; }
+  .guess.win .dist { color:#7a5f1e; }
+  #winGuess { transform:translateY(-8px); opacity:0; transition:all .5s ease; }
+  #winGuess.on { transform:none; opacity:1; }
+
+  /* ---------- stage ---------- */
+  .stage { position:relative; height:212px; margin-top:8px;
+    background:linear-gradient(180deg,#efe3c4 0%,#e2d0a4 55%,#d3ba85 100%);
+    border-top:2px solid #c9b183; overflow:hidden; }
+  .stage .backdrop { position:absolute; inset:0; opacity:.5; }
+  .char { position:absolute; bottom:8px; left:0; will-change:transform; }
+  .char .shadow { position:absolute; left:50%; bottom:-4px; width:78%; height:13px; transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(74,55,25,.35), rgba(74,55,25,0) 70%); }
+  .char svg { display:block; overflow:visible; }
+  .flipwrap { will-change:transform; }
+  .flip { transform:scaleX(-1); }
+
+  /* walk cycle — legs swing from the hip, arms counter-swing, body bobs */
+  .leg, .arm { transform-box: view-box; }
+  @keyframes swingA { from { transform:rotate(17deg); } to { transform:rotate(-17deg); } }
+  @keyframes swingB { from { transform:rotate(-17deg); } to { transform:rotate(17deg); } }
+  @keyframes bob { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-2.6px); } }
+  @keyframes breath { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-1px); } }
+  .walking .leg-a { animation:swingA .36s ease-in-out infinite alternate; }
+  .walking .leg-b { animation:swingB .36s ease-in-out infinite alternate; }
+  .walking .arm-swing { animation:swingB .36s ease-in-out infinite alternate; }
+  .walking .bob { animation:bob .36s ease-in-out infinite; }
+  .idle .bob { animation:breath 2.8s ease-in-out infinite; }
+  .speaking .head { animation:bob .3s ease-in-out infinite; }
+  .torso, .head, .arm-pose { transition:transform .45s ease; transform-box:view-box; }
+
+  /* Holmes poses (transform-origins set inline per part) */
+  .pose-lean .torso { transform:rotate(6.5deg); }
+  .pose-raise .arm-front { transform:rotate(-24deg); }
+  #holmes.pose-hi .arm-front { transform:rotate(-105deg); }
+  .pose-tip .hat { transform:translateY(-3px) rotate(-9deg); }
+  .pose-cheer .bob { animation:bob .3s ease-in-out infinite; }
+  /* Watson poses */
+  .pose-notebookup .arm-note { transform:rotate(-28deg); }
+  .pose-gasp .arm-front { transform:rotate(-96deg); }
+  .pose-gasp .head { transform:rotate(-4deg); }
+  #watson.pose-hi .arm-front { transform:rotate(138deg); }
+  .pose-write .arm-note { transform:rotate(-30deg); }
+  .pose-write .arm-front { animation:swingA .22s ease-in-out infinite alternate; }
+
+  #spark { position:absolute; width:54px; height:54px; margin:-27px 0 0 -27px; opacity:0; pointer-events:none; }
+  #spark.on { animation:sparkpop .55s ease-out forwards; }
+  @keyframes sparkpop { 0% { opacity:0; transform:scale(.3) rotate(0deg); } 35% { opacity:1; } 100% { opacity:0; transform:scale(1.5) rotate(25deg); } }
+  #slate { position:absolute; left:0; right:0; bottom:8px; text-align:center; font-size:11px; letter-spacing:.22em; color:#8a7a5c; opacity:0; transition:opacity .8s ease; }
+  #slate.on { opacity:1; }
+  .noanim * { transition:none !important; animation:none !important; }
+</style>
+</head>
+<body>
+<div id="screen">
+  <div id="flashbar"></div>
+  <div class="topbar"><span class="back">‹ Editions</span><span>Case #7</span></div>
+  <h1 class="title">GeoDetective</h1>
+  <p class="instructions">Five guesses, one mystery place. Each guess unlocks another clue — and tells you how far off you were, and in which direction.</p>
+
+  <div class="mapwrap">
+    <svg width="452" height="238" viewBox="0 0 452 238" aria-hidden="true">
+      <defs>
+        <linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2b7a8c"/><stop offset="1" stop-color="#123c4e"/>
+        </linearGradient>
+      </defs>
+      <rect width="452" height="238" fill="url(#ocean)"/>
+      <!-- stylised landmasses (staging art, echoes the owner's screenshot) -->
+      <path d="M40,18 L150,10 L196,38 L168,66 L96,60 L48,48 Z" fill="#7d9b6a"/>
+      <path d="M286,26 L356,16 L398,44 L372,74 L306,66 L282,48 Z" fill="#86a06b"/>
+      <path d="M238,86 L330,74 L392,104 L376,152 L292,158 L240,132 Z" fill="#d9b878"/>
+      <path d="M60,196 L392,190 L420,238 L30,238 Z" fill="#eef2f0"/>
+      <path d="M96,120 L150,108 L176,132 L140,152 L102,144 Z" fill="#a8b06a" opacity=".8"/>
+      <!-- gold arcs -->
+      <path d="M120,52 Q226,-30 330,86" fill="none" stroke="#e8b64c" stroke-width="2.4" opacity=".85"/>
+      <path d="M96,138 Q210,60 306,116" fill="none" stroke="#e8b64c" stroke-width="2" opacity=".6"/>
+      <circle cx="120" cy="52" r="4.5" fill="#7fd4ff"/>
+      <circle cx="96" cy="138" r="4.5" fill="#7fd4ff"/>
+      <circle cx="306" cy="116" r="4.5" fill="#7fd4ff"/>
+      <!-- gold star: the answer, appears at the win -->
+      <g id="mapstar" transform="translate(316,116) scale(0)">
+        <path d="M0,-15 L4.4,-4.6 L15,-4.6 L6.8,2.8 L9.8,13.4 L0,7.4 L-9.8,13.4 L-6.8,2.8 L-15,-4.6 L-4.4,-4.6 Z" fill="#f4c542" stroke="#a87c14" stroke-width="1.6"/>
+      </g>
+    </svg>
+  </div>
+  <p class="statusline" id="statusLine">The case is open — three guesses in.</p>
+
+  <div class="clues">
+    <div class="clue"><div class="eyebrow">CLUE 1 · GEOGRAPHY</div><div class="text">This Nevada city sits just south of Las Vegas. It fills a broad, dry valley in the hot south of the state.</div></div>
+    <div class="clue"><div class="eyebrow">CLUE 2 · CLIMATE</div><div class="text">This is a hot desert city, yet snow can fall in winter. Summer storms can also strike fast and flood the dry streets.</div></div>
+    <div class="clue"><div class="eyebrow">CLUE 3 · HISTORY</div><div class="text">It was set up as a city in 1953. In the war just before, its plants made magnesium for the war push.</div></div>
+    <div class="clue locked" id="clue4"><div class="eyebrow">CLUE 4 · THE HOOK</div><div class="text" id="clue4text">Still hidden — one more guess will open it.</div></div>
+    <div class="clue locked"><div class="eyebrow">CLUE 5 · GIVEAWAY</div><div class="text">Still hidden.</div></div>
+  </div>
+
+  <div class="guesses">
+    <h2>YOUR GUESSES</h2>
+    <div class="guess win" id="winGuess" style="display:none"><span class="n">#4</span> Henderson, Nevada <span class="dist">0 mi<small>BULLSEYE</small></span></div>
+    <div class="guess"><span class="n">#3</span> Russia <span class="dist">4,179 mi<small>WARMER · EAST</small></span></div>
+    <div class="guess"><span class="n">#2</span> Tongchuan, China <span class="dist">6,778 mi<small>BAISHEN · WEST</small></span></div>
+    <div class="guess"><span class="n">#1</span> Kasese, Uganda <span class="dist">9,077 mi<small>FIRST GUESS</small></span></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <svg class="backdrop" width="480" height="212" viewBox="0 0 480 212" aria-hidden="true">
+      <path d="M0,206 L480,206" stroke="#b99c66" stroke-width="3"/>
+      <path d="M0,196 L480,196" stroke="#cbb27e" stroke-width="1.4" opacity=".6"/>
+    </svg>
+
+    <!-- ============ HOLMES ============ -->
+    <div class="char idle" id="holmes" style="transform:translateX(-170px)">
+      <div class="flipwrap" id="holmesFlip">
+      <svg width="150" height="188" viewBox="0 0 120 150" aria-hidden="true">
+        <!-- far leg -->
+        <g class="leg leg-b" style="transform-origin:66px 96px">
+          <path d="M66,96 L66,136" stroke="#443a30" stroke-width="11" stroke-linecap="round"/>
+          <ellipse cx="70" cy="141" rx="9" ry="4.4" fill="#2e251b"/>
+        </g>
+        <!-- near leg -->
+        <g class="leg leg-a" style="transform-origin:54px 96px">
+          <path d="M54,96 L54,136" stroke="#4c4238" stroke-width="11" stroke-linecap="round"/>
+          <ellipse cx="58" cy="141" rx="9" ry="4.4" fill="#33291f"/>
+        </g>
+        <g class="bob">
+          <!-- far arm (swings) -->
+          <g class="arm arm-swing" style="transform-origin:43px 56px">
+            <path d="M43,56 L37,92" stroke="#6e573a" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="37" cy="95" r="4.6" fill="#f2c49b"/>
+          </g>
+          <!-- cape + coat torso -->
+          <g class="torso" style="transform-origin:60px 118px">
+            <path d="M37,50 C29,78 29,98 33,118 L89,118 C93,98 93,78 85,50 C71,42 51,42 37,50 Z" fill="#8a6d4a"/>
+            <path d="M51,48 L71,48 L73,118 L49,118 Z" fill="#9c7d52"/>
+            <circle cx="61" cy="66" r="1.9" fill="#5d4830"/><circle cx="61" cy="80" r="1.9" fill="#5d4830"/><circle cx="61" cy="94" r="1.9" fill="#5d4830"/>
+            <path d="M50,46 L72,46 L66,60 L56,60 Z" fill="#e8dcc0"/>
+            <path d="M57,60 L65,60 L63,84 L59,84 Z" fill="#d9c9a4"/>
+          </g>
+          <!-- front arm + magnifying glass (pose arm) -->
+          <g class="arm arm-pose arm-front" style="transform-origin:77px 56px">
+            <path d="M77,56 L89,76 L97,68" fill="none" stroke="#77572f" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="97" cy="68" r="4.6" fill="#f2c49b"/>
+            <path d="M100,64 L108,54" stroke="#8a6f3f" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="113" cy="48" r="12.5" fill="#cfe8ef" fill-opacity=".5" stroke="#8a6f3f" stroke-width="3.4"/>
+          </g>
+          <!-- head -->
+          <g class="head" style="transform-origin:61px 44px">
+            <path d="M47,15 Q61,6 75,15 L77,33 Q75,46 61,47 Q47,46 45,33 Z" fill="#f2c49b"/>
+            <path d="M76,28 L84,32 L76,36 Z" fill="#f2c49b"/>
+            <circle cx="68" cy="27" r="2.3" fill="#2c2318"/>
+            <path d="M63,22.5 L73,22.5" stroke="#5d4830" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M64,40 Q69,42.5 73,40" fill="none" stroke="#b57e52" stroke-width="1.8" stroke-linecap="round"/>
+            <g class="hat" style="transform-origin:61px 14px">
+              <path d="M43,17 Q61,-3 79,17 L79,21 L43,21 Z" fill="#7a5f3d"/>
+              <ellipse cx="88" cy="19" rx="13" ry="3.6" fill="#7a5f3d"/>
+              <ellipse cx="34" cy="19" rx="11" ry="3.4" fill="#6e573a"/>
+              <rect x="44" y="15" width="7" height="17" rx="3" fill="#5d4830"/>
+              <path d="M52,5 L60,1 L60,8 Z" fill="#5d4830"/>
+              <path d="M70,5 L62,1 L62,8 Z" fill="#5d4830"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div>
+      <div class="shadow"></div>
+    </div>
+
+    <!-- ============ WATSON ============ -->
+    <div class="char idle" id="watson" style="transform:translateX(520px)">
+      <div class="flipwrap" id="watsonFlip">
+      <svg width="140" height="175" viewBox="0 0 112 140" aria-hidden="true">
+        <!-- far leg -->
+        <g class="leg leg-b" style="transform-origin:64px 88px">
+          <path d="M64,88 L64,126" stroke="#4a453f" stroke-width="11" stroke-linecap="round"/>
+          <ellipse cx="60" cy="131" rx="9" ry="4.4" fill="#2b2723"/>
+        </g>
+        <!-- near leg -->
+        <g class="leg leg-a" style="transform-origin:50px 88px">
+          <path d="M50,88 L50,126" stroke="#55504a" stroke-width="11" stroke-linecap="round"/>
+          <ellipse cx="46" cy="131" rx="9" ry="4.4" fill="#332e29"/>
+        </g>
+        <g class="bob">
+          <!-- notebook arm (far side, hangs at his side) -->
+          <g class="arm arm-pose arm-note" style="transform-origin:76px 52px">
+            <path d="M76,52 L84,84" stroke="#35504f" stroke-width="10" stroke-linecap="round"/>
+            <g transform="rotate(8 88 96)">
+              <rect x="76" y="84" width="25" height="31" rx="2.5" fill="#f3e9cf" stroke="#c9b98f" stroke-width="1.6"/>
+              <path d="M81,92 L96,92 M81,99 L96,99 M81,106 L92,106" stroke="#b7a678" stroke-width="1.6"/>
+            </g>
+            <circle cx="84" cy="86" r="4.4" fill="#eebd93"/>
+          </g>
+          <!-- torso -->
+          <g class="torso" style="transform-origin:56px 106px">
+            <path d="M31,46 C25,68 27,88 31,106 L81,106 C85,88 87,68 81,46 C67,38 45,38 31,46 Z" fill="#3f5a5a"/>
+            <path d="M47,44 L65,44 L67,106 L45,106 Z" fill="#c99637"/>
+            <path d="M50,44 L62,44 L56,56 Z" fill="#f0e6d2"/>
+            <circle cx="56" cy="66" r="1.8" fill="#7a5a1e"/><circle cx="56" cy="79" r="1.8" fill="#7a5a1e"/><circle cx="56" cy="92" r="1.8" fill="#7a5a1e"/>
+          </g>
+          <!-- front arm (toward Holmes): gasp / high-five / pencil -->
+          <g class="arm arm-pose arm-front" style="transform-origin:35px 52px">
+            <path d="M35,52 L26,84" stroke="#3f5a5a" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="25" cy="87" r="4.6" fill="#eebd93"/>
+            <path d="M22,80 L16,70" stroke="#d9a441" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <!-- head -->
+          <g class="head" style="transform-origin:56px 42px">
+            <path d="M38,16 Q56,7 74,16 L75,32 Q73,45 56,46 Q39,45 37,32 Z" fill="#eebd93"/>
+            <path d="M37,28 L30,32 L37,35 Z" fill="#eebd93"/>
+            <circle cx="47" cy="26" r="2.3" fill="#2c2318"/>
+            <circle cx="42" cy="33" r="4" fill="#e89b7a" opacity=".55"/>
+            <ellipse cx="48" cy="37.5" rx="8.6" ry="3.8" fill="#6b5136"/>
+            <ellipse cx="61" cy="37.5" rx="7.6" ry="3.6" fill="#6b5136"/>
+            <path d="M45,42 Q52,44 58,42.5" fill="none" stroke="#a06a42" stroke-width="1.7" stroke-linecap="round"/>
+            <g class="hat">
+              <path d="M35,15 Q56,-5 77,15 L77,18 L35,18 Z" fill="#2e2a26"/>
+              <ellipse cx="56" cy="18" rx="31" ry="5" fill="#2e2a26"/>
+              <rect x="35" y="11" width="42" height="5" fill="#4a423a"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      </div>
+      <div class="shadow"></div>
+    </div>
+
+    <svg id="spark" viewBox="0 0 54 54" aria-hidden="true">
+      <path d="M27,2 L32,20 L50,14 L36,26 L48,38 L31,34 L27,52 L23,34 L6,38 L18,26 L4,14 L22,20 Z" fill="#f4c542" stroke="#a87c14" stroke-width="1.6"/>
+    </svg>
+    <div id="slate">PROTOTYPE · DETECTIVE MOMENTS</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const holmes = $("holmes"), watson = $("watson");
+  const holmesFlip = $("holmesFlip"), watsonFlip = $("watsonFlip");
+  const clue4 = $("clue4"), clue4text = $("clue4text"), statusLine = $("statusLine");
+  const winGuess = $("winGuess"), mapstar = $("mapstar"), spark = $("spark"), slate = $("slate");
+  const params = new URLSearchParams(location.search);
+  const hold = params.get("hold");
+
+  // Lock the guesses block at its win-state height from the start, so the
+  // winning row landing at the climax never pushes the stage down.
+  const guessesBox = document.querySelector(".guesses");
+  winGuess.style.display = "flex";
+  guessesBox.style.height = guessesBox.offsetHeight + "px";
+  winGuess.style.display = "none";
+
+  // Pair staging in stage coordinates (stage is 480 wide).
+  const POS = {
+    offH: -170, offW: 520,
+    talkH: 78,  talkW: 262,     // facing each other, centre
+    paceH: 158, paceW: 342,     // paced right
+    hookH: 168, hookW: 330,     // under the clue stack, right side
+    winH: 110,  winW: 190       // close together — close enough for the high-five hands to meet
+  };
+  function move(el, x, secs){ el.style.transition = "transform " + secs + "s linear"; el.style.transform = "translateX(" + x + "px)"; }
+  function walk(el, x, secs){ el.classList.add("walking"); el.classList.remove("idle"); move(el, x, secs);
+    setTimeout(()=>{ el.classList.remove("walking"); el.classList.add("idle"); }, secs*1000); }
+  function flip(el, on){ el.classList.toggle("flip", on); }
+  function pose(el, name, on){ el.classList.toggle(name, on); }
+  function speak(el, on){ el.classList.toggle("speaking", on); }
+
+  const HOOK_TEXT = "After the PEPCON disaster, this city built back strong. It grew fast with planned new towns, starting with Green Valley.";
+  function revealClue4(){ clue4.classList.remove("locked"); clue4.classList.add("revealing"); clue4text.textContent = HOOK_TEXT;
+    setTimeout(()=>clue4.classList.remove("revealing"), 2600); }
+  function winState(){ statusLine.textContent = "Case closed — the gold star marks the answer.";
+    winGuess.style.display = "flex"; requestAnimationFrame(()=>winGuess.classList.add("on"));
+    mapstar.setAttribute("transform","translate(316,116) scale(1)"); mapstar.style.transition = "transform .5s cubic-bezier(.2,2.2,.4,1)"; }
+
+  // ---------- settled poses for stills (reduced-motion concept) ----------
+  function settle(kind){
+    document.body.classList.add("noanim");
+    if (kind === "instr"){
+      move(holmes, POS.talkH, 0); move(watson, POS.talkW, 0);
+      pose(watson, "pose-notebookup", true);
+    } else if (kind === "hook"){
+      revealClue4(); clue4.classList.remove("revealing");
+      move(holmes, POS.hookH, 0); move(watson, POS.hookW, 0);
+      pose(holmes, "pose-lean", true); pose(holmes, "pose-raise", true); pose(watson, "pose-gasp", true);
+    } else if (kind === "win"){
+      revealClue4(); clue4.classList.remove("revealing"); winState();
+      move(holmes, POS.winH, 0); move(watson, POS.winW, 0);
+      pose(holmes, "pose-hi", true); pose(watson, "pose-hi", true);
+      spark.style.left = "214px"; spark.style.top = "52px"; spark.classList.add("on"); spark.style.animation = "none"; spark.style.opacity = "1";
+    }
+  }
+  if (hold){ settle(hold); return; }
+
+  // ---------- the show ----------
+  const T = [
+    [0.00, ()=>{ $("flashbar").style.background = "#111111"; }],
+    [0.12, ()=>{ $("flashbar").style.background = "transparent"; }],
+    // MOMENT A — INSTRUCTIONS: walk-in
+    [1.20, ()=>{ walk(holmes, POS.talkH, 2.6); walk(watson, POS.talkW, 2.6); }],
+    // Holmes declares (audio @ 4.20, 2.95s)
+    [4.20, ()=>{ speak(holmes, true); pose(holmes, "pose-raise", true); }],
+    [7.15, ()=>{ speak(holmes, false); pose(holmes, "pose-raise", false); }],
+    // Watson explains (audio @ 7.50, 6.91s) — the pair paces while he reads
+    [7.50, ()=>{ speak(watson, true); pose(watson, "pose-notebookup", true);
+                 flip(watsonFlip, true);
+                 walk(holmes, POS.paceH, 3.3); walk(watson, POS.paceW, 3.3); }],
+    [11.10, ()=>{ flip(holmesFlip, true); flip(watsonFlip, false);
+                  walk(holmes, POS.talkH, 3.3); walk(watson, POS.talkW, 3.3); }],
+    [14.45, ()=>{ speak(watson, false); pose(watson, "pose-notebookup", false); flip(holmesFlip, false); }],
+    // MOMENT B — THE HOOK: stroll to the clue stack (both face the way they walk)
+    [15.60, ()=>{ flip(watsonFlip, true); walk(holmes, POS.hookH, 1.6); walk(watson, POS.hookW, 1.6); }],
+    [17.40, ()=>{ flip(watsonFlip, false); revealClue4(); }],
+    // Holmes leads (audio @ 18.20, 6.31s) — lean-in, magnifier up
+    [18.20, ()=>{ speak(holmes, true); pose(holmes, "pose-lean", true); pose(holmes, "pose-raise", true); }],
+    [20.60, ()=>{ pose(watson, "pose-gasp", true); pose(watson, "pose-notebookup", true); }],
+    [24.55, ()=>{ speak(holmes, false); }],
+    // Watson reacts (audio @ 24.90, 3.19s)
+    [24.90, ()=>{ speak(watson, true); pose(watson, "pose-gasp", false); }],
+    [28.15, ()=>{ speak(watson, false); pose(holmes, "pose-lean", false); pose(holmes, "pose-raise", false); pose(watson, "pose-notebookup", false);
+                  flip(holmesFlip, true);
+                  walk(holmes, POS.winH, 1.5); walk(watson, POS.winW, 1.5); }],
+    [29.80, ()=>{ flip(holmesFlip, false); }],
+    // MOMENT C — THE WIN
+    [30.40, ()=>{ winState(); }],
+    // high-five (audio win-holmes @ 32.60)
+    [31.30, ()=>{ pose(holmes, "pose-hi", true); pose(watson, "pose-hi", true); }],
+    [31.85, ()=>{ spark.style.left = "214px"; spark.style.top = "52px"; spark.classList.add("on"); }],
+    [32.60, ()=>{ speak(holmes, true); pose(holmes, "pose-cheer", true); pose(watson, "pose-cheer", true); }],
+    [34.10, ()=>{ speak(holmes, false); pose(holmes, "pose-hi", false); pose(watson, "pose-hi", false); }],
+    // Watson closes (audio @ 34.60, 3.58s) — Holmes tips his hat, Watson writes it up
+    [34.60, ()=>{ speak(watson, true); pose(watson, "pose-write", true); pose(holmes, "pose-tip", true); }],
+    [38.25, ()=>{ speak(watson, false); pose(watson, "pose-write", false); pose(holmes, "pose-tip", false); pose(holmes, "pose-cheer", false); pose(watson, "pose-cheer", false); }],
+    [41.60, ()=>{ slate.classList.add("on"); }],
+  ];
+  const t0 = performance.now();
+  window.__showStartedAt = t0;
+  T.forEach(([t, fn]) => setTimeout(fn, t*1000));
+  window.__showLength = 43.0;
+})();
+</script>
+</body>
+</html>
