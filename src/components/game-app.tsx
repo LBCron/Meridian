@@ -4120,44 +4120,51 @@ function HeroTrailOverlay() {
 }
 
 /**
- * Hero prototype — "Catch It, Pin It, On the Wind" (branch
+ * Hero prototype v2 — "Just a child, trekking" (branch
  * design/hero-trekker-prototype — test harness, NOT production
- * behaviour). The owner's 2026-11-04 order: prototype the trekker
- * beat the Game Developer + UX Researcher brainstorm converged on.
- * A kid trekker (rust-orange headwrap streaming in the wind, teal
- * backpack — a new figure, not Grandpa, not Jolly) walks one leg of
- * the painted switchback trail; a gust steals his map sheet; he
- * catches it with both hands and holds it up TO THE VIEWER:
- * coastline blob, dotted route, one big red pin already set — no
- * "X", no words (Meridian's maps are unlabeled; the pin is the
- * honesty bridge to the game). The held map is 164 of the 800-unit
- * viewBox ≈ 20% of hero width, the brainstorm's agreed floor.
+ * behaviour). Owner's simplification ruling, 2026-11-04 20:29, on
+ * the v1 "Catch It, Pin It" prototype: "Reduce the size of the
+ * animated cartoon guy, this is supposed be a child walking the
+ * trail and let just keep it to that. No more compleities, but
+ * while trekking you need sticks and make it realistic trekking
+ * please and wind blowing, climbing slowly."
  *
- * Every beat rides ONE 18s SMIL master clock (2× the pulse loop),
- * so captures can pause/seek it deterministically:
- *   0–8s      walks up the leg (fades in inside the valley mist)
- *   8–9s      gust: headwrap tail snaps ~45% longer, small stumble,
- *             the sheet escapes his hand and drifts
- *   9–11s     the sheet tumbles exactly 1.5 flips (540°, capped)
- *   11–12s    catch with both hands; the map scales up in his grip
- *   12–15.5s  HOLD — map to the viewer, face peeking over the top
- *   15.5–16.6s map tucked (pose swap), he points up-trail
- *   16.6–17.8s turns and walks back down into the mist
- *   17.8–18s  reset happens invisible inside the mist — no jump cut
- * Clouds drift across the summit band on their own slow clocks;
- * the valley mist is on the master clock so it is thick exactly at
- * the loop point and at the exit, thin while he performs.
+ * So v2 is ONLY a child trekking. The paper, the gust event, the
+ * tumble, the catch, the hold-up map reveal, the tuck and the point
+ * are all DELETED. What remains, on ONE 18s SMIL master clock:
+ *   0–1.1s    he fades in inside the valley mist at the leg's foot
+ *   1.1–15.3s slow climb up ONE painted switchback leg (leg 3 of the
+ *             v1 spline), two trekking poles working the whole way
+ *   15.3–16.7s he fades into the mist bank at the leg's top end
+ *   16.7–18s  reset happens invisible inside the mist — no jump cut
+ *
+ * The figure is a CHILD, drawn ~44 units tall (v1's adult was ~69.5;
+ * ≈63%), with child proportions: head ≈27% of height, shorter legs.
+ * He keeps the identity the brainstorm chose: rust-orange headwrap,
+ * teal backpack. He leans ~6° into the slope.
+ *
+ * The pole gait is the realism core. Legs, arms and poles are all
+ * keyframed path shapes on one 1.8s step clock, opposite pairing
+ * like a real climber: each pole PLANTS on the trail ahead at the
+ * same beat as the OPPOSITE foot, stays grounded while the body
+ * passes over it (the tip sweeps back relative to the body), pushes
+ * off behind, then swings forward lifted for the next plant. Pole
+ * tips pass through y=0 (the trail under his feet) at every stance
+ * keyframe — a floating pole would fail the owner's ask.
+ *
+ * Wind is an always-on layer, not an event: the headwrap's two tail
+ * strands stream and flutter on their own fast clocks, the jacket
+ * hem flutters, and the summit clouds + valley mist drift as in v1.
  *
  * Gates mirror CardFilm (card-film.tsx): prefers-reduced-motion
  * (the shared hook), Save-Data, or deviceMemory ≤ 2 get the STILL
- * instead — the same SVG with its clock paused on the composed
- * hold-up frame (t = 13.2s). The loop itself never stops on a
+ * instead — the same SVG with its clock paused mid-climb
+ * (t = 7.25s: both poles on the ground, front planted, rear at
+ * push-off, headwrap streaming). The loop itself never stops on a
  * timer; like the V1 overlay it is ambient, aria-hidden art.
  */
-const TREKKER_WALK_PATH =
-  "M322 470 C 340 462, 352 455, 350 440 C 348 420, 300 425, 294 406 C 288 386, 315 362, 342 351 C 368 340, 398 336, 402 321";
-const TREKKER_PAPER_PATH =
-  "M415 288 C 452 240, 490 232, 480 254 C 472 272, 440 268, 426 254 C 416 244, 408 224, 404 209";
+const TREKKER_CLIMB_PATH =
+  "M294 406 C 288 386, 315 362, 342 351 C 368 340, 398 336, 402 321";
 
 /** Save-Data / low-memory gate, mirroring LockedTileFilm's mount read. */
 function trekkerStaticGateAtMount(): boolean {
@@ -4171,33 +4178,6 @@ function trekkerStaticGateAtMount(): boolean {
   return typeof mem === "number" && mem > 0 && mem <= 2;
 }
 
-/** The held map's face: coastline, dotted route, one red pin. No words. */
-function TrekkerMapFace() {
-  return (
-    <g>
-      <rect x="-82" y="-62" width="164" height="124" rx="5" fill="#f7efdb" stroke="#b09b6a" strokeWidth="2" />
-      <path
-        d="M-82 18 C -52 2, -30 16, -12 8 C 6 0, 10 -18, 30 -22 C 52 -26, 70 -14, 82 -20 L 82 62 L -82 62 Z"
-        fill="#a3b494"
-        opacity="0.9"
-      />
-      <path
-        d="M-58 34 C -32 18, -8 22, 6 0 C 16 -15, 32 -21, 45 -29"
-        fill="none"
-        stroke="#7c5a1e"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeDasharray="0.1 8"
-      />
-      <path
-        d="M45 -51 C 56 -51, 61 -42, 61 -35 C 61 -25, 45 -13, 45 -13 C 45 -13, 29 -25, 29 -35 C 29 -42, 34 -51, 45 -51 Z"
-        fill="#c8352a"
-      />
-      <circle cx="45" cy="-36" r="5.5" fill="#fff7ea" />
-    </g>
-  );
-}
-
 function HeroTrekkerOverlay() {
   const reducedMotion = usePrefersReducedMotion();
   const [staticGate] = useState<boolean>(trekkerStaticGateAtMount);
@@ -4207,9 +4187,9 @@ function HeroTrekkerOverlay() {
     if (!still) return;
     const svg = svgRef.current;
     if (!svg) return;
-    // The still IS the hold-up frame: freeze the master clock on it.
+    // The still IS the mid-climb frame: freeze the master clock on it.
     svg.pauseAnimations();
-    svg.setCurrentTime(13.2);
+    svg.setCurrentTime(7.25);
   }, [still]);
   return (
     <svg
@@ -4251,207 +4231,127 @@ function HeroTrekkerOverlay() {
         <ellipse cx="426" cy="134" rx="30" ry="10" fill="url(#tk-cloud)" />
       </g>
 
-      {/* The trekker rig: one group riding the trail leg on the 18s clock. */}
+      {/* The trekker rig: one small group climbing the leg on the 18s
+          clock. Fades in inside the foot mist, fades out inside the
+          top mist; the position reset rides the invisible window. */}
       <g opacity="0">
-        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.07;0.972;0.994;1" dur="18s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.06;0.85;0.93;1" dur="18s" repeatCount="indefinite" />
         <animateMotion
-          path={TREKKER_WALK_PATH}
-          keyPoints="0;1;1;0;0"
-          keyTimes="0;0.4444;0.9222;0.994;1"
+          path={TREKKER_CLIMB_PATH}
+          keyPoints="0;1;1;0"
+          keyTimes="0;0.92;0.97;1"
           calcMode="linear"
           dur="18s"
           repeatCount="indefinite"
         />
-        {/* Facing: +x up-trail; flips for the walk back down (the turn
-            reads as him turning around; the flip back happens in mist). */}
-        <g>
-          <animateTransform
-            attributeName="transform"
-            type="scale"
-            values="1 1;1 1;-1 1;-1 1;-1 1;1 1"
-            keyTimes="0;0.9222;0.928;0.994;0.998;1"
-            dur="18s"
-            repeatCount="indefinite"
-          />
-          {/* Walk pose (side view), with the gust stumble tilt. */}
+        {/* ~6° forward lean into the slope, pivoting on the ground
+            point; inside it, the step bob (two bobs per step cycle). */}
+        <g transform="rotate(6)">
           <g>
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              values="0;0;-6;2.5;0;0"
-              keyTimes="0;0.4444;0.465;0.49;0.53;1"
-              dur="18s"
-              repeatCount="indefinite"
-            />
-            <g>
-              <animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.6083;0.6139;0.8583;0.8639;1" dur="18s" repeatCount="indefinite" />
-              {/* Legs while walking: opposite swings on the hip. */}
-              <g>
-                <animate attributeName="opacity" values="1;1;0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.9194;0.925;0.9861;0.9917;1" dur="18s" repeatCount="indefinite" />
-                <path d="M0 -27 L-5 -13 L-3 -1" fill="none" stroke="#5a4632" strokeWidth="4.5" strokeLinecap="round">
-                  <animateTransform attributeName="transform" type="rotate" values="14 0 -27;-14 0 -27;14 0 -27" keyTimes="0;0.5;1" dur="0.8s" repeatCount="indefinite" />
-                </path>
-                <path d="M0 -27 L5 -13 L3 -1" fill="none" stroke="#5a4632" strokeWidth="4.5" strokeLinecap="round">
-                  <animateTransform attributeName="transform" type="rotate" values="-14 0 -27;14 0 -27;-14 0 -27" keyTimes="0;0.5;1" dur="0.8s" repeatCount="indefinite" />
-                </path>
-              </g>
-              {/* Legs while standing (gust, catch wait, point). */}
-              <g opacity="0">
-                <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.9194;0.925;1" dur="18s" repeatCount="indefinite" />
-                <path d="M-1 -27 L-4 -1 M1 -27 L4 -1" fill="none" stroke="#5a4632" strokeWidth="4.5" strokeLinecap="round" />
-              </g>
-              {/* Teal backpack behind the torso; torso over it. */}
-              <rect x="-16" y="-50" width="10" height="23" rx="4.5" fill="#177e70" />
-              <rect x="-6" y="-52" width="16" height="28" rx="6" fill="#9c4a24" />
-              {/* Arms while walking: gentle counter-swing; front hand
-                  carries the map sheet until the gust takes it. */}
-              <g>
-                <animate attributeName="opacity" values="1;1;0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.9194;0.925;0.9861;0.9917;1" dur="18s" repeatCount="indefinite" />
-                <path d="M-2 -47 L-10 -31" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round">
-                  <animateTransform attributeName="transform" type="rotate" values="10 0 -47;-8 0 -47;10 0 -47" keyTimes="0;0.5;1" dur="0.8s" repeatCount="indefinite" />
-                </path>
-                <path d="M4 -47 L13 -34" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round">
-                  <animateTransform attributeName="transform" type="rotate" values="-8 0 -47;10 0 -47;-8 0 -47" keyTimes="0;0.5;1" dur="0.8s" repeatCount="indefinite" />
-                </path>
-                <circle cx="13" cy="-33" r="3" fill="#caa06a" />
-                <g transform="translate(16 -38) rotate(10)">
-                  <rect x="-6" y="-4.5" width="12" height="9" rx="1" fill="#f7efdb" stroke="#b09b6a" strokeWidth="1">
-                    <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.4417;0.4472;1" dur="18s" repeatCount="indefinite" />
-                  </rect>
-                </g>
-              </g>
-              {/* Arms while standing; the point up-trail swaps the front
-                  arm for the pointing arm at 16.0–16.6s. */}
-              <g opacity="0">
-                <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.9194;0.925;1" dur="18s" repeatCount="indefinite" />
-                <path d="M-2 -47 L-8 -28" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
-                <g>
-                  <animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.8861;0.8917;0.9194;0.925;1" dur="18s" repeatCount="indefinite" />
-                  <path d="M4 -47 L10 -29" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
-                  <circle cx="10" cy="-28" r="3" fill="#caa06a" />
-                </g>
-                <g opacity="0">
-                  <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.8861;0.8917;0.9194;0.925;1" dur="18s" repeatCount="indefinite" />
-                  <path d="M4 -47 L17 -59" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
-                  <circle cx="18" cy="-60" r="3" fill="#caa06a" />
-                </g>
-              </g>
-              {/* Head + rust-orange headwrap; the tail streams behind,
-                  flutters on its own clock, and snaps longer in the gust. */}
-              <circle cx="3" cy="-61" r="8.5" fill="#caa06a" />
-              <path d="M-5.5 -61 A 8.5 8.5 0 0 1 11.5 -61 Z" fill="#e07b2a" />
-              <rect x="-5.5" y="-63.5" width="17" height="3.6" rx="1.8" fill="#c25e2e" />
-              <g transform="translate(-5 -62)">
-                <g>
-                  <animateTransform
-                    attributeName="transform"
-                    type="scale"
-                    values="1 1;1 1;1.45 1.2;1.1 1.05;1 1"
-                    keyTimes="0;0.4444;0.475;0.6111;1"
-                    dur="18s"
-                    repeatCount="indefinite"
-                  />
-                  <g>
-                    <animateTransform attributeName="transform" type="rotate" values="-4;5;-4" keyTimes="0;0.5;1" dur="0.55s" repeatCount="indefinite" />
-                    <path d="M0 0 C -7 0, -12 3, -16 9" fill="none" stroke="#e07b2a" strokeWidth="4" strokeLinecap="round" />
-                  </g>
-                </g>
-              </g>
-            </g>
-          </g>
-          {/* Hold pose (front view): both hands grip the map's top
-              corners, face peeking over the top edge. The map grows
-              DOWN from its top edge (anchored at y=-122, just under
-              his chin) so the head stays connected through the whole
-              raise, and the hands + arms track the corners as it
-              grows — the catch happens at face height, where the
-              flying sheet lands. */}
-          <g opacity="0">
-            <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.6083;0.6139;0.8583;0.8639;1" dur="18s" repeatCount="indefinite" />
-            <path d="M-3 -26 L-4 0 M3 -26 L4 0" fill="none" stroke="#5a4632" strokeWidth="4.5" strokeLinecap="round" />
-            <rect x="-9" y="-50" width="18" height="27" rx="6" fill="#9c4a24" />
-            <path fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round">
-              <animate
-                attributeName="d"
-                values="M-7 -46 L-30 -70 L-14 -116;M-7 -46 L-30 -70 L-14 -116;M-7 -46 L-90 -58 L-81 -113;M-7 -46 L-90 -58 L-81 -113"
-                keyTimes="0;0.6111;0.6667;1"
-                dur="18s"
-                repeatCount="indefinite"
-              />
+            <animateTransform attributeName="transform" type="translate" values="0 0;0 -0.8;0 0;0 -0.8;0 0" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite" />
+
+            {/* Far leg (darker): stance in the second half-cycle,
+                swing in the first — opposite the near leg. */}
+            <path fill="none" stroke="#4a3826" strokeWidth="3.6" strokeLinecap="round">
+              <animate attributeName="d" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite"
+                values="M-1 -18 L0 -9 L-4.5 -1;M-1 -18 L4.5 -10 L0 -3.5;M-1 -18 L4 -9 L5 0;M-1 -18 L3 -9.5 L0.5 0;M-1 -18 L0 -9 L-4.5 -1" />
             </path>
-            <path fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round">
-              <animate
-                attributeName="d"
-                values="M7 -46 L30 -70 L14 -116;M7 -46 L30 -70 L14 -116;M7 -46 L90 -58 L81 -113;M7 -46 L90 -58 L81 -113"
-                keyTimes="0;0.6111;0.6667;1"
-                dur="18s"
-                repeatCount="indefinite"
-              />
+            <ellipse rx="2.7" ry="1.5" fill="#3d2c12">
+              <animate attributeName="cx" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite" values="-4.5;0;5;0.5;-4.5" />
+              <animate attributeName="cy" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite" values="-1;-3.5;0;0;-1" />
+            </ellipse>
+
+            {/* Far arm + its pole: plants WITH the near foot (opposite
+                pairing) — tip grounded ahead at cycle start, sweeps
+                back, pushes off at mid-cycle, swings forward lifted. */}
+            <path fill="none" stroke="#8a3f1f" strokeWidth="3.4" strokeLinecap="round">
+              <animate attributeName="d" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite"
+                values="M-3 -29 L-7 -26 L-5 -21.5;M-3 -29 L-8 -25.5 L-6 -21;M-3 -29 L-6 -25 L-4 -20;M-3 -29 L-6.5 -25 L-4.5 -20.5;M-3 -29 L-7 -26 L-5 -21.5" />
             </path>
-            <g transform="translate(0 -122)">
-              <g>
-                <animateTransform
-                  attributeName="transform"
-                  type="scale"
-                  values="0.16;0.16;1;1"
-                  keyTimes="0;0.6111;0.6667;1"
-                  dur="18s"
-                  repeatCount="indefinite"
-                />
-                <g transform="translate(0 62)">
-                  <TrekkerMapFace />
-                </g>
-              </g>
+            <circle r="2" fill="#caa06a">
+              <animate attributeName="cx" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite" values="-5;-6;-4;-4.5;-5" />
+              <animate attributeName="cy" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite" values="-21.5;-21;-20;-20.5;-21.5" />
+            </circle>
+
+            {/* Teal backpack behind the torso; torso over it, with a
+                wind-fluttered hem at its back-bottom corner. */}
+            <rect x="-13.5" y="-31" width="8.5" height="14.5" rx="4" fill="#177e70" />
+            <rect x="-14.5" y="-32.5" width="7" height="4" rx="2" fill="#12685c" />
+            <rect x="-5" y="-32" width="12" height="14" rx="5" fill="#9c4a24" />
+            <path d="M-5 -19.5 C -8 -18.5, -9 -16.5, -8.2 -14.5" fill="none" stroke="#7e3a1c" strokeWidth="2.4" strokeLinecap="round">
+              <animateTransform attributeName="transform" type="rotate" values="-3 -5 -19.5;4 -5 -19.5;-3 -5 -19.5" keyTimes="0;0.5;1" dur="0.7s" repeatCount="indefinite" />
+            </path>
+
+            {/* Near leg: stance in the first half-cycle (foot planted,
+                body passes over it), swing in the second. */}
+            <path fill="none" stroke="#5a4632" strokeWidth="3.6" strokeLinecap="round">
+              <animate attributeName="d" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite"
+                values="M1 -18 L4 -9 L5 0;M1 -18 L3 -9.5 L0.5 0;M1 -18 L0 -9 L-4.5 -1;M1 -18 L4.5 -10 L0 -3.5;M1 -18 L4 -9 L5 0" />
+            </path>
+            <ellipse rx="2.7" ry="1.5" fill="#4c3a14">
+              <animate attributeName="cx" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite" values="5;0.5;-4.5;0;5" />
+              <animate attributeName="cy" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite" values="0;0;-1;-3.5;0" />
+            </ellipse>
+
+            {/* The far pole, drawn after the legs on purpose: its
+                shaft crosses behind the body from the back hand, and
+                at this size the plant only reads if the lower shaft
+                and tip stay visible against the trail. */}
+            <path fill="none" stroke="#4a5058" strokeWidth="1.9" strokeLinecap="round">
+              <animate attributeName="d" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite"
+                values="M-5 -21.5 L8 0;M-6 -21 L1 0;M-4 -20 L-6 -0.5;M-4.5 -20.5 L0 -4.5;M-5 -21.5 L8 0" />
+            </path>
+
+            {/* Near arm + its pole: plants WITH the far foot at
+                mid-cycle, pushes off as the cycle wraps. Elbow stays
+                bent; the hand rides the pole grip. */}
+            <path fill="none" stroke="#9c4a24" strokeWidth="3.4" strokeLinecap="round">
+              <animate attributeName="d" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite"
+                values="M4 -29 L7 -25.5 L5.5 -20;M4 -29 L8.5 -25.5 L6.5 -20.5;M4 -29 L10 -26 L8 -21.5;M4 -29 L9 -25.5 L7 -21;M4 -29 L7 -25.5 L5.5 -20" />
+            </path>
+            <path fill="none" stroke="#565d66" strokeWidth="1.9" strokeLinecap="round">
+              <animate attributeName="d" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite"
+                values="M5.5 -20 L-6 -0.5;M6.5 -20.5 L1 -4.5;M8 -21.5 L10 0;M7 -21 L2 0;M5.5 -20 L-6 -0.5" />
+            </path>
+            <circle r="2" fill="#caa06a">
+              <animate attributeName="cx" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite" values="5.5;6.5;8;7;5.5" />
+              <animate attributeName="cy" calcMode="linear" keyTimes="0;0.25;0.5;0.75;1" dur="1.8s" repeatCount="indefinite" values="-20;-20.5;-21.5;-21;-20" />
+            </circle>
+
+            {/* Headwrap tails: two strands streaming behind the head,
+                fluttering on their own fast clocks — the wind never
+                stops, the whole loop long. */}
+            <g transform="translate(-4.2 -38.5)">
+              <path d="M0 0 C -5 0.5, -9 3, -12.5 6.5" fill="none" stroke="#e07b2a" strokeWidth="3" strokeLinecap="round">
+                <animateTransform attributeName="transform" type="rotate" values="-4;6;-4" keyTimes="0;0.5;1" dur="0.6s" repeatCount="indefinite" />
+              </path>
+              <path d="M0 1.5 C -4 2, -7 4.5, -9.5 7" fill="none" stroke="#c25e2e" strokeWidth="2.2" strokeLinecap="round">
+                <animateTransform attributeName="transform" type="rotate" values="5;-5;5" keyTimes="0;0.5;1" dur="0.45s" repeatCount="indefinite" />
+              </path>
             </g>
-            <circle cy="-116" r="4.2" fill="#caa06a">
-              <animate attributeName="cx" values="-14;-14;-79;-79" keyTimes="0;0.6111;0.6667;1" dur="18s" repeatCount="indefinite" />
-            </circle>
-            <circle cy="-116" r="4.2" fill="#caa06a">
-              <animate attributeName="cx" values="14;14;79;79" keyTimes="0;0.6111;0.6667;1" dur="18s" repeatCount="indefinite" />
-            </circle>
-            <ellipse cx="-5" cy="0.5" rx="5" ry="2.6" fill="#4c3a14" />
-            <ellipse cx="5" cy="0.5" rx="5" ry="2.6" fill="#4c3a14" />
-            <circle cx="0" cy="-133" r="10.5" fill="#caa06a" />
-            <path d="M-10.5 -133 A 10.5 10.5 0 0 1 10.5 -133 Z" fill="#e07b2a" />
-            <rect x="-10.5" y="-135.5" width="21" height="4.4" rx="2" fill="#c25e2e" />
-            <circle cx="12" cy="-135" r="3.2" fill="#c25e2e" />
+            {/* Head + rust-orange headwrap (child: head ≈27% of height). */}
+            <circle cx="1.5" cy="-37.5" r="5.9" fill="#caa06a" />
+            <path d="M-4.4 -37.5 A 5.9 5.9 0 0 1 7.4 -37.5 Z" fill="#e07b2a" />
+            <rect x="-4.4" y="-39.8" width="11.8" height="2.4" rx="1.2" fill="#c25e2e" />
           </g>
         </g>
       </g>
 
-      {/* The escaped sheet: drifts in the gust second, then tumbles
-          exactly 1.5 flips into his hands. Lives in overlay space —
-          its path is drawn in hero coordinates, not figure space. */}
-      <g opacity="0">
-        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4417;0.4472;0.6083;0.6139;1" dur="18s" repeatCount="indefinite" />
-        <animateMotion
-          path={TREKKER_PAPER_PATH}
-          keyPoints="0;0;1;1"
-          keyTimes="0;0.4444;0.6111;1"
-          calcMode="linear"
-          dur="18s"
-          repeatCount="indefinite"
-        />
-        <g>
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            values="0;0;0;540;540"
-            keyTimes="0;0.4444;0.5;0.6111;1"
-            dur="18s"
-            repeatCount="indefinite"
-          />
-          <rect x="-13" y="-9" width="26" height="18" rx="1.5" fill="#f7efdb" stroke="#b09b6a" strokeWidth="1.2" />
-          <path d="M-13 0 L13 0" stroke="#d8c9a3" strokeWidth="1" />
-        </g>
-      </g>
-
-      {/* Valley mist over the leg's foot: thick at the loop point and
-          for the exit, thin while he performs. Front-most layer. */}
+      {/* Valley mist over the leg's foot: thick at the loop point
+          (his entrance), thin while he climbs. Front of the figure. */}
       <g>
         <animateTransform attributeName="transform" type="translate" values="-6 0;6 0;-6 0" keyTimes="0;0.5;1" dur="18s" repeatCount="indefinite" />
         <ellipse cx="330" cy="452" rx="150" ry="62" fill="url(#tk-mist)">
           <animate attributeName="opacity" values="0.95;0.5;0.22;0.22;0.75;1" keyTimes="0;0.09;0.22;0.9;0.97;1" dur="18s" repeatCount="indefinite" />
+        </ellipse>
+      </g>
+
+      {/* Mist bank at the leg's top end: thin while he climbs, thick
+          at the exit so the reset happens inside it — no jump cut. */}
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="-5 0;5 0;-5 0" keyTimes="0;0.5;1" dur="18s" repeatCount="indefinite" />
+        <ellipse cx="415" cy="312" rx="95" ry="30" fill="url(#tk-mist)">
+          <animate attributeName="opacity" values="0.35;0.15;0.15;0.7;1;0.35" keyTimes="0;0.1;0.8;0.88;0.95;1" dur="18s" repeatCount="indefinite" />
         </ellipse>
       </g>
     </svg>

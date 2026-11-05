@@ -1,3 +1,26 @@
+# Branch status — design/hero-trekker-prototype v2 (Trekker SIMPLIFIED — DESIGN PROTOTYPE, no PR)
+
+- **Branch:** `design/hero-trekker-prototype` (v2 commits on top of v1 tip `fa90915`)
+- **Authority:** owner ruling 2026-11-04 20:29 on the v1 capture (verbatim): "Reduce the size of the animated cartoon guy, this is supposed be a child walking the trail and let just keep it to that. No more compleities, but while trekking you need sticks and make it realistic trekking please and wind blowing, climbing slowly." This SUPERSEDES the "Catch It, Pin It" choreography below (kept as history).
+- **Scope:** prototype-for-pick, same harness (`?ui=1&hero=trekker`), no PR, no merge, production untouched.
+
+## What v2 is
+
+- [x] ONLY a child trekking. DELETED from the rig: the paper/sheet, the gust event, the tumble, the catch, the hold-up map reveal (`TrekkerMapFace`), the tuck, the point, the walk-back-down + facing flip. Nothing flies, nothing is caught, nothing is shown to the viewer.
+- [x] SMALLER, child proportions: figure 69.5 → **44 viewBox units** tall (≈73 px → ≈46 px at the 1440 capture, scale 1.048 px/unit) = **63%** of v1. Head ≈27% of height, shorter legs — a child, not a shrunken adult. Identity kept: rust-orange headwrap, teal backpack.
+- [x] TWO trekking poles, realistic gait: legs/arms/poles are keyframed path shapes on one 1.8s step clock, opposite pairing (each pole plants with the opposite foot), pole plants AHEAD, tip stays grounded through stance (sweeps back as the body passes), pushes off behind, swings forward lifted. Tips pass through y=0 (the trail) at every stance keyframe. ~6° forward lean, step bob.
+- [x] Slow climb: he climbs ONE switchback leg (leg 3 of the v1 spline, (294,406)→(402,321)) on the kept 18s master clock — fades in inside the foot mist (0–1.1s), climbs ~14s at ≈9 units/s, fades into a mist bank at the leg's top (15.3–16.7s), reset fully occluded, no jump cut (frame at loop+1.3s matches loop start).
+- [x] Wind, always on: two headwrap tail strands flutter on 0.6s/0.45s clocks, jacket-hem flutter, clouds + mist drift as v1. No gust event.
+- [x] Reduced-motion still: same device gates as v1; the composed frame is now the child mid-climb at t=7.25s (double support — front pole planted, rear pole at push-off, headwrap streaming frozen).
+- [x] Motion layers: 5 (art, trail march, pulse, summit flag, clouds+mist+trekker rig counted as before minus the paper layer) — under the 6 ceiling.
+- Eye-check cure round (1): at gait phase 0 the far pole's plant was too faint (shaft hidden behind the legs, pale stroke) → far pole now draws after the legs in a darker/wider stroke; both poles' tips visibly touch the trail at both plant beats in the cured stills.
+- Gates: `npx tsc --noEmit` clean · `npm run build:pages` green (prebuild lint-cards GATE PASSED) · captures verified by eye (below). Unit/E2E suites NOT run — harness-gated design prototype, v1 precedent.
+- Captures (in `~/workspace/meridian-trekker-evidence/`): `hero-trekker-v2.mp4` (19.7s, hero band at 1440 control framing, one full 18s loop + loop point), `trekker-still-reduced-v2.png`, `climb-3s / 7_25s / 11s / 15s.png` seeked climb stills, `climb-7_2s / 8_1s.png` gait-phase stills (the two plant beats), `capture-v2.mjs` (in-RAM frame variant — see incident note), `wrap-info-v2.json`.
+- Incident note (environment, matter-of-fact): the shared VM's home-volume quota and the 512MB /tmp tmpfs both choked repeatedly mid-capture (EDQUOT −122 / ENOSPC from other lanes' churn); the final capture staged frames in RAM and wrote via /tmp before copying single files into the evidence dir. One duplicate build was started and killed mid-run, wiping `dist/` once; a single clean rebuild restored it (verified `_shell.html` present before capture). No deliverable was affected.
+- Known nit (owner's eye call, not cured): the top mist bank at full thickness (t≈16.5s, after he vanishes) reads as a soft white patch in a frozen frame; in motion it thickens gradually as he fades into it.
+
+---
+
 # Branch status — design/hero-trekker-prototype (Trekker hero beat — DESIGN PROTOTYPE, no PR)
 
 - **Branch:** `design/hero-trekker-prototype`
