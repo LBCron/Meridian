@@ -4157,7 +4157,7 @@ function HeroTrailOverlay() {
 const TREKKER_WALK_PATH =
   "M322 470 C 340 462, 352 455, 350 440 C 348 420, 300 425, 294 406 C 288 386, 315 362, 342 351 C 368 340, 398 336, 402 321";
 const TREKKER_PAPER_PATH =
-  "M415 288 C 450 244, 488 240, 479 266 C 472 287, 442 290, 428 282 C 419 277, 410 268, 404 262";
+  "M415 288 C 452 240, 490 232, 480 254 C 472 272, 440 268, 426 254 C 416 244, 408 224, 404 209";
 
 /** Save-Data / low-memory gate, mirroring LockedTileFilm's mount read. */
 function trekkerStaticGateAtMount(): boolean {
@@ -4178,8 +4178,8 @@ function TrekkerMapFace() {
       <rect x="-82" y="-62" width="164" height="124" rx="5" fill="#f7efdb" stroke="#b09b6a" strokeWidth="2" />
       <path
         d="M-82 18 C -52 2, -30 16, -12 8 C 6 0, 10 -18, 30 -22 C 52 -26, 70 -14, 82 -20 L 82 62 L -82 62 Z"
-        fill="#b3bfa4"
-        opacity="0.75"
+        fill="#a3b494"
+        opacity="0.9"
       />
       <path
         d="M-58 34 C -32 18, -8 22, 6 0 C 16 -15, 32 -21, 45 -29"
@@ -4253,11 +4253,11 @@ function HeroTrekkerOverlay() {
 
       {/* The trekker rig: one group riding the trail leg on the 18s clock. */}
       <g opacity="0">
-        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.07;0.9611;0.9889;1" dur="18s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.07;0.972;0.994;1" dur="18s" repeatCount="indefinite" />
         <animateMotion
           path={TREKKER_WALK_PATH}
           keyPoints="0;1;1;0;0"
-          keyTimes="0;0.4444;0.9222;0.9889;1"
+          keyTimes="0;0.4444;0.9222;0.994;1"
           calcMode="linear"
           dur="18s"
           repeatCount="indefinite"
@@ -4269,7 +4269,7 @@ function HeroTrekkerOverlay() {
             attributeName="transform"
             type="scale"
             values="1 1;1 1;-1 1;-1 1;-1 1;1 1"
-            keyTimes="0;0.9222;0.928;0.99;0.996;1"
+            keyTimes="0;0.9222;0.928;0.994;0.998;1"
             dur="18s"
             repeatCount="indefinite"
           />
@@ -4359,15 +4359,36 @@ function HeroTrekkerOverlay() {
               </g>
             </g>
           </g>
-          {/* Hold pose (front view): both hands on the map's top
-              corners, face peeking over the top edge. */}
+          {/* Hold pose (front view): both hands grip the map's top
+              corners, face peeking over the top edge. The map grows
+              DOWN from its top edge (anchored at y=-122, just under
+              his chin) so the head stays connected through the whole
+              raise, and the hands + arms track the corners as it
+              grows — the catch happens at face height, where the
+              flying sheet lands. */}
           <g opacity="0">
             <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.6083;0.6139;0.8583;0.8639;1" dur="18s" repeatCount="indefinite" />
             <path d="M-3 -26 L-4 0 M3 -26 L4 0" fill="none" stroke="#5a4632" strokeWidth="4.5" strokeLinecap="round" />
             <rect x="-9" y="-50" width="18" height="27" rx="6" fill="#9c4a24" />
-            <path d="M-7 -46 L-90 -58 L-81 -113" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
-            <path d="M7 -46 L90 -58 L81 -113" fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round" />
-            <g transform="translate(0 -60)">
+            <path fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round">
+              <animate
+                attributeName="d"
+                values="M-7 -46 L-30 -70 L-14 -116;M-7 -46 L-30 -70 L-14 -116;M-7 -46 L-90 -58 L-81 -113;M-7 -46 L-90 -58 L-81 -113"
+                keyTimes="0;0.6111;0.6667;1"
+                dur="18s"
+                repeatCount="indefinite"
+              />
+            </path>
+            <path fill="none" stroke="#9c4a24" strokeWidth="4.5" strokeLinecap="round">
+              <animate
+                attributeName="d"
+                values="M7 -46 L30 -70 L14 -116;M7 -46 L30 -70 L14 -116;M7 -46 L90 -58 L81 -113;M7 -46 L90 -58 L81 -113"
+                keyTimes="0;0.6111;0.6667;1"
+                dur="18s"
+                repeatCount="indefinite"
+              />
+            </path>
+            <g transform="translate(0 -122)">
               <g>
                 <animateTransform
                   attributeName="transform"
@@ -4377,17 +4398,23 @@ function HeroTrekkerOverlay() {
                   dur="18s"
                   repeatCount="indefinite"
                 />
-                <TrekkerMapFace />
+                <g transform="translate(0 62)">
+                  <TrekkerMapFace />
+                </g>
               </g>
             </g>
-            <circle cx="-79" cy="-117" r="4.2" fill="#caa06a" />
-            <circle cx="79" cy="-117" r="4.2" fill="#caa06a" />
+            <circle cy="-116" r="4.2" fill="#caa06a">
+              <animate attributeName="cx" values="-14;-14;-79;-79" keyTimes="0;0.6111;0.6667;1" dur="18s" repeatCount="indefinite" />
+            </circle>
+            <circle cy="-116" r="4.2" fill="#caa06a">
+              <animate attributeName="cx" values="14;14;79;79" keyTimes="0;0.6111;0.6667;1" dur="18s" repeatCount="indefinite" />
+            </circle>
             <ellipse cx="-5" cy="0.5" rx="5" ry="2.6" fill="#4c3a14" />
             <ellipse cx="5" cy="0.5" rx="5" ry="2.6" fill="#4c3a14" />
-            <circle cx="0" cy="-128" r="9.5" fill="#caa06a" />
-            <path d="M-9.5 -130 A 9.5 9.5 0 0 1 9.5 -130 Z" fill="#e07b2a" />
-            <rect x="-9.5" y="-132.5" width="19" height="4" rx="2" fill="#c25e2e" />
-            <circle cx="11" cy="-130" r="3" fill="#c25e2e" />
+            <circle cx="0" cy="-133" r="10.5" fill="#caa06a" />
+            <path d="M-10.5 -133 A 10.5 10.5 0 0 1 10.5 -133 Z" fill="#e07b2a" />
+            <rect x="-10.5" y="-135.5" width="21" height="4.4" rx="2" fill="#c25e2e" />
+            <circle cx="12" cy="-135" r="3.2" fill="#c25e2e" />
           </g>
         </g>
       </g>
@@ -4424,7 +4451,7 @@ function HeroTrekkerOverlay() {
       <g>
         <animateTransform attributeName="transform" type="translate" values="-6 0;6 0;-6 0" keyTimes="0;0.5;1" dur="18s" repeatCount="indefinite" />
         <ellipse cx="330" cy="452" rx="150" ry="62" fill="url(#tk-mist)">
-          <animate attributeName="opacity" values="0.95;0.5;0.22;0.22;0.55;0.95" keyTimes="0;0.09;0.22;0.9;0.97;1" dur="18s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.95;0.5;0.22;0.22;0.75;1" keyTimes="0;0.09;0.22;0.9;0.97;1" dur="18s" repeatCount="indefinite" />
         </ellipse>
       </g>
     </svg>
