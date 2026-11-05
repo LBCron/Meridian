@@ -3951,7 +3951,14 @@ export function GameApp() {
           <PackDoorway
             onGeoDetective={() => void openLoopWithCapitalsPack()}
             onColdTrail={openTrailWithCapitalsPack}
-            density={homeVariantParam("doorway") === "about-slim" ? "compact" : "full"}
+            density={(homeVariantParam("doorway") ?? "").startsWith("about-slim") ? "compact" : "full"}
+            doors={
+              homeVariantParam("doorway") === "about-slim-named"
+                ? "named"
+                : homeVariantParam("doorway") === "about-slim-signpost"
+                  ? "none"
+                  : "generic"
+            }
           />
         )
       }
@@ -4057,7 +4064,10 @@ function startNoticeTarget(
  * (hero has no perceptible motion; the Capitals & Flags doorway is
  * off-theme and its placement should move beside the About card) are
  * switchable via URL params so he can pick in place:
- *   ?ui=1&hero=v1|v2&doorway=about|about-slim|map
+ *   ?ui=1&hero=v1|v2&doorway=about|about-slim|about-slim-named|about-slim-signpost|map
+ * The about-slim-named / about-slim-signpost doorway variants are the
+ * owner's 2026-11-04 redundancy pick: same slim strip beside About,
+ * with pack-named door labels, or with no doors at all (signpost).
  * With no `ui` param the home page renders exactly as production.
  */
 function homeVariantParam(name: string): string | null {
@@ -4275,7 +4285,11 @@ function Choose({
   const uiVariants = homeVariantParam("ui") === "1";
   const heroVariant = uiVariants ? homeVariantParam("hero") : null;
   const doorwayVariant = uiVariants ? homeVariantParam("doorway") : null;
-  const doorwayBesideAbout = doorwayVariant === "about" || doorwayVariant === "about-slim";
+  const doorwayBesideAbout =
+    doorwayVariant === "about" ||
+    doorwayVariant === "about-slim" ||
+    doorwayVariant === "about-slim-named" ||
+    doorwayVariant === "about-slim-signpost";
   const variantHref = (hero: string, doorwaySpot: string) =>
     `?ui=1&hero=${hero}&doorway=${doorwaySpot}`;
   const variantBar = uiVariants ? (
@@ -4286,6 +4300,8 @@ function Choose({
       <span>Doorway:</span>
       <a href={variantHref(heroVariant ?? "v1", "about")} aria-current={doorwayVariant === "about"}>Beside About</a>
       <a href={variantHref(heroVariant ?? "v1", "about-slim")} aria-current={doorwayVariant === "about-slim"}>Beside About · slim</a>
+      <a href={variantHref(heroVariant ?? "v1", "about-slim-named")} aria-current={doorwayVariant === "about-slim-named"}>Slim · named doors</a>
+      <a href={variantHref(heroVariant ?? "v1", "about-slim-signpost")} aria-current={doorwayVariant === "about-slim-signpost"}>Slim · signpost</a>
       <a href={variantHref(heroVariant ?? "v1", "map")} aria-current={doorwayVariant === "map"}>Control · under map</a>
     </nav>
   ) : null;

@@ -22,6 +22,14 @@
  * unchanged word-for-word. `density="compact"` is the anti-crowding
  * cut for the beside-About placement: same words, same doors, tighter
  * footprint.
+ *
+ * DOORWAY OPTIONS (owner pick by eye, 2026-11-04): the strip reads as
+ * redundant next to the mode cards below because the generic labels
+ * never say the doors deal this pack. `doors` switches the door row:
+ * "generic" (shipped, default), "named" (labels name the pack —
+ * "Capitals in GeoDetective"), "none" (signpost: flags + title +
+ * sub-line only, no doors). GameApp sets it from the harness doorway
+ * param; production never passes it.
  */
 import { useEffect, useState } from "react";
 
@@ -40,10 +48,12 @@ export function PackDoorway({
   onGeoDetective,
   onColdTrail,
   density = "full",
+  doors = "generic",
 }: {
   onGeoDetective: () => void;
   onColdTrail: () => void;
   density?: "full" | "compact";
+  doors?: "generic" | "named" | "none";
 }) {
   const [landCount, setLandCount] = useState<number | null>(null);
 
@@ -83,24 +93,26 @@ export function PackDoorway({
         {landCount !== null ? `${landCount} lands · ` : ""}Find the capital,
         learn its flag
       </p>
-      <div className="hv5-doorway-doors">
-        <button
-          type="button"
-          data-testid="pack-doorway-geodetective"
-          onClick={onGeoDetective}
-          className="hv5-btn hv5-btn-brown"
-        >
-          🔎 Play in GeoDetective
-        </button>
-        <button
-          type="button"
-          data-testid="pack-doorway-coldtrail"
-          onClick={onColdTrail}
-          className="hv5-btn hv5-btn-ghost"
-        >
-          ❄️ Play in Cold Trail
-        </button>
-      </div>
+      {doors === "none" ? null : (
+        <div className="hv5-doorway-doors">
+          <button
+            type="button"
+            data-testid="pack-doorway-geodetective"
+            onClick={onGeoDetective}
+            className="hv5-btn hv5-btn-brown"
+          >
+            {doors === "named" ? "🔎 Capitals in GeoDetective" : "🔎 Play in GeoDetective"}
+          </button>
+          <button
+            type="button"
+            data-testid="pack-doorway-coldtrail"
+            onClick={onColdTrail}
+            className="hv5-btn hv5-btn-ghost"
+          >
+            {doors === "named" ? "❄️ Capitals in Cold Trail" : "❄️ Play in Cold Trail"}
+          </button>
+        </div>
+      )}
     </section>
   );
 }
