@@ -1910,6 +1910,38 @@ export async function recordTelemetry(
       bucket.alerts.push(alertId);
       alertTexts.push(buildThresholdAlert(event.type, hour, bucket, cfg, corrPerBuild));
     }
+
+    // Can't-tell escalation leg — cheapest legs first, in this order:
+    // "other" never escalates · pattern count ≥3 · candidate total ≥5 ·
+    // once per pattern+hour · trailing leg (>3× the pattern's trailing
+    // 24h average). The 24 trailing reads are spent ONLY after the
+    // cheap legs pass (read economy: ≤25 reads on an evaluating event).
+    if (isCandidate && pattern !== undefined && pattern !== "other") {
+      const patternCount = bucket.cantTellGroups[pattern] ?? 0;
+      const cantTellId = `canttell:${event.type}:${hour}:${pattern}`;
+      if (patternCount >= 3 && candidateTotal >= 5 && !bucket.alerts.includes(cantTellId)) {
+        try {
+          let trailing = 0;
+          for (let h = 1; h <= TRAILING_BASELINE_HOURS; h++) {
+            const older = await store.readBucket(
+              bucketKey(hourLabelOf(now - h * HOUR_MS), event.type),
+            );
+            trailing += older?.cantTellGroups?.[pattern] ?? 0;
+          }
+          const trailingAvg = trailing / TRAILING_BASELINE_HOURS;
+          if (patternCount > ANOMALY_RATIO * trailingAvg) {
+            bucket.alerts.push(cantTellId);
+            alertTexts.push(
+              buildCantTellAlert(event.type, hour, pattern, patternCount, candidateTotal, trailingAvg),
+            );
+          }
+        } catch {
+          // A trailing-read failure skips the escalation for this event
+          // only — it must not discard the count via the outer fail-open
+          // catch (which would also flip counted and ungate the event).
+        }
+      }
+    }
     await store.writeBucket(key, bucket);
     return { counted: true, alerted: alertTexts.length > 0, alertTexts };
   } catch (err) {

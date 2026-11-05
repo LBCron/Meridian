@@ -582,10 +582,14 @@ test("threshold alert: suspected_crash still alerts at the per-build threshold (
   const { store } = memoryStore();
   const cfg = thresholdConfig({});
   const now = 1_729_000_000_000;
+  // A captured error keeps this fixture developer_needed, so it is not
+  // a can't-tell candidate — this test pins the threshold alert only.
+  const crashTile = () =>
+    tileEvent({ type: "suspected_crash", error: { name: "Error", message: "boom" } }) as CrashReportEvent;
   for (let i = 0; i < 9; i++) {
     const r = await recordTelemetry(
       store,
-      tileEvent({ type: "suspected_crash" }) as CrashReportEvent,
+      crashTile(),
       now,
       cfg, "corroborated"
     );
@@ -593,7 +597,7 @@ test("threshold alert: suspected_crash still alerts at the per-build threshold (
   }
   const r10 = await recordTelemetry(
     store,
-    tileEvent({ type: "suspected_crash" }) as CrashReportEvent,
+    crashTile(),
     now,
     cfg, "corroborated"
   );
