@@ -4070,9 +4070,15 @@ function homeVariantParam(name: string): string | null {
  * painted mountain art exactly (same 800×533 viewBox, sliced like the
  * img's object-fit: cover / right-bottom) — a dotted trail whose dots
  * march along the painted switchbacks, a gold pulse that climbs the
- * trail to the summit, and a waving flag on the peak. Zero new assets.
- * Under prefers-reduced-motion the pulse is never rendered and the
- * CSS kills the march + wave, leaving a static dotted trail.
+ * trail to the summit, a waving flag on the peak, and soft cloud
+ * forms drifting in front of the upper slopes (owner's V1b pick,
+ * 2026-11-04: the painted summits already sit in mist bands, so the
+ * clouds move — "the mountains are in the cloud"). V1b also answers
+ * his "very subtle" note: bigger pulse core + halo + comet tail,
+ * larger/brisker trail dots, wider flag wave. Zero new assets.
+ * Under prefers-reduced-motion the pulse and clouds are never
+ * rendered and the CSS kills the march + wave, leaving a static
+ * dotted trail.
  */
 function HeroTrailOverlay() {
   const reduced =
@@ -4087,27 +4093,92 @@ function HeroTrailOverlay() {
       preserveAspectRatio="xMaxYMax slice"
       aria-hidden="true"
     >
+      <defs>
+        <filter id="hv5-cloud-soft" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="9" />
+        </filter>
+      </defs>
       <path
         d={trail}
         fill="none"
         stroke="#7c5a1e"
-        strokeWidth="4.5"
+        strokeWidth="5.5"
         strokeLinecap="round"
-        strokeDasharray="0.1 9"
+        strokeDasharray="0.1 11"
         className="hv5-trail-dots"
-        opacity="0.85"
+        opacity="0.95"
       />
       {!reduced ? (
-        <circle r="5.5" fill="#b8932f" stroke="#fffdf6" strokeWidth="2">
-          <animateMotion dur="9s" repeatCount="indefinite" path={trail} />
-          <animate
-            attributeName="opacity"
-            values="0;1;1;0"
-            keyTimes="0;0.06;0.92;1"
-            dur="9s"
-            repeatCount="indefinite"
-          />
-        </circle>
+        <g className="hv5-clouds" aria-hidden="true">
+          <g className="hv5-cloud-drift-a" filter="url(#hv5-cloud-soft)" fill="#fdfbf3">
+            <ellipse cx="0" cy="118" rx="120" ry="17" opacity="0.32" />
+            <ellipse cx="85" cy="106" rx="80" ry="13" opacity="0.26" />
+            <ellipse cx="-80" cy="108" rx="70" ry="12" opacity="0.22" />
+            <ellipse cx="560" cy="238" rx="130" ry="15" opacity="0.2" />
+            <ellipse cx="645" cy="228" rx="75" ry="11" opacity="0.16" />
+          </g>
+          <g className="hv5-cloud-drift-b" filter="url(#hv5-cloud-soft)" fill="#fdfbf3">
+            <ellipse cx="330" cy="168" rx="105" ry="14" opacity="0.24" />
+            <ellipse cx="405" cy="158" rx="65" ry="10" opacity="0.19" />
+            <ellipse cx="60" cy="268" rx="95" ry="12" opacity="0.15" />
+          </g>
+        </g>
+      ) : null}
+      {!reduced ? (
+        <g className="hv5-trail-pulse">
+          <path
+            d={trail}
+            fill="none"
+            stroke="#e9cd7d"
+            strokeWidth="7"
+            strokeLinecap="round"
+            pathLength={100}
+            strokeDasharray="10 90"
+            opacity="0.55"
+            className="hv5-pulse-tail"
+          >
+            <animate
+              attributeName="stroke-dashoffset"
+              from="10"
+              to="-90"
+              dur="9s"
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="opacity"
+              values="0;0.55;0.55;0"
+              keyTimes="0;0.05;0.93;1"
+              dur="9s"
+              repeatCount="indefinite"
+            />
+          </path>
+          <circle r="13" fill="#b8932f" opacity="0.28" className="hv5-pulse-halo">
+            <animateMotion dur="9s" repeatCount="indefinite" path={trail} />
+            <animate
+              attributeName="opacity"
+              values="0;0.28;0.28;0"
+              keyTimes="0;0.06;0.92;1"
+              dur="9s"
+              repeatCount="indefinite"
+            />
+          </circle>
+          <circle
+            r="8.5"
+            fill="#b8932f"
+            stroke="#fffdf6"
+            strokeWidth="2.5"
+            className="hv5-pulse-core"
+          >
+            <animateMotion dur="9s" repeatCount="indefinite" path={trail} />
+            <animate
+              attributeName="opacity"
+              values="0;1;1;0"
+              keyTimes="0;0.06;0.92;1"
+              dur="9s"
+              repeatCount="indefinite"
+            />
+          </circle>
+        </g>
       ) : null}
       <g transform="translate(20 6)">
         <g className="hv5-trail-flag">

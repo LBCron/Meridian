@@ -1560,24 +1560,53 @@ body:has(.home-v5) {
   pointer-events: none;
 }
 .home-v5 .hv5-trail-dots {
-  animation: hv5-trailmarch 5s linear infinite;
+  animation: hv5-trailmarch 3s linear infinite;
 }
 @keyframes hv5-trailmarch {
   to {
-    stroke-dashoffset: -91;
+    stroke-dashoffset: -111;
+  }
+}
+/* V1b clouds (owner's pick, 2026-11-04): two banks of blurred
+   watercolor cloud forms drifting in front of the upper slopes.
+   Each bank is 1600 units wide — the viewBox pattern doubled — and
+   translates ±800, so the 28s / 40s loops are seamless. The pulse
+   trail runs later in the SVG, so the climber stays in front of the
+   weather. Periods are long but the travel is a full scene width,
+   which keeps the drift clearly perceptible at capture size. */
+.home-v5 .hv5-cloud-drift-a {
+  animation: hv5-clouddrift-a 28s linear infinite;
+}
+.home-v5 .hv5-cloud-drift-b {
+  animation: hv5-clouddrift-b 40s linear infinite;
+}
+@keyframes hv5-clouddrift-a {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-800px);
+  }
+}
+@keyframes hv5-clouddrift-b {
+  from {
+    transform: translateX(-800px);
+  }
+  to {
+    transform: translateX(0);
   }
 }
 .home-v5 .hv5-trail-flag {
   transform-box: view-box;
   transform-origin: 523px 116px;
-  animation: hv5-flagwave 2.6s ease-in-out infinite alternate;
+  animation: hv5-flagwave 2.2s ease-in-out infinite alternate;
 }
 @keyframes hv5-flagwave {
   from {
-    transform: rotate(-3deg);
+    transform: rotate(-5deg);
   }
   to {
-    transform: rotate(4.5deg);
+    transform: rotate(8deg);
   }
 }
 @media (max-width: 1080px) {
@@ -1590,7 +1619,9 @@ body:has(.home-v5) {
 @media (prefers-reduced-motion: reduce) {
   .home-v5 .hv5-mtn-v2,
   .home-v5 .hv5-trail-dots,
-  .home-v5 .hv5-trail-flag {
+  .home-v5 .hv5-trail-flag,
+  .home-v5 .hv5-cloud-drift-a,
+  .home-v5 .hv5-cloud-drift-b {
     animation: none;
   }
 }

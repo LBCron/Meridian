@@ -689,3 +689,22 @@ Cured, per the three adversary reports + coordinator synthesis:
 - **Biggest gaps fixed:** `recovery_outcome` (8th event type, conditional tier) undocumented everywhere; the entire verdict classifier undocumented; `results` response field missing; all error shapes missing; test count stale (42 → 85).
 - **Files changed:** `workers/crash-report/README.md`, this file. Nothing else.
 - **Done:** [x] audit sealed · [x] README fixed · [x] gates sealed at `~/workspace/meridian-issue-wave/evidence/221/` (test:worker 0 · typecheck:worker 0 · tsc 0 · lint-cards 0 · build:pages 0 · npm test: src suite 1879/1879 pass; scripts suite 851 pass / 1 fail / 9 skip — the 1 fail is `ssr-build-shape` configPath pointing at the sibling `repo/` clone because this worktree's `node_modules` is a symlink to `repo/node_modules`; the same test passes 2/2 on unmodified main in the `repo/` clone, sealed as `ssr-shape-main-control.log`, so it is a worktree-environment artifact, not this docs change) · [ ] PR opened (filled in by the PR-open commit's successor record in the PR body)
+
+## Hero V1b — motion strengthened (2026-11-04, owner feedback round)
+
+- Owner on V1: "The motion in this one is very subtle. I would appreciate
+  adding a little more." And on the ambient layer he picked it himself:
+  **moving clouds** — "Since the mountains are in the cloud, I believe
+  adding that clouds are moving would make it more sense."
+- Changes (SVG/CSS only, same branch, on top of the variants commit):
+  pulse core r 5.5→8.5 + soft halo r 13 + comet tail (10% of trail,
+  fading); trail dots 4.5→5.5 wide, dash period 9.1→11.1, march
+  5s→3s per cycle, opacity 0.85→0.95; flag wave −3°/+4.5°→−5°/+8°,
+  period 2.6s→2.2s; clouds = two blurred watercolor banks drifting in
+  front of the upper slopes (28s leftward / 40s rightward seamless
+  loops, peak blob opacity 0.32). Reduced-motion stills everything.
+- Capture: `hero-v1b.mp4` in `~/workspace/meridian-home-rework-evidence/`
+  (control doorway framing, peak visible). No PR, no merge.
+- Note: mid-session the worktree + remote were rolled back externally
+  and the first V1b commit was lost; this commit re-applies the
+  identical changes (verified against the session record).
