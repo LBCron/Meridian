@@ -1,0 +1,498 @@
+/*
+ * DetectivePair rig animation (U4).
+ *
+ * Rules: transform / opacity ONLY (compositor-friendly), every selector
+ * prefixed `detective-`, no filter or shadow animation. A pose is a
+ * class on the rig root (detective-pose-<pose>) toggled by the U5 state
+ * machine; the static pose geometry (arm angles, head tilts, faces)
+ * lives in DetectivePair.tsx, this file only adds MOTION on top.
+ * Rig parts are addressed by their data-part attributes.
+ */
+
+.detective-rig {
+  display: block;
+  overflow: visible;
+}
+
+.detective-rig [data-part] {
+  transform-box: view-box;
+}
+
+.detective-rig [data-part="bob"] {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.detective-rig .detective-mouth {
+  transform-box: fill-box;
+  transform-origin: 50% 20%;
+}
+
+/* --- idle breath (dock + station poses) --- */
+@keyframes detective-breath {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+.detective-pose-dock [data-part="bob"],
+.detective-pose-berth-think [data-part="bob"],
+.detective-pose-ack [data-part="bob"],
+.detective-pose-gaze-up [data-part="bob"],
+.detective-pose-card-look [data-part="bob"],
+.detective-pose-station-idle [data-part="bob"],
+.detective-pose-notebook-mark [data-part="bob"],
+.detective-pose-read [data-part="bob"],
+.detective-pose-think [data-part="bob"] {
+  animation: detective-breath 2.8s ease-in-out infinite;
+}
+
+/* --- walk: bob + opposite leg/arm swing --- */
+@keyframes detective-swing-a {
+  from {
+    transform: rotate(17deg);
+  }
+  to {
+    transform: rotate(-17deg);
+  }
+}
+
+@keyframes detective-swing-b {
+  from {
+    transform: rotate(-17deg);
+  }
+  to {
+    transform: rotate(17deg);
+  }
+}
+
+@keyframes detective-walk-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.6px);
+  }
+}
+
+.detective-pose-walk [data-part="leg-a"] {
+  animation: detective-swing-a 0.36s ease-in-out infinite alternate;
+}
+
+.detective-pose-walk [data-part="leg-b"] {
+  animation: detective-swing-b 0.36s ease-in-out infinite alternate;
+}
+
+.detective-pose-walk [data-part="arm-swing"] {
+  animation: detective-swing-b 0.36s ease-in-out infinite alternate;
+}
+
+.detective-pose-walk [data-part="bob"] {
+  animation: detective-walk-bob 0.36s ease-in-out infinite;
+}
+
+/* --- dock: occasional glass polish (long cycle, brief motion) --- */
+@keyframes detective-glass-polish {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-10deg);
+  }
+  55% {
+    transform: rotate(-4deg);
+  }
+  78% {
+    transform: rotate(-9deg);
+  }
+}
+
+.detective-pose-dock [data-part="arm-front"] {
+  animation: detective-glass-polish 1.25s ease-in-out;
+  animation-delay: 4s;
+  animation-iteration-count: 2;
+}
+
+/* --- station-idle: pencil tap --- */
+@keyframes detective-pencil-tap {
+  0%,
+  68%,
+  100% {
+    transform: rotate(0deg);
+  }
+  76% {
+    transform: rotate(-4.5deg);
+  }
+  84% {
+    transform: rotate(0deg);
+  }
+  91% {
+    transform: rotate(-4.5deg);
+  }
+  97% {
+    transform: rotate(0deg);
+  }
+}
+
+.detective-pose-station-idle [data-part="arm-note"] {
+  animation: detective-pencil-tap 2.8s ease-in-out infinite;
+}
+
+/* --- celebrate: jump --- */
+@keyframes detective-jump {
+  0% {
+    transform: translateY(0);
+  }
+  22% {
+    transform: translateY(-13px);
+  }
+  58% {
+    transform: translateY(-13px);
+  }
+  82% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.detective-pose-celebrate-jump {
+  animation: detective-jump 1.15s ease-in-out;
+}
+
+/* --- clap: arms alternate toward each other --- */
+/* Clap keyframes oscillate AROUND each rig's clap-together base
+   angles (set in DetectivePair.tsx), so the hands stay met. */
+@keyframes detective-clap-a {
+  from {
+    transform: rotate(30deg);
+  }
+  to {
+    transform: rotate(44deg);
+  }
+}
+
+@keyframes detective-clap-b {
+  from {
+    transform: rotate(-44deg);
+  }
+  to {
+    transform: rotate(-30deg);
+  }
+}
+
+@keyframes detective-clap-watson-front {
+  from {
+    transform: rotate(-58deg);
+  }
+  to {
+    transform: rotate(-44deg);
+  }
+}
+
+@keyframes detective-clap-watson-note {
+  from {
+    transform: rotate(32deg);
+  }
+  to {
+    transform: rotate(46deg);
+  }
+}
+
+.detective-pose-clap [data-part="bob"] {
+  animation: detective-walk-bob 0.15s ease-in-out infinite;
+}
+
+.detective-holmes.detective-pose-clap [data-part="arm-front"] {
+  animation: detective-clap-a 0.17s ease-in-out infinite alternate;
+}
+
+.detective-holmes.detective-pose-clap [data-part="arm-swing"] {
+  animation: detective-clap-b 0.17s ease-in-out infinite alternate;
+}
+
+.detective-watson.detective-pose-clap [data-part="arm-front"] {
+  animation: detective-clap-watson-front 0.17s ease-in-out infinite alternate;
+}
+
+.detective-watson.detective-pose-clap [data-part="arm-note"] {
+  animation: detective-clap-watson-note 0.17s ease-in-out infinite alternate;
+}
+
+/* --- speaking: generic mouth flap — oscillation, NOT lip-sync --- */
+@keyframes detective-mouth-flap {
+  from {
+    transform: scaleY(0.45);
+  }
+  to {
+    transform: scaleY(1.2);
+  }
+}
+
+@keyframes detective-speak-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.6px);
+  }
+}
+
+.detective-speaking .detective-mouth {
+  animation: detective-mouth-flap 0.26s ease-in-out infinite alternate;
+}
+
+.detective-speaking [data-part="head"] {
+  animation: detective-speak-bob 0.3s ease-in-out infinite;
+}
+
+/* --- reduced motion: poses still change, motion does not --- */
+@media (prefers-reduced-motion: reduce) {
+  .detective-rig,
+  .detective-rig [data-part],
+  .detective-rig .detective-mouth {
+    animation: none !important;
+  }
+}
+
+/* --- host layout (U5): stations + dock ------------------------------- */
+/* The host is pointer-transparent: the pair never intercepts a tap meant
+   for the clue card or the map. Motion stays in the rig rules above;
+   these classes are placement only (transform on the station wrapper is
+   a static offset, not an animation). */
+
+.detective-host-station {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  pointer-events: none;
+  transform: translateY(-100%);
+}
+
+.detective-host-dock {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.detective-host-figure {
+  pointer-events: none;
+}
+
+/* --- companion wrapper (U6): Holmes's map-side stage ------------------ */
+/* The portal wrapper fills the map container; Holmes's own element is
+   moved ONLY by translate3d (set inline by the host, transition-driven
+   for the walk / exit bursts). Nothing here animates per frame. */
+.detective-host-map {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.detective-host-holmes {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Solver-hide: absence must land fast — the hide path's transition is
+   80 ms, under the 100 ms absence ceiling (council Q2 §8). */
+.detective-host-holmes-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 80ms linear,
+    visibility 0s linear 80ms;
+}
+
+.detective-host-figure svg {
+  display: block;
+  height: 104px;
+  width: auto;
+}
+
+/* --- celebrate cluster (U8) ------------------------------------------ */
+/* A fixed stage inside the station cluster: Holmes at the origin,
+   Watson offset by CELEBRATE_LAYOUT (DetectivePair.tsx) so the two
+   raised hands meet palm-to-palm in the high-five step. Positions are
+   set once — the choreography changes poses, never layout. Size: the
+   offset Watson (46.7 px) + his rendered width (134 × 104/140 ≈ 99.5 px)
+   ≈ 146 px wide, one rig tall. */
+.detective-host-celebrate {
+  position: relative;
+  width: 147px;
+  height: 104px;
+  flex: none;
+}
+
+.detective-celebrate-holmes,
+.detective-celebrate-watson {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+/* The spark crowns the high-five: its box is translated so its BOTTOM
+   edge sits 8 px ABOVE the contact point — it can never mask the hands
+   it celebrates. A gentle pulse, transform/opacity only. */
+.detective-celebrate-spark {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -100%) translateY(-8px);
+  color: #f5c542;
+  font-size: 18px;
+  line-height: 1;
+  pointer-events: none;
+  animation: detective-spark-pulse 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes detective-spark-pulse {
+  from {
+    opacity: 0.65;
+    scale: 0.85;
+  }
+  to {
+    opacity: 1;
+    scale: 1.1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detective-celebrate-spark {
+    animation: none;
+  }
+}
+
+/* --- listen button (U9, tap speech mode) ----------------------------- */
+/* The one interactive element the pair owns: a real button, so it
+   carries pointer events and a visible label, sized past the
+   44x44 px floor, dark text on white (contrast well over 4.5:1).
+   Its fixed wrapper mirrors the station cluster's anchor so the
+   button sits beside the pair at the active clue card. */
+.detective-host-listen {
+  position: fixed;
+  z-index: 31;
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+.detective-listen-button {
+  pointer-events: auto;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 2px solid #14213d;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #14213d;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.detective-listen-button:focus-visible {
+  outline: 3px solid #14213d;
+  outline-offset: 2px;
+}
+
+/* --- tap-Watson replay (Unit A) -------------------------------------- */
+/* The replay control is a transparent button laid over Watson's whole
+   figure, so a tap anywhere on Watson asks him to repeat the clue —
+   at the station it covers his rendered box (104 px tall, ≈100 px
+   wide), at the map dock the same box over the dock cluster. Only the
+   ↻ badge is visible: a small white disc at his lower edge, gently
+   pulsing (transform/opacity only) so a first-time player notices
+   Watson is tappable. The station wrapper mirrors the station
+   cluster's anchor (fixed, translated up by its full height); the
+   button itself carries the pointer events, like the Listen button. */
+.detective-host-watson-replay {
+  position: fixed;
+  z-index: 31;
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+.detective-watson-replay {
+  pointer-events: auto;
+  position: relative;
+  display: block;
+  width: 100px;
+  height: 104px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.detective-watson-replay-dock {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 6;
+}
+
+.detective-watson-replay-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #14213d;
+  background: #ffffff;
+  color: #14213d;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: detective-replay-cue 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes detective-replay-cue {
+  from {
+    opacity: 0.72;
+    scale: 0.92;
+  }
+  to {
+    opacity: 1;
+    scale: 1.08;
+  }
+}
+
+.detective-watson-replay:focus-visible {
+  outline: 3px solid #14213d;
+  outline-offset: 2px;
+}
+
+/* Reduced motion: the cue is static — present, but never animated. */
+@media (prefers-reduced-motion: reduce) {
+  .detective-watson-replay-badge {
+    animation: none;
+  }
+}

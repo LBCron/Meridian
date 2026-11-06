@@ -97,6 +97,39 @@ For the youngest players (Little Explorer, ages 5–7), GeoDetective is locked, 
 
 Two of the card films come in a second version, picked by the player's age band through two small selector functions in the same `card-media.ts` module. Little Explorer players (ages 5–7) see a softer Cold Trail film: the same walk out along the footprint trail and back, at a slower, gentler pace. Trail Scout players (ages 8–10) see a different Review film: the magnifying glass sweeps out and back over the satchel and settles on the usual picture, where the standard Review film overshoots, rewinds, and pauses to rethink. Every other player — including anyone who has not set a band, who gets the standard films — sees the films described above. The choice is exact and fails safe: only the one band named for each variant ever downloads it, the card boxes and the component never change, and the same reduced-motion, Save-Data, and low-memory rules apply to the variants too.
 
+### Detective audio (Holmes & Watson, in build)
+
+GeoDetective is gaining two spoken companions — Holmes on the map, Watson at the clue card — behind the `detectivePair` feature flag, which ships off. Their voices are **pre-rendered on purpose**: every line is recorded ahead of time with the two pinned voices, because a live text-to-speech voice on the player's device cannot hold the characters' measured pitch or pace. Lines live as plain MP3 files under `public/audio/detective/`, fetched only when a case plays — never bundled, never precached.
+
+The render pipeline lives in `scripts/detective/`. One command re-renders a case end to end (five clue reads plus the answer read):
+
+```bash
+node scripts/detective/render-audio.mjs --case 137
+```
+
+Each render is measured (pitch and words-per-minute) and recorded in `public/audio/detective/manifest.json` with a hash of its exact words, voice, speed and gain. If a clue's words change later, that line's hash no longer matches, and the staleness gate — `npm run check:detective-audio`, also wired into every build — fails and names the stale line until it is re-rendered. Case 137 ships with its renders as the development/test case; the Capitals & Flags cases are the first claimed coverage.
+
+### Holmes & Watson on the case
+
+When the pair is switched on, two companions join GeoDetective. Watson stands by the clue card and reads each clue aloud. Holmes acknowledges, adds a short decode, then waits on the map: when a player pauses to think, he walks over and thinks beside the pause — never pointing, never hinting, because he never sees the answer, any guess score, or even which case is being played. A chosen place gets its name read back with one and the same suspicion line for every pick. A solve ends in a jump, a high-five with real hand contact, and a short deduction speech; a loss ends with Holmes reading the answer the game itself just revealed, and both of them pouting.
+
+A player can also ask Watson to say the current clue again: while Watson is on screen for a clue or during the guessing that follows it, his figure carries a small ↻ badge, and tapping him — or focusing his "Ask Watson to repeat this clue" button and pressing it — replays that clue's read, acknowledgement, and decode from the start, even mid-read. This works whether clues play by themselves or only on tap; with sound off there is nothing held to replay, and the badge steps away with the speech.
+
+Ending a game celebrates too, in every edition. When the pair is switched on and a player ends a game — State, Country, Globe or GeoDetective — Holmes and Watson appear on the summary card and run the same celebration around the final score: jump, high-five, claps. The session total and its per-edition split are shown inside their celebration frame, and Holmes says one fixed line ("What a game! Well played, everyone!"). He deliberately does not read the number aloud: early renders of a word-by-word spoken score measured pitch-unstable from one render pass to the next, so the score lives in the frame as text — exactly the number the card itself shows — and a spoken line can never disagree with it. While the celebration plays, the summary's storyteller narration waits its turn, exactly as it does for the game's other celebrations. On reduced-motion, Save-Data or low-memory setups the pair instead stands still at the high-five and stays silent; with the flag off, the summary card is unchanged.
+
+The pair ships **behind the `detectivePair` feature flag, which is off by default** (`public/flags.json` carries it as `false`). With the flag off, none of their code mounts and the game is exactly the game described above. Turning them on later is a flags change, not a new release.
+
+On smaller or quieter setups the pair steps back instead of getting in the way:
+
+| What the device asks for | What the pair does |
+| --- | --- |
+| Reduced motion | No walks — Holmes appears beside a thinking pause by an instant cut, after a longer 600 ms pause. Sound is unchanged. |
+| Save-Data, little memory (≤ 4 GB), or battery saver | Holmes stays at his dock instead of walking, and clues no longer play by themselves — a **Listen** button beside the clue card plays the current clue's read, acknowledgement, and decode when tapped. |
+| Sound off | No speech at all; the pair is pictures only, and every fact stays on screen as text. |
+| Read-aloud set to "never" or "sometimes" | Same Listen button — it is never hidden, because it is the player's own tool. |
+
+The decision itself is one small pure function, `resolveDetectiveDegradation` in `src/game/loop/detective/detective-degradation.ts`, and the voices follow the pre-rendered pipeline in [Detective audio](#detective-audio-holmes--watson-in-build) above.
+
 ### Supporting the game
 
 Meridian is free for kids — no paywalls, no accounts. Grown-ups can buy the builder a coffee: **"Grown-ups — buy me a coffee? ☕"** — "Your support keeps Meridian free for kids". That copy is locked verbatim.
