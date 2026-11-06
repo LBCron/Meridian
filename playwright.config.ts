@@ -156,6 +156,50 @@ export default defineConfig({
       testMatch: /pwa\.spec\.ts/,
     },
     {
+      // U9: the detectivePair flag gate (host absent at the committed
+      // false, mounted when an intercepted flags.json flips it true).
+      name: "detective-flag",
+      testMatch: /detective-flag\.spec\.ts/,
+      use: { viewport: { width: 1440, height: 900 } },
+    },
+    {
+      // U10 gates pack: one project per detective gate spec (the U9
+      // one-project-per-spec convention).
+      name: "detective-stations",
+      testMatch: /detective-stations\.spec\.ts/,
+      use: { viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: "detective-companion",
+      testMatch: /detective-companion\.spec\.ts/,
+      use: { viewport: { width: 768, height: 1024 } },
+    },
+    {
+      name: "detective-swap",
+      testMatch: /detective-swap\.spec\.ts/,
+      use: { viewport: { width: 800, height: 700 } },
+    },
+    {
+      name: "detective-endings",
+      testMatch: /detective-endings\.spec\.ts/,
+      use: { viewport: { width: 1440, height: 900 } },
+    },
+    {
+      // Unit A (fold-in): tap-Watson replay — auto-mode retention,
+      // elsewhere-tap negative, mid-read restart.
+      name: "detective-replay",
+      testMatch: /detective-replay\.spec\.ts/,
+      use: { viewport: { width: 1440, height: 900 } },
+    },
+    {
+      // Unit B (fold-in): game-end celebration on the run summary in
+      // every edition. The reduced-motion variant rides the shared
+      // `reduced` project (detective-summary.reduced.spec.ts).
+      name: "detective-summary",
+      testMatch: /detective-summary\.spec\.ts/,
+      use: { viewport: { width: 1440, height: 900 } },
+    },
+    {
       name: "feature-flags",
       testMatch: /feature-flags\.spec\.ts/,
     },
