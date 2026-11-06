@@ -1043,11 +1043,16 @@ export function provenanceOf(event: CrashReportEvent): Provenance {
     event.type === "unhandled_rejection" ||
     event.type === "map_error"
   ) {
+    // Linked: a sessionId plus either a lastMilestone or the numeric
+    // msSinceBootStart that emit() derives from the SAME live breadcrumb
+    // that supplies the sessionId. lastMilestone alone is not enough to
+    // require: the route error boundary and the region-chunk load
+    // failure emit js_error post-init with no lastMilestone (#353 fix).
     const linked =
       typeof event.sessionId === "string" &&
       event.sessionId.length > 0 &&
-      typeof event.lastMilestone === "string" &&
-      event.lastMilestone.length > 0;
+      ((typeof event.lastMilestone === "string" && event.lastMilestone.length > 0) ||
+        typeof event.msSinceBootStart === "number");
     // Exact pre-init wire signature: emit() couples a sessionId and a
     // numeric msSinceBootStart through the same breadcrumb, so a hybrid
     // (sessionId present ∧ msSinceBootStart "unknown") is unproducible

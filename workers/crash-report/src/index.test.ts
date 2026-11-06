@@ -51,7 +51,7 @@ import {
   type KvLike,
   type TelemetryStore,
 } from "./index.ts";
-import { BREADCRUMB_KEY, createObservability } from "../../../src/lib/observability.ts";
+import { BREADCRUMB_KEY, createObservability, sanitizeError } from "../../../src/lib/observability.ts";
 
 /** An allow-listed origin (review S4). Every browser POST carries one. */
 const GAME_ORIGIN = "https://meridian.knowledgetest.workers.dev";
@@ -2664,8 +2664,13 @@ test("W9′(vi) P4b′ pre-init js_error (exact signature, graft: no sessionId, 
   );
   assert.equal(
     provenanceOf(provJsError({ lastMilestone: undefined }) as never),
+    "corroborated",
+    "P4b′ linked arm: sessionId + numeric msSinceBootStart links without lastMilestone (route error / chunk-load emit none)",
+  );
+  assert.equal(
+    provenanceOf(provJsError({ lastMilestone: undefined, msSinceBootStart: "unknown" }) as never),
     "uncorroborated",
-    "P4b′ linked arm requires lastMilestone; numeric msSinceBootStart is not the pre-init signature",
+    "P4b′ hybrid: sessionId with neither lastMilestone nor numeric msSinceBootStart is unproducible",
   );
   // Gate outcome: js_error is crash-class — the same pre-init payload forwards.
   const { map } = memoryStore();
@@ -3238,3 +3243,103 @@ test("W16 legacy pre-Slice-1 event: counted-only + escalation-eligible — Liz's
   assert.equal(bucket.provenance.uncorroborated, 5);
   assert.ok(fired.includes("❔"), "a widespread legacy failure surfaces only via the can't-tell escalation");
 });
+
+// --- P4b′ real-client drive: live errors emitted WITHOUT lastMilestone ------
+//
+// Regression pin for the #353 blocker: the route error boundary
+// (src/lib/error-component.tsx) and the region-chunk load failure
+// (src/components/game-app.tsx) emit js_error after init() with a
+// sessionId but no lastMilestone. Those are real kid crashes and must
+// stay corroborated + forwarded.
+
+function driveLiveEmittedJsError(err: unknown): Record<string, unknown> {
+  const beacons: string[] = [];
+  let t = 5000;
+  const obs = createObservability({
+    storage: makeObsStorage(),
+    durableStorage: makeObsStorage(),
+    transport: {
+      sendBeacon: (_url: string, body: string) => {
+        beacons.push(body);
+        return true;
+      },
+    },
+    endpoint: "https://example.com/ingest",
+    now: () => (t += 250),
+    randomId: () => "live-session",
+    buildId: "a1b2c3d4e5f6",
+    isUnclean: () => false,
+    document: null,
+  });
+  obs.init();
+  // Exact call shape of both client sites: buildId "" and no lastMilestone.
+  obs.emit({ type: "js_error", ts: Date.now(), buildId: "", error: sanitizeError(err) });
+  const sent = beacons.map((b) => JSON.parse(b) as Record<string, unknown>).filter((p) => p.type === "js_error");
+  assert.equal(sent.length, 1, "exactly one js_error left the client");
+  return sent[0];
+}
+
+for (const [label, err] of [
+  ["route error boundary (error-component.tsx)", new TypeError("Cannot read properties of undefined (reading 'map')")],
+  [
+    "region-chunk load failure (game-app.tsx)",
+    new Error("We couldn't open the Globe right now. Check that you're online, then tap Play again."),
+  ],
+] as const) {
+  test(`P4b′ real client drive: ${label} js_error (sessionId, no lastMilestone) → corroborated and forwards once`, async () => {
+    const payload = driveLiveEmittedJsError(err);
+    assert.equal(payload.sessionId, "live-session", "emit() stamped the live sessionId");
+    assert.equal(payload.lastMilestone, undefined, "the real client sends no lastMilestone on this path");
+    assert.equal(typeof payload.msSinceBootStart, "number", "emit() couples a numeric msSinceBootStart");
+    assert.equal(provenanceOf(payload as never), "corroborated", "P4b′ live linkage");
+    const { map, store } = memoryStore();
+    globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+      fetchCalls.push({ url: String(url), init });
+      return new Response("{}", { status: 200 });
+    }) as typeof fetch;
+    const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+    const res = await handleRequest(postEvent(payload), env);
+    assert.equal(res.status, 200);
+    assert.equal(fetchCalls.length, 1, "real crash pages Discord exactly once");
+    assert.equal(fetchCalls[0].url, "https://discord.test/hook");
+    const bucket = (await store.readBucket(bucketKey(hourLabelOf(Date.now()), "js_error")))!;
+    assert.equal(bucket.provenance.corroborated, 1, "counted as corroborated");
+  });
+}
+
+// The probes that paged on 2026-11-05/06 ("periodic-probe", "wake-check"):
+// js_error with a non-generator buildId, no device, no error. Both the
+// bare shape and a strengthened one (session + numeric ms + stamps) stay
+// uncorroborated and do NOT forward while KV is up.
+for (const buildId of ["wake-check", "periodic-probe"]) {
+  const bare = { type: "js_error", ts: Date.now(), buildId };
+  const strengthened = {
+    type: "js_error",
+    ts: Date.now(),
+    buildId,
+    sessionId: "probe-session",
+    msSinceBootStart: 1234,
+    lcV: "2",
+    storageOk: true,
+    deviceSource: "live",
+  };
+  for (const [shape, ev] of [
+    ["bare", bare],
+    ["session+ms+stamps, no device", strengthened],
+  ] as const) {
+    test(`P1′/P3′ probe js_error buildId=${buildId} (${shape}) → uncorroborated, counted, not forwarded`, async () => {
+      assert.equal(provenanceOf(ev as never), "uncorroborated");
+      const { map, store } = memoryStore();
+      globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+        fetchCalls.push({ url: String(url), init });
+        return new Response("{}", { status: 200 });
+      }) as typeof fetch;
+      const env = storeEnv(map, { DISCORD_WEBHOOK_URL: "https://discord.test/hook" });
+      const res = await handleRequest(postEvent(ev), env);
+      assert.equal(res.status, 200);
+      assert.equal(fetchCalls.length, 0, "probe does not page");
+      const bucket = (await store.readBucket(bucketKey(hourLabelOf(Date.now()), "js_error")))!;
+      assert.equal(bucket.provenance.uncorroborated, 1, "probe counted as uncorroborated");
+    });
+  }
+}
