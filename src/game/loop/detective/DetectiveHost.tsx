@@ -978,16 +978,38 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
    * tier after a kill reads "killed" only while DOCK_ONLY-by-kill;
    * by-design dock-only reads "dock"). */
   const companionKilledRef = useRef(false);
-  const companionMode: CompanionMode =
-    followTier === "PAGE_FOLLOW"
+  /* Cure B (PR #364 cure round): with holmesFollow OFF, data-companion
+   * must keep main's three historical values — the tier remap below
+   * reads "berth" for the flag-OFF base tier (PAUSE_BERTH from first
+   * render), a value that never existed on main, breaking every
+   * flag-OFF spec (kill-switch integrity). The legacy mirror state
+   * re-derives main's state machine ("full" | "dock" | "killed") and
+   * is engaged ONLY when the flag is off; it is updated at the three
+   * transition points that map 1:1 onto main's three effects (base /
+   * degradation, case change, auto-kill judge). The tier machine and
+   * data-follow-tier are untouched. */
+  const [legacyCompanionMode, setLegacyCompanionMode] = useState<
+    "full" | "dock" | "killed"
+  >("full");
+  const legacyModeForDegradation = (): "full" | "dock" =>
+    degradationRef.current.companionMode === "dock-only" ? "dock" : "full";
+  const companionMode: CompanionMode = followFlagOn
+    ? followTier === "PAGE_FOLLOW"
       ? "full"
       : followTier === "PAUSE_BERTH"
         ? "berth"
         : companionKilledRef.current
           ? "killed"
-          : "dock";
+          : "dock"
+    : legacyCompanionMode;
   /* Base tier follows the flag + the degradation matrix. */
   useEffect(() => {
+    // Cure B, point 1: the mirror updates HERE so label + tier stay in
+    // sync if the flags resolve late (suppressed while the kill latch
+    // is set, exactly like main's degradation effect).
+    if (!followFlagOn && !companionKilledRef.current) {
+      setLegacyCompanionMode(legacyModeForDegradation());
+    }
     const m = tierMachineRef.current!;
     setFollowTier(
       m.setBase(
@@ -1007,6 +1029,9 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
     if (seenKillCaseRef.current === caseIndex) return;
     seenKillCaseRef.current = caseIndex;
     companionKilledRef.current = false;
+    // Cure B, point 2: the latch reset above re-derives the mirror
+    // (main's case-change effect) — flag-OFF only.
+    if (!followFlagOn) setLegacyCompanionMode(legacyModeForDegradation());
     killRef.current?.reset();
     const m = tierMachineRef.current!;
     let t = m.tier;
@@ -1288,6 +1313,8 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
       if (killRef.current?.killed) {
         if (!companionKilledRef.current) {
           companionKilledRef.current = true;
+          // Cure B, point 3 (kill): mirror reads "killed" — flag-OFF only.
+          if (!followFlagOn) setLegacyCompanionMode("killed");
           const next = m.stepDown();
           // eslint-disable-next-line no-console
           console.info(
@@ -1297,6 +1324,8 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
         }
       } else if (companionKilledRef.current) {
         companionKilledRef.current = false;
+        // Cure B, point 3 (recovery): re-derive dock/full — flag-OFF only.
+        if (!followFlagOn) setLegacyCompanionMode(legacyModeForDegradation());
         const next = m.requalify();
         // eslint-disable-next-line no-console
         console.info(
