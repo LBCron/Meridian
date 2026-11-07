@@ -4,45 +4,38 @@ import {
   companionMode,
   currentPhase,
   currentPlacement,
-  fulfillFlagsStaging,
+  followTier,
+  fulfillFlagsFollowOff,
   installDetectiveRecorder,
   detectivePlays,
   waitForSearchIdle,
 } from "./detective-u10";
 
 /**
- * Detective REAL-BERTH gate (berth cure, 2026-11-07).
+ * Detective PAUSE-BERTH gate — REWRITTEN for PB-1 (2026-11-07).
  *
- * The shipped gates preconditioned on companionMode === "full" and
- * read an FG-5 auto-kill latch as an environment result — so a
- * latched build passed by construction while Holmes never berthed
- * in production (DIAGNOSIS-bench-at-close.md, defect 2). This spec
- * does the opposite: it never treats "killed" as a pass, and a berth
- * counts only as a MEASURED ARRIVAL —
+ * The old spec gated the berth ENGINE: a 320 px remote cutoff, an
+ * above-the-point anchor rule, and dock-return on cancel/kill. The
+ * owner restatement deleted that model: Holmes follows the pointer
+ * across the whole page and stays with it (detective-follow.spec.ts
+ * gates that model). What survives of the berth is the TIER beneath
+ * follow — holmesFollow OFF, a stepped-down device, or degraded
+ * input — where a genuine pause still berths Holmes NEAR the pause
+ * and he holds there. This spec gates exactly that, with the flag
+ * intercepted OFF:
  *
- *   - Holmes's wrapper leaves the dock (displacement > 40 px, the
- *     staging spec's own rule), AND
- *   - placement reads "berth", AND
- *   - the wrapper's centre lands within the berth law's reach of
- *     the pause point: centre distance in [56, 320] px (the ARRIVAL
- *     band: 56 is BERTH_EDGE_MIN, not a centre minimum — the solver's
- *     centre minimums are 64 px desktop / 96 px touch — and 320 px is
- *     the remote cutoff) and strictly ABOVE the point.
- *
- * Cases: mouse pause at 1280, touch pause (CDP, finger held with
- * micro-jitter) at 390, and the post-throttle RECOVERY case at 1280:
- * CPU-throttle in SEARCH until the kill latch provably fires, prove
- * a pause then produces no berth, unthrottle, prove the companion
- * re-qualifies (mode returns to "full" + the re-qualified console
- * line), then prove a real berth lands.
+ *   - a pause FAR from the dock (> 320 px — the remote rule is
+ *     gone) still berths, anywhere on the page;
+ *   - the landing is the pause NEIGHBOURHOOD (no above-the-point
+ *     anchor rule survives);
+ *   - a touch pause at 390 berths the same way;
+ *   - the FG-5 kill still steps the tier to DOCK_ONLY (no berth
+ *     while killed), and re-qualification restores the berth tier —
+ *     the #362 recovery contract, restated in tier terms.
  */
 
 test.setTimeout(420_000);
 
-/** Open the seam case WITH staging on (the staging spec's pattern):
- * u10's openSeamCase waits for the station element, which the bench
- * stage suppresses whole (cure C1) — with staging on, the case opens
- * on the bench and speech unlocks from there. */
 async function openStagingCase(page: Page, index: number): Promise<void> {
   await page.goto(`http://127.0.0.1:4123/Meridian/?loop-puzzle=${index}`);
   await page
@@ -65,7 +58,7 @@ async function openStagingCase(page: Page, index: number): Promise<void> {
       await expect.poll(count, { timeout: 4_000 }).toBeGreaterThan(0);
       return;
     } catch {
-      /* tap again — the tap may land before the listener arms */
+      /* tap again */
     }
   }
   throw new Error("speech never unlocked after 8 verified gesture taps");
@@ -82,34 +75,6 @@ async function holmesWrapperPos(page: Page) {
   });
 }
 
-/** A map tap can open the place-confirm sheet, which hides the
- * host whole (wrapper unmounted) until dismissed — the staging
- * spec's pattern. */
-async function dismissSheetIfOpen(page: Page) {
-  const dialog = page.getByRole("dialog");
-  if (await dialog.isVisible().catch(() => false)) {
-    await page
-      .getByRole("button", { name: "Not this one" })
-      .click()
-      .catch(() => undefined);
-    await page.waitForTimeout(400);
-  }
-}
-
-async function waitForDock(page: Page) {
-  let pos: { x: number; y: number } | null = null;
-  await expect
-    .poll(
-      async () => {
-        pos = await holmesWrapperPos(page);
-        return pos !== null;
-      },
-      { timeout: 30_000 },
-    )
-    .toBe(true);
-  return pos!;
-}
-
 async function showMap(page: Page) {
   await page.evaluate(() => {
     document
@@ -119,73 +84,48 @@ async function showMap(page: Page) {
   await page.waitForTimeout(700);
 }
 
-/** Berth point per the staging spec's cure-C12 geometry: within the
- * 320 px remote cutoff of the dock centre (155, mapH-64 map-relative)
- * at both widths used here. */
-function berthPointFor(
-  width: number,
-  mb: { x: number; y: number; width: number; height: number },
-) {
-  return width === 390
-    ? { x: mb.x + mb.width * 0.72, y: mb.y + mb.height * 0.3 }
-    : { x: mb.x + mb.width * 0.48, y: mb.y + mb.height * 0.5 };
-}
-
-type Landed = { x: number; y: number; distFromDock: number; centreDist: number };
-
-/** The measured-arrival check shared by every case in this spec. */
+/** A berth counts only as a MEASURED ARRIVAL: placement "berth",
+ * wrapper displaced > 40 px from its start, centre within 220 px
+ * of the pause point (the follow neighbourhood). */
 async function checkLanded(
   page: Page,
   point: { x: number; y: number },
-  dockPos: { x: number; y: number },
-): Promise<Landed | null> {
+  startPos: { x: number; y: number },
+): Promise<{ x: number; y: number } | null> {
   if ((await currentPlacement(page)) !== "berth") return null;
   const p = await holmesWrapperPos(page);
   if (!p) return null;
-  const distFromDock = Math.hypot(p.x - dockPos.x, p.y - dockPos.y);
-  if (distFromDock <= 40) return null;
-  // Wrapper box is 70x104 (HOLMES_BOX): centre from its top-left.
-  const centre = { x: p.x + 35, y: p.y + 52 };
-  const centreDist = Math.hypot(centre.x - point.x, centre.y - point.y);
-  if (centreDist < 56 || centreDist > 320) return null;
-  if (centre.y >= point.y) return null; // berth law: above the point
-  return { ...p, distFromDock, centreDist };
+  if (Math.hypot(p.x - startPos.x, p.y - startPos.y) <= 40) return null;
+  const centre = { x: p.x + 52, y: p.y + 52 };
+  if (Math.hypot(centre.x - point.x, centre.y - point.y) > 220) return null;
+  return p;
 }
 
-/** Mouse hover-berth with the staging spec's nudge discipline, but
- * no companion precondition: a kill mid-attempt is waited out via
- * re-qualification, never read as a pass. */
 async function berthAtMouse(
   page: Page,
   point: { x: number; y: number },
-  dockPos: { x: number; y: number },
-  timeoutMs = 120_000,
-): Promise<Landed> {
+  startPos: { x: number; y: number },
+  timeoutMs = 90_000,
+): Promise<{ x: number; y: number }> {
   const deadline = Date.now() + timeoutMs;
   await page.mouse.move(point.x, point.y, { steps: 8 });
   await page.mouse.move(point.x + 2, point.y + 1, { steps: 2 });
-  const fastUntil = Date.now() + 6_000;
-  while (Date.now() < fastUntil) {
-    const landed = await checkLanded(page, point, dockPos);
-    if (landed) return landed;
-    await page.waitForTimeout(400);
-  }
   while (Date.now() < deadline) {
-    const landed = await checkLanded(page, point, dockPos);
+    const landed = await checkLanded(page, point, startPos);
     if (landed) return landed;
     const phase = await currentPhase(page);
     if (phase && phase.startsWith("SEARCH")) {
       await page.mouse.move(point.x + 1, point.y, { steps: 2 });
       await page.mouse.move(point.x, point.y, { steps: 2 });
     }
-    await page.waitForTimeout(1_500);
+    await page.waitForTimeout(1_200);
   }
   throw new Error(
-    `no REAL berth within ${timeoutMs}ms (phase=${await currentPhase(page)}, companion=${await companionMode(page)}, placement=${await currentPlacement(page)})`,
+    `no berth within ${timeoutMs}ms (phase=${await currentPhase(page)}, companion=${await companionMode(page)}, placement=${await currentPlacement(page)}, tier=${await followTier(page)})`,
   );
 }
 
-test("real berth: mouse pause lands Holmes at the pause point (desktop 1280)", async ({
+test("pause-berth tier: a FAR pause berths in its neighbourhood and holds (1280, follow OFF)", async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -194,30 +134,37 @@ test("real berth: mouse pause lands Holmes at the pause point (desktop 1280)", a
   try {
     await serveBuiltArtifact(context);
     await installDetectiveRecorder(context, 3);
-    await fulfillFlagsStaging(context);
+    await fulfillFlagsFollowOff(context);
     const page = await context.newPage();
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
-    const mapBox = await page.getByTestId("loop-map").boundingBox();
-    expect(mapBox).not.toBeNull();
-    // First map interaction enters Holmes; the dock is read after.
-    await page.mouse.move(mapBox!.x + 40, mapBox!.y + 40);
-    await page.mouse.down();
-    await page.mouse.up();
-    await dismissSheetIfOpen(page);
-    const dockPos = await waitForDock(page);
-    const point = berthPointFor(1280, mapBox!);
-    const landed = await berthAtMouse(page, point, dockPos);
+    expect(await followTier(page)).toBe("PAUSE_BERTH");
+    const startPos = await holmesWrapperPos(page);
+    expect(startPos).not.toBeNull();
+    const mb = await page.getByTestId("loop-map").boundingBox();
+    expect(mb).not.toBeNull();
+    // Far corner of the map — well beyond the deleted 320 px remote
+    // cutoff from the dock, and BELOW-RIGHT of it: the old anchor
+    // rule (strictly above the point) is gone too.
+    const point = { x: mb!.x + mb!.width * 0.82, y: mb!.y + mb!.height * 0.78 };
+    expect(
+      Math.hypot(point.x - startPos!.x, point.y - startPos!.y),
+    ).toBeGreaterThan(320);
+    const landed = await berthAtMouse(page, point, startPos!);
     console.log(
-      `[berth mouse 1280] dock=(${dockPos!.x},${dockPos!.y}) point=(${Math.round(point.x)},${Math.round(point.y)}) landed=(${landed.x},${landed.y}) distFromDock=${Math.round(landed.distFromDock)}px centreDist=${Math.round(landed.centreDist)}px companion=${await companionMode(page)}`,
+      `[berth-tier 1280] far point=(${Math.round(point.x)},${Math.round(point.y)}) landed=(${landed.x},${landed.y})`,
     );
+    // Holds: no drift home over 3 s.
+    await page.waitForTimeout(3_000);
+    const held = await checkLanded(page, point, startPos!);
+    expect(held, "the berth must hold, not drift home").not.toBeNull();
   } finally {
     await context.close();
   }
 });
 
-test("real berth: touch pause lands Holmes at the pause point (phone 390)", async ({
+test("pause-berth tier: touch pause berths near the finger (390, follow OFF)", async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -228,39 +175,26 @@ test("real berth: touch pause lands Holmes at the pause point (phone 390)", asyn
   try {
     await serveBuiltArtifact(context);
     await installDetectiveRecorder(context, 3);
-    await fulfillFlagsStaging(context);
+    await fulfillFlagsFollowOff(context);
     const page = await context.newPage();
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
-    const mapBox = await page.getByTestId("loop-map").boundingBox();
-    expect(mapBox).not.toBeNull();
-    // The touch pause is the FIRST map interaction, as in production
-    // and in the diagnosis trace: entry + berth chain from it. The
-    // dock reference is the dock's own geometry (HOLMES_DOCK_X 120,
-    // DOCK_INSET 12, HOLMES_BOX 104 map-relative). The wrapper's
-    // first dock sighting in the loop below is logged against it for
-    // comparison (a few px of scroll settling sit between the map
-    // box measure and the sighting; the >40 px displacement rule
-    // dwarfs either reading). The diagnosis trace measured the same
-    // dock at (141,527) on a 350x439 map.
-    const dockPos = {
-      x: Math.round(mapBox!.x + 120),
-      y: Math.round(mapBox!.y + mapBox!.height - 12 - 104),
-    };
-    const point = berthPointFor(390, mapBox!);
+    expect(await followTier(page)).toBe("PAUSE_BERTH");
+    const startPos = await holmesWrapperPos(page);
+    expect(startPos).not.toBeNull();
+    const mb = await page.getByTestId("loop-map").boundingBox();
+    expect(mb).not.toBeNull();
+    const point = { x: mb!.x + mb!.width * 0.7, y: mb!.y + mb!.height * 0.32 };
     const cdp = await context.newCDPSession(page);
     await cdp.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [{ x: point.x, y: point.y, id: 1 }],
     });
-    let landed: Landed | null = null;
-    let dockSighting: { x: number; y: number } | null = null;
+    let landed: { x: number; y: number } | null = null;
     const deadline = Date.now() + 90_000;
     try {
       while (Date.now() < deadline && !landed) {
-        // Finger micro-jitter, the diagnosis/K2 pattern (a perfectly
-        // still touch emits nothing for the detector to feed on).
         for (const [jx, jy] of [
           [1, 0],
           [0, 1],
@@ -273,10 +207,7 @@ test("real berth: touch pause lands Holmes at the pause point (phone 390)", asyn
             touchPoints: [{ x: point.x + jx, y: point.y + jy, id: 1 }],
           });
           await page.waitForTimeout(350);
-          if (!dockSighting && (await currentPlacement(page)) === "dock") {
-            dockSighting = await holmesWrapperPos(page);
-          }
-          landed = await checkLanded(page, point, dockPos);
+          landed = await checkLanded(page, point, startPos!);
           if (landed) break;
         }
       }
@@ -286,24 +217,19 @@ test("real berth: touch pause lands Holmes at the pause point (phone 390)", asyn
         touchPoints: [],
       });
     }
-    if (dockSighting) {
-      console.log(
-        `[berth touch 390] dock sighting=(${dockSighting.x},${dockSighting.y}) vs geometric dock=(${dockPos.x},${dockPos.y})`,
-      );
-    }
     expect(
       landed,
-      `touch pause must produce a REAL berth (phase=${await currentPhase(page)}, companion=${await companionMode(page)}, placement=${await currentPlacement(page)})`,
+      `touch pause must berth (phase=${await currentPhase(page)}, placement=${await currentPlacement(page)}, tier=${await followTier(page)})`,
     ).not.toBeNull();
     console.log(
-      `[berth touch 390] point=(${Math.round(point.x)},${Math.round(point.y)}) landed=(${landed!.x},${landed!.y}) distFromDock=${Math.round(landed!.distFromDock)}px centreDist=${Math.round(landed!.centreDist)}px`,
+      `[berth-tier 390] point=(${Math.round(point.x)},${Math.round(point.y)}) landed=(${landed!.x},${landed!.y})`,
     );
   } finally {
     await context.close();
   }
 });
 
-test("real berth: post-throttle recovery — kill latches, re-qualifies, berths (desktop 1280)", async ({
+test("pause-berth tier: kill steps down to DOCK_ONLY, re-qualify restores the berth (1280, follow OFF)", async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -313,54 +239,59 @@ test("real berth: post-throttle recovery — kill latches, re-qualifies, berths 
   try {
     await serveBuiltArtifact(context);
     await installDetectiveRecorder(context, 3);
-    await fulfillFlagsStaging(context);
+    await fulfillFlagsFollowOff(context);
     const page = await context.newPage();
     page.on("console", (m) => logs.push(m.text()));
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
-    const mapBox = await page.getByTestId("loop-map").boundingBox();
-    expect(mapBox).not.toBeNull();
-    await page.mouse.move(mapBox!.x + 40, mapBox!.y + 40);
-    await page.mouse.down();
-    await page.mouse.up();
-    await dismissSheetIfOpen(page);
-    const dockPos = await waitForDock(page);
-    const point = berthPointFor(1280, mapBox!);
+    const startPos = await holmesWrapperPos(page);
+    expect(startPos).not.toBeNull();
+    const mb = await page.getByTestId("loop-map").boundingBox();
+    expect(mb).not.toBeNull();
+    const point = { x: mb!.x + mb!.width * 0.5, y: mb!.y + mb!.height * 0.45 };
 
-    /* -- Throttle in SEARCH until the FG-5 latch provably fires --- */
+    /* Throttle in SEARCH until the FG-5 latch fires: the tier must
+     * step DOWN to DOCK_ONLY (companion "killed" reads as the
+     * DOCK_ONLY tier floor). */
     const cdp = await context.newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 8 });
     await expect
       .poll(() => companionMode(page), { timeout: 120_000 })
       .toBe("killed");
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("DOCK_ONLY");
     console.log(
-      `[berth recovery] latch fired under throttle: ${logs.filter((l) => l.includes("auto-killed")).join(" | ") || "(kill line not captured)"}`,
+      `[berth-tier recovery] latch fired under throttle: ${logs.filter((l) => l.includes("auto-killed")).join(" | ") || "(kill line not captured)"}`,
     );
 
-    /* -- While killed, a pause attempt produces NO berth ---------- */
+    /* While killed, a pause attempt produces NO berth. */
     await page.mouse.move(point.x, point.y, { steps: 8 });
     await page.waitForTimeout(3_000);
     expect(
       await currentPlacement(page),
-      "a killed companion must not berth — the latch is real, not a throttle no-op",
+      "a killed companion must not berth",
     ).not.toBe("berth");
 
-    /* -- Unthrottle: the companion must RE-QUALIFY ------------------ */
+    /* Unthrottle: re-qualification restores the PAUSE_BERTH tier. */
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
     await expect
       .poll(() => companionMode(page), { timeout: 180_000 })
       .toBe("full");
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("PAUSE_BERTH");
     expect(
       logs.some((l) => l.includes("re-qualified")),
       "the re-qualified console line proves the recovery path ran",
     ).toBe(true);
-    console.log("[berth recovery] companion re-qualified after unthrottle");
+    console.log("[berth-tier recovery] tier restored to PAUSE_BERTH");
 
-    /* -- And now a pause produces a REAL berth --------------------- */
-    const landed = await berthAtMouse(page, point, dockPos);
+    /* And now a pause produces a REAL berth again. */
+    const landed = await berthAtMouse(page, point, startPos!);
     console.log(
-      `[berth recovery] landed=(${landed.x},${landed.y}) distFromDock=${Math.round(landed.distFromDock)}px centreDist=${Math.round(landed.centreDist)}px`,
+      `[berth-tier recovery] landed=(${landed.x},${landed.y})`,
     );
   } finally {
     await context.close();
