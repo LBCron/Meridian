@@ -81,7 +81,7 @@ const PARK_OFFSET_TARGET_PX = 90;
  * the pointer itself (>= 64 px touch / >= 48 px desktop), so a
  * resting finger or cursor never sits under the figure. */
 export const CLEARANCE_TOUCH_PX = 64;
-export const CLEARANCE_DESKTOP_PX = 48;
+export const CLEARANCE_DESKTOP_PX = 56; // K2 edge law (companion gates)
 /** Solve triggers (host-enforced, named here so tests pin them):
  * solve on >= 32 px displacement from the last solved pointer, or
  * >= 150 ms of dwell; at most one solve per 100 ms. */

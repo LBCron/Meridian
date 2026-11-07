@@ -41,7 +41,7 @@ describe("solveFollow", () => {
     assert.equal(r.kind, "ring");
   });
 
-  it("honours the desktop clearance bubble (>= 48 px edge distance)", () => {
+  it("honours the desktop clearance bubble (>= 56 px edge distance)", () => {
     const r = solveFollow(input())!;
     const cx = r.x + BOX.w / 2;
     const cy = r.y + BOX.h / 2;

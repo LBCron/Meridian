@@ -21,16 +21,26 @@ import {
  * in-page rAF sampler records every frame's geometry against the
  * pause point. ZERO violations tolerated on real berths: the box must
  * never contain the point, centre distance ≥96 px (touch) / ≥64 px
- * (mouse), closest edge ≥56 px, box centre above the point. Grid
- * points where the solver lawfully answers "remote" (thinks at the
- * dock) or "hide" are counted and reported, not silently dropped:
- * remote samples are still held to contain/centre/edge (the
- * above-the-point rule governs berths, where he stands BY the point).
+ * (mouse), closest edge ≥56 px. Grid points where the solver
+ * lawfully answers "remote" (thinks at the dock) or "hide" are
+ * counted and reported, not silently dropped: remote samples are
+ * still held to contain/centre/edge.
+ *
+ * PB-1 REWRITE NOTE (2026-11-07): the old K2 "centre above the
+ * point" anchor rule and the K3 "pinch/pan cancels a berth to the
+ * dock" rules asserted the DELETED berth engine. Under the owner's
+ * follow model a pinch or pan does NOT cancel anything — Holmes
+ * stays planted (viewport-fixed in the follow tier; map-anchored in
+ * the pause-berth tier this spec's intercepted flags select) and
+ * NEVER returns to a dock on his own. The two K3 tests below assert
+ * exactly that; the follow model itself is gated by
+ * detective-follow.spec.ts.
  *
  * K3 ABSENCE — sheet open hides Holmes ≤100 ms after the sheet appears
  * (MutationObserver timestamps, both taken in-page); after a miss he
- * stays hidden through the ring window; a pinch cancels a berth; a
- * pan cancels to the dock; a tap (<250 ms) never summons him.
+ * stays hidden through the ring window; a pinch does NOT cancel a
+ * berth; a pan does NOT cancel a berth; a tap (<250 ms) never
+ * summons him.
  *
  * Case 137 (Henderson) via the seam — the core case with full audio.
  * No hard sleeps for assertions: every wait polls a condition. The
@@ -352,13 +362,13 @@ function assertClearance(
     worstEdge = Math.min(worstEdge, s.edgeDist);
   }
   console.log(
-    `[${label}] worst centre=${worstCentre.toFixed(2)} worst edge=${worstEdge.toFixed(2)} above-violations=${samples.filter((s) => !s.centreAbove).length} contains=${samples.filter((s) => s.contains).length}`,
+    `[${label}] worst centre=${worstCentre.toFixed(2)} worst edge=${worstEdge.toFixed(2)} contains=${samples.filter((s) => s.contains).length}`,
   );
   for (const s of samples) {
     expect(s.contains, `${label}: box contains the pause point`).toBe(false);
     expect(s.centreDist, `${label}: centre distance`).toBeGreaterThanOrEqual(centreMin);
     expect(s.edgeDist, `${label}: edge clearance`).toBeGreaterThanOrEqual(56);
-    expect(s.centreAbove, `${label}: centre above the point`).toBe(true);
+    // PB-1: no above-the-point assertion — the anchor rule is deleted.
   }
   return { worstCentre, worstEdge };
 }
@@ -614,13 +624,14 @@ async function berthAtDockNearPoint(page: Page): Promise<{ x: number; y: number 
   return point;
 }
 
-test("K3 absence — pinch cancels a berth", async ({ page, context }) => {
+test("K3 planted — a pinch does NOT cancel a berth (PB-1)", async ({ page, context }) => {
   await fulfillFlagsOn(context);
   await openSeamCase(page, 137);
   await waitForSearchIdle(page);
   const point = await berthAtDockNearPoint(page);
   const cdp = await context.newCDPSession(page);
-  // Pinch: two fingers down cancels the berth.
+  // Pinch: two fingers down. Under the follow model this is a burst
+  // gesture, not a cancel: Holmes stays berthed where he stands.
   await cdp.send("Input.dispatchTouchEvent", {
     type: "touchStart",
     touchPoints: [{ x: point.x, y: point.y, id: 1 }],
@@ -632,23 +643,18 @@ test("K3 absence — pinch cancels a berth", async ({ page, context }) => {
       { x: point.x + 80, y: point.y + 40, id: 2 },
     ],
   });
-  await expect
-    .poll(() => currentPlacement(page), { timeout: 10_000 })
-    .toBe("dock");
+  await page.waitForTimeout(1_500);
+  expect(
+    await currentPlacement(page),
+    "PB-1: a pinch must not cancel the berth back to a dock",
+  ).toBe("berth");
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  // Disclosed observation (not a K3 failure): on this VM's SwiftShader
-  // renderer the pinch zoom's frame collapse reliably trips the U6
-  // auto-kill (rolling FPS < 45 in SEARCH phases), latching the
-  // companion dock-only for the session. The pinch CANCEL — K3's
-  // actual requirement — landed on the dock above, before and
-  // regardless of the kill. The pan half therefore runs in its own
-  // test with a fresh session (the kill is session-scoped by design).
   console.log(
-    `[K3 pinch] berth cancelled to dock; companion mode after pinch = ${await companionMode(page)}; watchdogSeeks=${await watchdogSeeks(page)}`,
+    `[K3 pinch PB-1] berth held through pinch; companion mode = ${await companionMode(page)}; watchdogSeeks=${await watchdogSeeks(page)}`,
   );
 });
 
-test("K3 absence — pan cancels a berth to the dock", async ({ page, context }) => {
+test("K3 planted — a pan does NOT cancel a berth (PB-1)", async ({ page, context }) => {
   await fulfillFlagsOn(context);
   await openSeamCase(page, 137);
   await waitForSearchIdle(page);
@@ -657,11 +663,13 @@ test("K3 absence — pan cancels a berth to the dock", async ({ page, context })
   await page.mouse.down();
   await page.mouse.move(point.x + 140, point.y + 80, { steps: 8 });
   await page.mouse.up();
-  await expect
-    .poll(() => currentPlacement(page), { timeout: 10_000 })
-    .toBe("dock");
+  await page.waitForTimeout(1_500);
+  expect(
+    await currentPlacement(page),
+    "PB-1: a pan must not cancel the berth back to a dock — he stays",
+  ).toBe("berth");
   console.log(
-    `[K3 pan] berth cancelled to dock; watchdogSeeks=${await watchdogSeeks(page)}`,
+    `[K3 pan PB-1] berth held through pan; watchdogSeeks=${await watchdogSeeks(page)}`,
   );
 });
 
