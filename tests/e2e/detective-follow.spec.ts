@@ -1,0 +1,489 @@
+import { test, expect, type Page } from "playwright/test";
+import { serveBuiltArtifact } from "./helpers";
+import {
+  currentPhase,
+  currentPlacement,
+  detectivePlays,
+  entryByName,
+  followTier,
+  fulfillFlagsFollow,
+  fulfillFlagsFollowOff,
+  guessByEntryId,
+  installDetectiveRecorder,
+  waitForSearchIdle,
+} from "./detective-u10";
+
+/**
+ * PB-1 (owner restatement 2026-11-07): HOLMES FOLLOWS THE POINTER
+ * across the whole page and STAYS with it.
+ *
+ * (a) travel to the pointer neighbourhood — mouse at 1280/768,
+ *     touch at 390 — with clue-text overlap sampled at 0 px;
+ * (b) planted: after parking he NEVER returns to the bench/dock
+ *     corner (the owner's "big bug") — sampled through parks and
+ *     through travel between two points;
+ * (c) planted during scroll and pinch (no chase, no jump);
+ * (d) speech lock: a selection read holds him still;
+ * (e) burst: the place-confirm sheet hides him, dismissal rejoins
+ *     him at the last sensed pointer position;
+ * (f) kill-switch: holmesFollow OFF reads tier PAUSE_BERTH — fast
+ *     sweeps are ignored, a hover-pause berths him and he holds.
+ */
+
+test.setTimeout(420_000);
+
+async function openStagingCase(page: Page, index: number): Promise<void> {
+  await page.goto(`http://127.0.0.1:4123/Meridian/?loop-puzzle=${index}`);
+  await page
+    .getByRole("button", { name: "GeoDetective: Solve a mystery" })
+    .click();
+  await expect(
+    page.getByRole("article", { name: /Clue 1:/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("detective-bench")).toBeVisible({
+    timeout: 20_000,
+  });
+  const heading = page.getByRole("heading", { name: "GeoDetective" });
+  const count = async () =>
+    (await detectivePlays(page)).filter((u) =>
+      u.includes("/audio/detective/"),
+    ).length;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    await heading.click();
+    try {
+      await expect.poll(count, { timeout: 4_000 }).toBeGreaterThan(0);
+      return;
+    } catch {
+      /* tap again */
+    }
+  }
+  throw new Error("speech never unlocked after 8 verified gesture taps");
+}
+
+async function showMap(page: Page) {
+  await page.evaluate(() => {
+    document
+      .querySelector('[data-testid="loop-map"]')
+      ?.scrollIntoView({ block: "center" });
+  });
+  await page.waitForTimeout(700);
+}
+
+type Rect = { x: number; y: number; w: number; h: number };
+
+async function holmesRect(page: Page): Promise<Rect | null> {
+  return page.evaluate(() => {
+    const el = document.querySelector(
+      '[data-testid="detective-holmes-wrapper"]',
+    );
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  });
+}
+
+const centre = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+
+/** Overlap (px²) between Holmes and any clue/question surface. */
+async function clueOverlap(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const h = document.querySelector(
+      '[data-testid="detective-holmes-wrapper"]',
+    )?.getBoundingClientRect();
+    if (!h) return 0;
+    let worst = 0;
+    const targets = document.querySelectorAll(
+      'article[aria-label^="Clue"], [data-testid="detective-station"], [data-testid="detective-bench"]',
+    );
+    targets.forEach((t) => {
+      const r = t.getBoundingClientRect();
+      const ox = Math.max(
+        0,
+        Math.min(h.right, r.right) - Math.max(h.left, r.left),
+      );
+      const oy = Math.max(
+        0,
+        Math.min(h.bottom, r.bottom) - Math.max(h.top, r.top),
+      );
+      worst = Math.max(worst, ox * oy);
+    });
+    return worst;
+  });
+}
+
+/** Poll until Holmes's centre is within `within` px of the point
+ * and placement reads berth. */
+async function waitArrived(
+  page: Page,
+  point: { x: number; y: number },
+  within = 200,
+  timeoutMs = 45_000,
+): Promise<Rect> {
+  const deadline = Date.now() + timeoutMs;
+  let last: Rect | null = null;
+  while (Date.now() < deadline) {
+    last = await holmesRect(page);
+    if (last && (await currentPlacement(page)) === "berth") {
+      const c = centre(last);
+      if (Math.hypot(c.x - point.x, c.y - point.y) <= within) return last;
+    }
+    await page.waitForTimeout(300);
+  }
+  throw new Error(
+    `Holmes never arrived near (${Math.round(point.x)},${Math.round(point.y)}): rect=${JSON.stringify(last)} placement=${await currentPlacement(page)} phase=${await currentPhase(page)} tier=${await followTier(page)}`,
+  );
+}
+
+/** Sample for `ms`: Holmes must stay within `slack` px of `from`,
+ * and (when `dock` given) never come within 30 px of the dock. */
+async function assertPlanted(
+  page: Page,
+  from: Rect,
+  ms: number,
+  dock?: Rect,
+  slack = 8,
+): Promise<void> {
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    const r = await holmesRect(page);
+    expect(r, "Holmes must stay mounted while planted").not.toBeNull();
+    expect(
+      Math.abs(r!.x - from.x),
+      "planted: x drifted",
+    ).toBeLessThanOrEqual(slack);
+    expect(
+      Math.abs(r!.y - from.y),
+      "planted: y drifted",
+    ).toBeLessThanOrEqual(slack);
+    if (dock) {
+      expect(
+        Math.hypot(r!.x - dock.x, r!.y - dock.y),
+        "planted: drifted back toward the dock corner",
+      ).toBeGreaterThan(30);
+    }
+    expect(await clueOverlap(page), "clue overlap while planted").toBe(0);
+    await page.waitForTimeout(250);
+  }
+}
+
+async function mapPoint(
+  page: Page,
+  fx: number,
+  fy: number,
+): Promise<{ x: number; y: number }> {
+  const mb = await page.getByTestId("loop-map").boundingBox();
+  expect(mb).not.toBeNull();
+  return { x: mb!.x + mb!.width * fx, y: mb!.y + mb!.height * fy };
+}
+
+test("follow (a)+(b): mouse travel, planted park, no dock return (1280)", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 950 },
+  });
+  try {
+    await serveBuiltArtifact(context);
+    await installDetectiveRecorder(context, 3);
+    await fulfillFlagsFollow(context);
+    const page = await context.newPage();
+    await openStagingCase(page, 137);
+    await waitForSearchIdle(page);
+    await showMap(page);
+    expect(await followTier(page)).toBe("PAGE_FOLLOW");
+    const dock = await holmesRect(page);
+    expect(dock).not.toBeNull();
+
+    const p1 = await mapPoint(page, 0.66, 0.3);
+    await page.mouse.move(p1.x, p1.y, { steps: 10 });
+    const landed1 = await waitArrived(page, p1);
+    await assertPlanted(page, landed1, 5_000, dock!);
+
+    // Travel to a second point: he must go THERE, not via the dock.
+    const p2 = await mapPoint(page, 0.4, 0.62);
+    await page.mouse.move(p2.x, p2.y, { steps: 12 });
+    const travelDeadline = Date.now() + 30_000;
+    let landed2: Rect | null = null;
+    while (Date.now() < travelDeadline && !landed2) {
+      const r = await holmesRect(page);
+      if (r) {
+        expect(
+          Math.hypot(r.x - dock!.x, r.y - dock!.y),
+          "travel passed through the dock corner",
+        ).toBeGreaterThan(30);
+        expect(await clueOverlap(page)).toBe(0);
+        const c = centre(r);
+        if (
+          (await currentPlacement(page)) === "berth" &&
+          Math.hypot(c.x - p2.x, c.y - p2.y) <= 200
+        ) {
+          landed2 = r;
+        }
+      }
+      await page.waitForTimeout(200);
+    }
+    expect(landed2, "Holmes never arrived at the second point").not.toBeNull();
+    await assertPlanted(page, landed2!, 3_000, dock!);
+  } finally {
+    await context.close();
+  }
+});
+
+test("follow (a): mouse travel at tablet width (768)", async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 768, height: 1024 },
+  });
+  try {
+    await serveBuiltArtifact(context);
+    await installDetectiveRecorder(context, 3);
+    await fulfillFlagsFollow(context);
+    const page = await context.newPage();
+    await openStagingCase(page, 137);
+    await waitForSearchIdle(page);
+    await showMap(page);
+    expect(await followTier(page)).toBe("PAGE_FOLLOW");
+    const dock = await holmesRect(page);
+    const p1 = await mapPoint(page, 0.6, 0.32);
+    await page.mouse.move(p1.x, p1.y, { steps: 10 });
+    const landed = await waitArrived(page, p1);
+    await assertPlanted(page, landed, 3_000, dock!);
+  } finally {
+    await context.close();
+  }
+});
+
+test("follow (a): touch travel + planted after finger lifts (390)", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  try {
+    await serveBuiltArtifact(context);
+    await installDetectiveRecorder(context, 3);
+    await fulfillFlagsFollow(context);
+    const page = await context.newPage();
+    await openStagingCase(page, 137);
+    await waitForSearchIdle(page);
+    await showMap(page);
+    expect(await followTier(page)).toBe("PAGE_FOLLOW");
+    const dock = await holmesRect(page);
+    const p1 = await mapPoint(page, 0.62, 0.3);
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: p1.x, y: p1.y, id: 1 }],
+    });
+    try {
+      for (const [jx, jy] of [
+        [1, 0],
+        [0, 1],
+        [-1, 1],
+        [1, -1],
+        [0, 0],
+        [1, 1],
+      ] as const) {
+        await cdp.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [{ x: p1.x + jx, y: p1.y + jy, id: 1 }],
+        });
+        await page.waitForTimeout(300);
+      }
+      const landed = await waitArrived(page, p1);
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchEnd",
+        touchPoints: [],
+      });
+      // Finger gone: he STAYS (the owner's core complaint).
+      await assertPlanted(page, landed, 3_000, dock!);
+    } finally {
+      await cdp
+        .send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
+        .catch(() => undefined);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
+test("follow (c): planted during scroll and pinch (1280)", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 950 },
+  });
+  try {
+    await serveBuiltArtifact(context);
+    await installDetectiveRecorder(context, 3);
+    await fulfillFlagsFollow(context);
+    const page = await context.newPage();
+    await openStagingCase(page, 137);
+    await waitForSearchIdle(page);
+    await showMap(page);
+    const p1 = await mapPoint(page, 0.6, 0.35);
+    await page.mouse.move(p1.x, p1.y, { steps: 10 });
+    const landed = await waitArrived(page, p1);
+
+    // Scroll the page hard: the fixed overlay must not chase it.
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(120);
+    const afterScroll = await holmesRect(page);
+    expect(afterScroll).not.toBeNull();
+    expect(Math.abs(afterScroll!.x - landed.x)).toBeLessThanOrEqual(8);
+    expect(Math.abs(afterScroll!.y - landed.y)).toBeLessThanOrEqual(8);
+    await page.mouse.wheel(0, -600);
+    await page.waitForTimeout(400);
+
+    // Pinch (two-finger converge via CDP): still planted.
+    await showMap(page);
+    const cdp = await context.newCDPSession(page);
+    const cx = p1.x;
+    const cy = p1.y;
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [
+        { x: cx - 90, y: cy, id: 1 },
+        { x: cx + 90, y: cy, id: 2 },
+      ],
+    });
+    for (const d of [70, 50, 30]) {
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [
+          { x: cx - d, y: cy, id: 1 },
+          { x: cx + d, y: cy, id: 2 },
+        ],
+      });
+      await page.waitForTimeout(200);
+      expect(
+        await holmesRect(page),
+        "Holmes must stay mounted through the pinch",
+      ).not.toBeNull();
+    }
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    const afterPinch = await holmesRect(page);
+    expect(afterPinch).not.toBeNull();
+    expect(
+      Math.hypot(afterPinch!.x - landed.x, afterPinch!.y - landed.y),
+      "pinch moved the planted Holmes",
+    ).toBeLessThanOrEqual(24);
+    expect(await followTier(page)).toBe("PAGE_FOLLOW");
+  } finally {
+    await context.close();
+  }
+});
+
+test("follow (d): speech lock — a selection read holds him still (1280)", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 950 },
+  });
+  try {
+    await serveBuiltArtifact(context);
+    await installDetectiveRecorder(context, 3);
+    await fulfillFlagsFollow(context);
+    const page = await context.newPage();
+    await openStagingCase(page, 137);
+    await waitForSearchIdle(page);
+    await showMap(page);
+    const p1 = await mapPoint(page, 0.62, 0.3);
+    await page.mouse.move(p1.x, p1.y, { steps: 10 });
+    const landed = await waitArrived(page, p1);
+
+    const entry = entryByName("las vegas");
+    const guessPromise = guessByEntryId(page, entry.id, "las vegas");
+    // The read starts; sweep the mouse far away mid-read.
+    await expect
+      .poll(() => currentPhase(page), { timeout: 30_000 })
+      .toMatch(/SELECTION_READ|REVEAL/);
+    const far = await mapPoint(page, 0.2, 0.75);
+    await page.mouse.move(far.x, far.y, { steps: 6 });
+    await assertPlanted(page, landed, 1_500);
+    await guessPromise;
+    // Back in SEARCH: follow resumes to the new hover point.
+    await expect
+      .poll(() => currentPhase(page), { timeout: 60_000 })
+      .toBe("SEARCH_IDLE");
+    await page.mouse.move(far.x, far.y, { steps: 4 });
+    await waitArrived(page, far, 220);
+  } finally {
+    await context.close();
+  }
+});
+
+test("follow (e): sheet burst — hides, then rejoins at last pointer (768)", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 768, height: 1024 },
+  });
+  try {
+    await serveBuiltArtifact(context);
+    await installDetectiveRecorder(context, 3);
+    await fulfillFlagsFollow(context);
+    const page = await context.newPage();
+    await openStagingCase(page, 137);
+    await waitForSearchIdle(page);
+    await showMap(page);
+    const p1 = await mapPoint(page, 0.6, 0.3);
+    await page.mouse.move(p1.x, p1.y, { steps: 10 });
+    await waitArrived(page, p1);
+
+    // Tap a place on the map: the confirm sheet opens, pair hidden.
+    const tap = await mapPoint(page, 0.45, 0.5);
+    await page.mouse.click(tap.x, tap.y);
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Not this one" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden({ timeout: 15_000 });
+    // He rejoins near the tap — the last sensed pointer position.
+    await waitArrived(page, tap, 240);
+  } finally {
+    await context.close();
+  }
+});
+
+test("follow OFF (f): PAUSE_BERTH tier — sweeps ignored, pause berths + holds (1280)", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 950 },
+  });
+  try {
+    await serveBuiltArtifact(context);
+    await installDetectiveRecorder(context, 3);
+    await fulfillFlagsFollowOff(context);
+    const page = await context.newPage();
+    await openStagingCase(page, 137);
+    await waitForSearchIdle(page);
+    await showMap(page);
+    expect(await followTier(page)).toBe("PAUSE_BERTH");
+    const start = await holmesRect(page);
+    expect(start).not.toBeNull();
+
+    // Fast sweep across the map: no chase in the berth tier.
+    const a = await mapPoint(page, 0.15, 0.3);
+    const b = await mapPoint(page, 0.85, 0.6);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.move(b.x, b.y, { steps: 4 });
+    await page.mouse.move(a.x, a.y + 60, { steps: 4 });
+    await page.waitForTimeout(600);
+    const afterSweep = await holmesRect(page);
+    expect(Math.abs(afterSweep!.x - start!.x)).toBeLessThanOrEqual(8);
+    expect(Math.abs(afterSweep!.y - start!.y)).toBeLessThanOrEqual(8);
+
+    // A real hover-pause berths him near the pause, and he holds.
+    const p1 = await mapPoint(page, 0.58, 0.34);
+    await page.mouse.move(p1.x, p1.y, { steps: 8 });
+    const landed = await waitArrived(page, p1);
+    await assertPlanted(page, landed, 3_000);
+    expect(await followTier(page)).toBe("PAUSE_BERTH");
+  } finally {
+    await context.close();
+  }
+});

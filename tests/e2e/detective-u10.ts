@@ -119,6 +119,69 @@ export async function fulfillFlagsOff(context: BrowserContext): Promise<void> {
   });
 }
 
+/** PB-1 follow twin: pair + staging + walk + holmesFollow on. */
+export async function fulfillFlagsFollow(
+  context: BrowserContext,
+): Promise<void> {
+  await context.route("**/flags.json", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json; charset=utf-8",
+      body: JSON.stringify({
+        version: 1,
+        flags: {
+          globeTierSplit: true,
+          learningOutcomes: true,
+          pwaUpdateToast: true,
+          friendChallenges: true,
+          scoutUpgradeTrial: true,
+          detectivePair: true,
+          hostsStaging: true,
+          watsonWalk: true,
+          holmesFollow: true,
+        },
+      }),
+    });
+  });
+}
+
+/** PB-1 twin with holmesFollow explicitly OFF (kill-switch state):
+ * pair + staging + walk on, follow off — the tier must read
+ * PAUSE_BERTH and the pause-berth behaviour must hold. */
+export async function fulfillFlagsFollowOff(
+  context: BrowserContext,
+): Promise<void> {
+  await context.route("**/flags.json", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json; charset=utf-8",
+      body: JSON.stringify({
+        version: 1,
+        flags: {
+          globeTierSplit: true,
+          learningOutcomes: true,
+          pwaUpdateToast: true,
+          friendChallenges: true,
+          scoutUpgradeTrial: true,
+          detectivePair: true,
+          hostsStaging: true,
+          watsonWalk: true,
+          holmesFollow: false,
+        },
+      }),
+    });
+  });
+}
+
+/** The PB-1 follow tier, read off the follow root (mounted in the
+ * map portal while the pair follows/berths from the page). */
+export async function followTier(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const el = document.querySelector('[data-testid="detective-follow-root"]');
+    return el?.getAttribute("data-follow-tier") ?? null;
+  });
+}
+
 /** Install the play() recorder + speed-up + freeze watchdog. Call
  * BEFORE navigation (it uses addInitScript). */
 export async function installDetectiveRecorder(
