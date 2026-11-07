@@ -59,6 +59,7 @@ const CONTEXT_FILES = Object.freeze([
   "detective-berth.spec.ts",
   "detective-closed-state.spec.ts",
   "detective-staging.spec.ts",
+  "detective-watson-walk.spec.ts",
   "detective-swap.spec.ts",
   "detective-visibility.spec.ts",
   "discarded-notice.spec.ts",

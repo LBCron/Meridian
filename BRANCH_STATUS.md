@@ -1,3 +1,145 @@
+# BRANCH_STATUS — feat/watson-walks (PR B, staging rework 3 of 3)
+
+- **Branch:** `feat/watson-walks` · **Base:** `main` @ `3690aee` (PR #362 merged + live), after merge-up `48243e3` + brace-cure `353072e`; this capsule is closed by the records commit that carries it
+- **Design of record:** `~/workspace/meridian-detective-evidence/COUNCIL-staging-rework.md` (Q3 + slice B), `staging-mockup-v2.NOTE.md`, handbook ch.10.
+
+## Task capsule
+
+TASK / requested outcome: PR B "Watson Walks" — (1) a WALKING state in
+the pair's host machine (PR A's precedent: the stage machine is
+host-local): Watson walks the gutter to each clue card, clue speech is
+released only on walk-arrival (transitionend + timeout fallback),
+clue 2+ walks silent, tap-Watson replay at the station instant,
+mid-read clue advance = stop + flush + walk + read on arrival, sheet
+mid-walk cancels the walk and a held read never fires late,
+reduced-motion / resource-constrained = instant placement + immediate
+read. (2) "Let's find some clues" — fixed line #20, Watson voice,
+speed 106, spoken during the CASE-OPEN walk only, session cap 2,
+exactly one new render through scripts/detective. (3) Gutter
+reconciliation: the shipped 118 px is DERIVED (6 card gap + 100 Watson
+figure + 12 edge clear) and kept; the +6/+62/+118 host literals are
+replaced by derived constants in the new pure module
+`watson-walk.ts` (unit-pinned).
+Tier: Tier 2 programme slice, run as a builder silo under the
+coordinator's brief; Silo QA + 12-seat panel follow separately.
+Builder stops at PR open — NO MERGE.
+Walker decision (carry-in a): a SECOND, parallel walker for Watson —
+host-local, 1-D vertical gutter travel between measured card
+anchors, transform on the station cluster, arrival gates speech.
+Holmes's walker (holmesXY / walk timer / berth solver) is 2-D map
+geometry with dock/berth/hide outcomes; extracting a generic walker
+would refactor proven working code (Constitution rule 1) to share
+almost nothing.
+Flag: `watsonWalk` — baked default false in src/lib/flags.ts,
+`public/flags.json` sets it true. Sub-flag of the staging: it acts
+only when `detectivePair` + `hostsStaging` are also on.
+Protected: scoring, dealing, clue text, hint defaults, donation
+copy, celebration choreography, the props whitelist (untouched —
+no new host props; the K5 swap test must still pass).
+
+## Status
+
+- [x] watson-walk.ts pure module + unit pins (gutter derivation, walk duration, announcement cap, station chip offsets incl. Holmes-alone 78)
+- [x] Watson "walk" pose in DetectivePair (+ rig pin update)
+- [x] flags.ts + flags.json (watsonWalk)
+- [x] Fixed line #20 in render-plan + ONE production render + manifest
+- [x] DetectiveHost: WALKING state, arrival-gated speech, announcement, sheet-cancel, entryIntent reset (carry-in e), resumed-bench fix (carry-in f)
+- [x] detective.css: derived gutter comment (118 = 6 + 100 + 12)
+- [x] C11 duet assertion strengthened to BOTH speakers (carry-in d)
+- [x] tests/e2e/detective-watson-walk.spec.ts at 390/768/1280 + playwright project + telemetry-guard registration
+- [x] Handbook ch.10 PR B staging record
+- [x] Gates: tsc / npm test / test:worker / lint-cards / build:pages + detective union E2E
+- [x] PR opened: **#363** https://github.com/veeresh-bikkaneti/Meridian/pull/363 (NO MERGE — coordinator pipeline + owner word)
+
+## Build + verification record (builder, 2026-11-07)
+
+- **Commits:** `c52e846` foundations · `cdefd15` walking · `01f32db`
+  deferred-drain suppression cure · `e8d71ae` E2E unit · `4dd614b`
+  arrival-boundary sample tolerance · merge-up `48243e3` over
+  main `3690aee` (PR #362) · `353072e` brace cure (playwright.config.ts
+  opening brace lost in the merge-up union) · records commit (this
+  capsule). Tip of record for the pipeline: `353072e`.
+- **Gates (merged tip `353072e`, pipeline):** `npx tsc --noEmit`
+  clean · `npm test` 3,277 pass / 0 fail / 11 skipped (scripts 1,021
+  + src 2,256; main's 3,259 baseline incl. PR #362, plus PR B's 18
+  pins) · detective E2E union on the merged tip **60/60 unique
+  tests PASS** (61 passing run-results incl. one arbiter solo
+  re-run) ·
+  `npm run test:worker` 145 / 0 · `node scripts/lint-cards.mjs`
+  GATE PASSED · `npm run build:pages` green, entry chunk 457,844 B
+  (PR A cured tip: 457,830 B; the walk code rides the lazy
+  DetectiveHost chunk) · built flags.json carries `watsonWalk: true`.
+- **Render:** fixed line #20 "Let's find some clues" — production
+  pipeline, speed 106, measured median F0 93.8 Hz (Watson family
+  gate 82–115), 132 wpm, 1.82 s, manifest clean (2,532 entries).
+  Exactly ONE new render ships: the renderer's stale-hash check
+  also re-rendered 4 shipped lines whose stored speeds were
+  ladder-adjusted; all 4 were reverted (mp3s + manifest), leaving a
+  one-entry manifest diff.
+- **E2E (solo sequential runs under flock, dist built at the tip;
+  logs in `~/workspace/meridian-watson-walk-logs/`):** walk spec
+  8/8 (flow + reduced at 390/768/1280, sheet-cancel, kill-switch) ·
+  staging 11/11 (incl. strengthened C11 at 3 widths + C12) ·
+  companion 6/6 · replay 3/3 · sound 10/10 · summary 3/3 ·
+  visibility 4/4 · stations 1/1 · endings 2/2 · swap 1/1 (K5) ·
+  flag 2/2.
+- **Env-signature failures, all passed on solo re-runs (repo rule:
+  sequential is the arbiter):** EDQUOT (-122) teardown writes on
+  the 1280 walk flow + staging 390 flow; one 300 s page-load hang
+  (empty snapshot) on the sheet test; batch runs repeatedly cut
+  mid-file while a second crew worked this VM. One staging 768
+  batch failure carried the defect-2 signature (`companion=killed`,
+  no berth — the FG-5 latch, owned by the standalone cure PR); it
+  passes solo and is NOT a PR B regression (companion.ts, berth
+  handlers and the latch are untouched by this diff — verified).
+- **Cure found by the sheet test (in-scope, fixed here):** the
+  sheet-cancel cleared heldClueRef, lifting the drain suppression,
+  so the announcement's drain advanced the ladder during the sheet
+  and the ack played behind it. Guard now covers deferredDrainRef;
+  sheet test green.
+- **Coordination (closed):** two live defects from PR A surfaces
+  (bench close-state leak; FG-5 latch never resetting) shipped as
+  ONE standalone cure PR from main in parallel — PR #362, merged
+  as main `3690aee`. Frozen seams were respected: bench gating /
+  stagingStage transitions beyond carry-in (f), companion.ts,
+  berth/entry handlers, entryPendingRef, FG-5 latch — none
+  modified by PR B's authored hunks (entryIntentRef gained only
+  carry-in (e)'s reset). This branch then took its merge-up
+  `48243e3` over the cure before its pipeline; the expected
+  coordination points were the stagingStage initialiser /
+  case-change assignment and the entryIntentRef line. Actual
+  conflict surfaces: `BRANCH_STATUS.md`, handbook ch.10,
+  `playwright.config.ts` — all resolved as faithful unions, plus
+  brace cure `353072e`. Merge-up checklist: conflicts resolved as
+  unions with zero lines lost (content-grep verified) · merged-tree
+  gates re-run green (tsc / 3,277 unit / worker 145 / lint-cards /
+  build) · companionMode walk-gate re-verified against #362's
+  cured latch (berth recovery test — throttle, latch fires,
+  re-qualifies, real berth — plus K2/K3/K5, all passing with the
+  walk active).
+- **Panel follow-ups (PR #363 pipeline, 2026-11-07):** (1)
+  post-ship kid-observation of clues 3–5 impatience under the walk
+  (UX Researcher, MED; flip-first response pre-committed);
+  (2) mute-during-walk lacks a dedicated E2E pin — follow-up case
+  (Game Audio); (3) measure time-to-clue-1 in child sessions — the
+  1.82 s announcement plays serially, so clue 1 starts ~1 s after
+  arrival (Game Designer); (4) QA Nit 1 — the #362-owned
+  closed-state spec's SELECTION_READ sampler-coverage assertion
+  missed its window at 390+768 in Silo QA's batch (solo outcomes
+  differ by agent/run; the bench-furniture defect assertion never
+  tripped — benchFree=true in 100% of samples taken): sampler
+  sensitivity on a loaded VM, not a PR B product defect;
+  (5) the FLIP transient in Follow-ups (1) below must become a
+  tracked issue (Level Architect).
+- **Follow-ups:** (1) pre-existing guesses-list FLIP transient at
+  guess commit (~200 ms; figure-over-text across the bench slot,
+  reproduced with watsonWalk OFF — LoopScreen animation, not pair
+  placement); (2) arrival-boundary sampling note lives in the walk
+  spec; (3) PR A follow-ups unchanged (findability study, CELEBRATE
+  overlap sampling).
+
+---
+
 ## PR #362 RECORDS ROUND — feat/staging-close-berth-cure (2026-11-07)
 
 - **Records-only batch (docs + one comment, NO code-behaviour change, NO MERGE):** full-pipeline vote on tip `d02a752` — panel 7 APPROVE-WITH-NITS / 4 APPROVE / 1 BLOCK (records-only, Office Hours) + DevEx BLOCK (records-only) + Silo QA PASS-WITH-NITS + benchmark PASS; ZERO code-merits blocks. This batch cures: missing capsule Follow-ups bullet [DevEx BLOCK] · unit count corrected to 3,259, sourced from the preserved test logs [Office Hours BLOCK 1 + Silo QA nit] · berth numbers labelled by run, recovery 323 px in the builder final run [Office Hours BLOCK 2] · net +4 tests wording (four new + one extended) [DevEx nit 1 + Office Hours nit] · handbook closed-state sampling stated as exact 50 ms [DevEx nit 2] · berth spec [56, 320] relabelled ARRIVAL band, comment only [Level Architect nit] · follow-ups (a)–(h) added to capsule + PR body. New tip = the commit carrying this capsule.
