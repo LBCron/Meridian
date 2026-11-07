@@ -37,7 +37,8 @@ export type FlagName =
   | "globeTierSplit"
   | "friendChallenges"
   | "scoutUpgradeTrial"
-  | "detectivePair";
+  | "detectivePair"
+  | "hostsStaging";
 
 /**
  * Baked-in defaults — MUST equal current production behavior for every
@@ -72,6 +73,23 @@ export const FLAG_DEFAULTS: Record<FlagName, boolean> = {
   // byte-identical. true = the pair mounts in LoopScreen. Ships dark;
   // the flip is a separate owner-gated flags.json redeploy (U9).
   detectivePair: false,
+  // Holmes & Watson staging rework (PR A, "Found at a Glance"): the
+  // bench scene before a case's questions load, the makeover sizes,
+  // the entry walk onto the map, and the gutter station. false =
+  // the kill-switch: redeploy flags.json with hostsStaging false
+  // and staging disappears — the pair renders its pre-A rigs (the
+  // makeover halo is gated by this flag in DetectivePair, cure C5,
+  // on every surface including the summary celebration). Two
+  // accepted permanent deltas apply in BOTH modes and are not
+  // undone by the kill-switch: (1) Holmes's dock mute alias is the
+  // restored full 70 px (PR A decision; PR C shipped a 44 px
+  // strip), and (2) LoopScreen mounts the detective host below
+  // the map section (mount order only — the host's fixed/portal
+  // surfaces are unaffected). Everything else with the flag off
+  // is the pair as PR #355–#358 shipped it. The baked default
+  // stays false so a failed flags fetch falls back to the shipped
+  // pair, never to half-proven staging.
+  hostsStaging: false,
 };
 
 export const FLAGS_FETCH_TIMEOUT_MS = 1500;

@@ -1,3 +1,117 @@
+## PR #361 RECORDS ROUND 2 — feat/hosts-staging (2026-11-07)
+
+- **Records-only micro-batch (docs + comments, NO code-behaviour change, NO MERGE):** on tip `7c137ea` — delta panel 12/12 APPROVE-WITH-NITS, delta Silo QA PASS-WITH-NITS. Items: README anchor fixed to `#detective-audio-holmes--watson` (DevEx delta NIT-D1) · DetectivePair header + halo-prop comments scoped to THE RIGS, matching flags.ts (Senior Architect delta nit 1) · Units-summary bench trigger corrected to machine-leaves-CASE_OPEN (Game Audio delta nit 3) · Silo QA follow-up capsule completed with replay (c) PASSED in delta Silo QA — merge-blocking list fully discharged (Office Hours delta nit 4) · handbook staging record: 118px margin applies for the whole session, cards never reflow mid-case (Frontend delta nit 1) · findability pre-registration + CELEBRATE sampling window + CELEBRATE frame in post-merge screenshots recorded as NAMED follow-ups in the PR A capsule below and in the PR body (UX Researcher delta nit 2 + Level Architect delta nit 2) · PR body stale original lines annotated in place (Office Hours delta nits 1–3 + DevEx NIT-D2).
+
+## PR #361 CURE ROUND 1 — feat/hosts-staging (2026-11-07)
+
+- **TASK / outcome:** One consolidated cure round for the 12-seat panel's
+  6 APPROVE-WITH-NITS / 6 BLOCK on tip `84fc265` (cures C1–C15 in the
+  coordinator's brief). NO MERGE — the cured tip goes back through
+  Silo QA + the full panel for a re-vote.
+- **Reproductions (pre-cure, 1280, staging harness; logs in
+  `~/workspace/meridian-361-cure-logs/`):** (1) bench double-casting
+  REPRODUCED — during CASE_OPEN/bench: 2 Watson rigs on the page
+  (station `[data-detective="watson"]` = 1 + bench Watson), Holmes
+  rigs = 1 (bench only, `[data-detective="holmes"]` = 0), and the
+  duet's speaking class on the STATION Watson while both bench
+  figures stayed silent (`repro1-precure.log`). (2) remote stranding:
+  the first hover attempt never confirmed a pause (no entry at all);
+  the second attempt was lock-blocked by the parallel Silo QA run —
+  the stranding is proven by the code path (the `remote` branch
+  cleared `entryPendingRef` synchronously, the entry rAF then
+  early-returned with holmesXY at dock+(90,34)) and by the cured
+  C12 test's RED/GREEN pair (see the E2E line below).
+- **Cures:** C1 bench single-casting (station cluster suppressed
+  whole during bench; bench rigs speak the duet via `speakingWho`;
+  muted badge latched on the bench slot, chip suppressed) · C2 entry
+  intent during bench, entry at `standing` · C3 force entry at case
+  end (CELEBRATE/DEBRIEF/FAIL_READ/POUT at `standing`) — chosen over
+  per-phase bench gating because DEBRIEF keeps its Holmes at the
+  map dock via the station-phase dock fallback · C4 `entryPendingRef`
+  cleared only on `berth`; phase-exit snap consumes it · C5 `halo`
+  prop (default false = pre-A rigs) at DetectiveHost +
+  summary-detective-celebration (reads the flag itself) · C6
+  `anchorMeasured` render-phase reset on clue/case change +
+  `caseIndex` in the measure deps · C7 Listen gated on
+  `stationReady` · C8 board fades to a 0.22 ghost under the
+  left-behind cups (spec poll updated to match) · C9 entry rAF +
+  walk timer cancelled on unmount · C10 slot 148px → 132px (mockup
+  standing record exact; seated 126 unreachable — 128px rigs,
+  justification in handbook + CSS) · C11/C12 staging E2E (below) ·
+  C13 zero-overlap re-scope (this file + handbook + PR body:
+  "0 px² in every sampled staging state; CELEBRATE excepted — the shipped cluster sits over the active card there and is unmeasured." (exact scope per Silo QA's code read: during CELEBRATE the cluster is positioned at the active clue card's anchor, and the spec never audits a CELEBRATE state)) · C14 DevEx (README staging paragraph + LIVE pair
+  wording, handbook rise trigger = machine leaves CASE_OPEN,
+  detective.css comment, flags.ts kill-switch wording post-C5 with
+  the two permanent deltas disclosed) · C15 pointer from the #358
+  first-panel tally line to its Correction block.
+- **Gates (cured tip):** `npx tsc --noEmit` clean · `npm run
+  test:worker` 145 pass / 0 fail · `node scripts/lint-cards.mjs`
+  GATE PASSED · `npm run build:pages` exit 0 (entry chunk recorded
+  in the PR body) · `npm test` FULLY GREEN on the final tip —
+  scripts 1020 pass / 0 fail, src 2235 pass / 0 fail. (An earlier
+  run showed 2 scripts failures, both traced to this round's
+  temporary repro spec — deleted before the final run; the
+  telemetry guard alone re-ran 6 pass / 0 fail.)
+- **E2E (cured tip; logs in `~/workspace/meridian-361-cure-logs/`):**
+  staging spec — flow 390 PASS, reduced-motion ×3 PASS, samples
+  PASS, C12 PASS (remote-first-entry lands Holmes AT the dock;
+  the same test on the PRE-CURE build FAILS with the wrapper at
+  dock+(91,35) ≈ the panel's claimed (90,34) — the stranding,
+  reproduced in-browser), C11 PASS at all widths (part (b) via
+  toggle-during-bench: a preset-off bench never paints — the
+  off-mode speech queue drains in microtasks before first paint,
+  probed at 50 ms sampling — so the toggle path is the assertable
+  one; stopAll never drains, so the bench holds). Staging flow
+  768/1280: every assertion completed in the batch run; both died
+  only at artifact/context close (-122 EDQUOT, the documented VM
+  flake); solo re-runs stayed env-blocked (browser death mid-berth
+  at 768; shipped FPS auto-kill mid-berth at 1280). Detective
+  union — visibility 4/4, stations 1/1, summary 3/3 (flag-off
+  solo), summary.reduced 1/1, reduced 1/1 (solo), sound: every
+  test has a green run on the cured tip across batch + solos
+  (failures all browser-death / EDQUOT signatures, rotating set),
+  companion K1/K2/K3 green across batch + solos (K3-pan on its
+  one rerun), replay 2/3 with (c) env-blocked (renderer Target
+  crashed in three runs). Still env-blocked on this VM and owed
+  by Silo QA on the cured tip as the merge-blocking gate:
+  desktop staging berth merits run, K2 clearance grids, K5 swap,
+  replay (c).
+- **Silo QA follow-up (2026-11-07, on QA's pre-cure results):**
+  (1) BERTH GEOMETRY COMPLETED — QA's probe (companion=full)
+  proved the tablet/desktop berth failure was geometry, not
+  environment: the shared point (0.72w, 0.30h) sat 480.7 px from
+  the dock centre at 768 (the cure round's first fix covered
+  only 1280, at a thin-margin 309.7 px point). The spec now
+  uses (0.48w, 0.50h) at 768/1280 — 280.4 px / 267.0 px from
+  the dock centre (155, mapH-64), ~270 px displacement vs the
+  >40 px real-walk proof — and keeps (0.72w, 0.30h) at 390
+  (261.6 px). Verified solo on the berth-fix tip: staging
+  full-flow PASS at 390 (28.7s), 768 (31.7s) and 1280 (23.6s,
+  plus an assertions-complete run that died only at artifact
+  close); C12 in final form PASS (31.5s — settle tolerance
+  <=2 px for sub-pixel rounding, and a named companion=full
+  precondition, since the hover trigger rides the rAF watch
+  the shipped auto-kill can latch); C11 desktop PASS in the
+  grouped re-run. (2) C13 wording tightened to QA's exact
+  scope (see the re-scope line above; handbook + PR body
+  aligned). (3) QA watch items, outcomes on the cured tip:
+  K3-pinch (unstable in QA's runs, env signatures) — PASS
+  solo in this round's union triage; detective.reduced
+  (unstable in QA's runs) — PASS solo (18.9s) after a batch
+  failure. (4) QA passed K5 swap (48.6s, identical trace) and
+  K2 grids (both, clearances within law) ON MERITS on the
+  pre-cure tip — carried forward as evidence; the cure does
+  not touch those lanes. (5) QA reproduced all unit gates
+  exactly (tsc clean, 3,255 pass / 0 fail / 11 skipped, worker
+  145/0, lint-cards PASSED, entry 457,830 B — the size is the
+  gate; the chunk hash varies by build env) and its merge-up
+  audit + #360 greps verified clean. (6) replay (c) PASSED
+  on the cured tip in delta Silo QA (full replay spec 3/3
+  first run, logs `meridian-361-siloqa-logs/cure-7c137ea/`)
+  — the merge-blocking list is fully discharged (staging
+  ×3 widths, K2, K5 re-run PASS on the cured tip too).
+- **Status:** cure commits pushed; NO MERGE.
+
 ## PROVEN WORDING CURE — docs/cure-proven-flagoff (2026-11-06)
 
 - **TASK / outcome:** Cure the one retained "PROVEN" on the #358
@@ -40,6 +154,24 @@
   after PR #357 landed: conflict only in this file, resolved keep-both
   (both capsules carried); handbook + DetectiveHost auto-merged; PR
   diff vs new main verified identical in substance to the voted tip.
+
+## Staging PR A — feat/hosts-staging (2026-11-06) — "Found at a Glance"
+
+- **Authority:** staging council report (`~/workspace/meridian-detective-evidence/COUNCIL-staging-rework.md`, PR A = 5 units) + owner amendments in `~/workspace/orchestrate/meridian/COORDINATION.md`: the bench replaces the council's reserved strip (owner, mockup v2 review), coffee + watch on the bench, NO padded/empty reserved strip, and the per-device gate (owner, 2026-11-06: "you didnt test in all devices. desktop, mobile, tab."). Mockup of record: `staging-mockup-v2.NOTE.md` (bench slot, rise path, timings, 0 px² audit). PR 2 of 3 (C #357 merged -> A -> B watsonWalk). NO MERGE in this task — Silo QA + panel run afterwards on the final tip.
+- **TASK / outcome:** Holmes & Watson staging rework behind the new `hostsStaging` flag (public/flags.json TRUE in this PR — it ships live; baked default false in `src/lib/flags.ts` so a failed flags fetch falls back to the shipped pair). `detectivePair` untouched (stays true). Flag OFF = the kill-switch (one-line flags.json redeploy): staging disappears and the pair renders its pre-A rigs (halo gated by the flag, cure C5) — with two accepted permanent deltas that apply in both modes, disclosed in `src/lib/flags.ts` (the restored 70px dock alias; the LoopScreen host mount order).
+- **Tier:** 2 (multi-file feature on the council's settled design + owner's amendments).
+- **Base:** `origin/main` @ `79c5120` (#357 merged, includes #358).
+- **Units:** (1) MAKEOVER — cream halo (3-4px) + near-black keyline (~1.5px) BAKED into both rigs' SVG art (a silhouette group painted under each figure; NO live CSS filter/drop-shadow); costumes unchanged (Holmes brick-red #a52a21, Watson royal-blue #27408b). (2) SIZES — ~128px in the bench slot, 104px on-map/station (inside the 104-112px band). (3) THE BENCH — before a case's questions load (the CASE_OPEN beat) both figures SIT on a bench in the page's own flow directly under the map; Holmes glances at his watch (idle loop); BOTH drink coffee, cups in hand, alternating sip cycles, NOT synchronized; when the machine leaves CASE_OPEN the bench board fades, Watson rises to his station, Holmes stands in the slot; the slot COLLAPSES to zero height when Holmes enters the map — cups stay behind on the bench, never in play; no padded/empty reserved strip anywhere. (4) ENTRY WALK — at the first map interaction Holmes visibly walks from the bench slot onto the map to his dock (not a teleport; reduced motion = instant placement). (5) BERTH-TO-BERTH WALKS — the shipped pause-berth engine (350ms desktop / 450ms touch; 80ms absence on pan/zoom/sheet/rings/speech preserved) already walks him with the walk pose; pinned by the staging E2E at three widths.
+- **ZERO-OVERLAP LAW (owner, absolute):** neither figure overlaps ANY clue-card text — 0 px² in every sampled staging state; CELEBRATE excepted — the shipped cluster sits over the active card there and is unmeasured. (cure round 1 re-scope, PR #361, wording per Silo QA's code read: during CELEBRATE the cluster is positioned at {left: anchor.left, top: anchor.top} — over the active clue card's area — and the spec never audits a CELEBRATE state). Staging cure: LoopScreen reserves a 118px gutter beside the clue cards (flag-gated class; cards narrow and text reflows inside them, the mockup v2 geometry) and Watson's station stands IN the gutter, vertically centred on the active card; Holmes never joins the station cluster under staging — before entry he stands in the bench slot, after entry he lives on the map. The mockup's position-sampling audit is ported into `tests/e2e/detective-staging.spec.ts`.
+- **Dock tap-target decision (deliberate call, carried in from PR C's pipeline): RESTORE the full 70px dock alias.** Reasoning: the 44px narrowing was forced only by the pre-#358 dock overlap (Holmes's box painted over Watson's replay box). #358 moved Holmes's dock beside Watson (HOLMES_DOCK_X = 12 + 100 + 8 = 120), so the boxes are disjoint: Watson's replay box is [12,112], Holmes's full mute box is [120,190] — both centres unobstructed at full width, and the rightmost ~26px of Holmes is no longer tap-dead for no reason. Change = delete the `.detective-holmes-mute-dock` narrowing rule + its class. Map-chip re-check against the wider dock cluster [12,190]: the map sound chip sits ABOVE the dock cluster (`bottom: 128px` = DOCK_INSET 12 + HOLMES_BOX.h 104 + 12 clear) — it clears the cluster at any dock width, no offset change. The station tap-mode edge slice (Game Designer note: Holmes's rightmost ~26px in tap mode is Listen territory) is NOT the dock slice: at the station the Listen clearance already narrows the station alias to 44px while Listen shows (PR C cure, kept) and lifts the chip 56px — that separation is unchanged and re-proven by the staging spec's solo/anchor-null samples.
+- **Offset re-derivation (Senior Architect obligation, discharged):** `chipStationOffset` / `holmesStationOffset` are now DERIVED in DetectiveHost from the constants of record — WATSON_DOCK_W (100), HOLMES_BOX {70,104}, the 4px station cluster gap, the 8px chip clear, and CELEBRATE_LAYOUT (celebrate width = watsonOffsetPx.x + WATSON_DOCK_W, rounded) — never a third Watson-width constant. `STATION_CLEARANCE_PX` (= HOLMES_BOX.h + 12 = 116, #358's scroll clearance) joined the same derivation at module scope. The three look-alike gaps stay distinct by name: DOCK_GAP 8 (dock inter-figure), chip clear 8, station cluster gap 4 — values coincide, meanings don't; no unification.
+- **Stale-premise corrections (this PR's docs pass):** (1) dock-overlap rationale comments rewritten — DetectiveHost's PR C comment block ("paints him over Watson's left side" — false since #358) and detective.css's dock-separation comment block; (2) the #358 capsule's two "BYTE-IDENTICALLY" lines — on base 79c5120 the docs-correction lane had not landed, so this branch first aligned them to "fails identically"; SUPERSEDED at this branch's merge-up onto 93b9791: PR #359's fuller correction (true tally, lost-log notes, "byte-identical is not claimed") is now the text of record in the #358 capsule below, taken wholesale in the merge — and #360's "shown pre-existing in-session" cure for the flag-off line is likewise in (grep-verified after the merge); (3) PR C section: dock-parking line -> "RESOLVED by #358" wording with the FG-1/FG-8 pointer fixed (dock = FG-8 territory; FG-1 = station occlusion, PR B's), flag-off line annotated superseded by the #358 repair, forward-obligation line extended with the full-width dock alias and marked discharged; (4) handbook ch.10: PR C dock premise re-worded, cure-round-2 tally line added, PR A staging record added stating the per-device gate (390/768/1280) as the standing rule for this feature.
+- **Per-device gate (owner amendment):** EVERY staging assertion (bench+coffee+watch, slot collapse, entry walk, berth walks, zero overlap, mute taps) is E2E-verified at 390 / 768 / 1280 — no width proxies another. The staging spec extends the #358 visibility harness pattern (own contexts per width), and includes one FORCED anchor-null sample, a Watson-alone station sample, and a Holmes-alone berth sample (carried in from PR C).
+- **Named follow-ups (pre-registered, records round 2 — UX Researcher delta nit 2 + Level Architect delta nit 2):** (a) FINDABILITY STUDY, pre-registered post-ship: per-family denominators counted SEPARATELY for bench-found vs on-map-found (never one pooled 30); pass = ≥90% find ≤2s per family with no family <85%; named consequence — a family miss ⇒ `hostsStaging: false` redeploy or a cure PR. (b) CELEBRATE SAMPLING WINDOW: a named follow-up — a sampling window for the CELEBRATE state must be scheduled so "excepted and unmeasured" does not become permanent by drift. (c) POST-MERGE LIVE SCREENSHOTS (follow-up 3): explicitly include a CELEBRATE frame at 390/768/1280, alongside the other shipped-behaviour frames.
+- **Protected:** scoring, dealing, clue text, hint defaults, donation copy, shipped celebration choreography, answer-blindness whitelist (no new props — staging reads only the host's existing view/degradation state + the hostsStaging flag; the swap test must still pass).
+- **Merge-up (2026-11-07):** merged origin/main `93b9791` (#359 + #360 landed after this branch was cut). Conflicts: BRANCH_STATUS only — resolved keep-both (the #359/#360 capsules ride above this section; the #358 capsule took main's corrected text wholesale, superseding this branch's earlier line edits there — see the corrections bullet). Handbook + DetectiveHost NOTE comment auto-merged clean. The merge-up touched NO code (records + one comment), so the gates re-run below covers the merged tip.
+- **Zero-overlap cures found by the staging E2E (both real, both fixed on this branch):** (a) the pre-measure fallback frame could paint the station over below-fold card text during the screen entrance — the station surfaces now wait for the first anchor measure under staging; (b) a bench figure lingering through the slot collapse could paint over the first card when a sheet-dismiss scroll carried the card up mid-collapse — the bench figure now leaves WITH the map-side entry walk and the slot collapses empty (bench-exit fade + its CSS removed as a consequence). The audit measures PAINTED boxes (each figure's rect clipped by any overflow:hidden ancestor — the collapsing slot clips by design), in bounded per-frame collection windows at each checkpoint and across the entry/berth walks.
+- **Status:** [x] branch from origin/main 79c5120 · [x] flag + first docs commit (this record + handbook) · [x] makeover + bench + entry walk + gutter station · [x] merge-up onto 93b9791 · [x] gates on the merged tip: tsc clean · npm test 3,255 pass / 0 fail (scripts 1,020 + src 2,235) · test:worker 145/145 · lint-cards GATE PASSED · build green, entry chunk 457,830 B · [x] staging E2E: phone 390 full flow PASS · samples (anchor-null + Holmes-alone berth) PASS · reduced-motion PASS at 390/768/1280 · tablet 768 full flow completed with all assertions green in a solo run (browser died at artifact close; later batch runs crash mid-test on this VM) · desktop 1280: bench/rise/entry/zero-overlap/mute all green; the BERTH WALK is environment-blocked on this VM — the shipped FPS auto-kill latches (`data-companion="killed"`, precondition "full" verified before the attempt) under SwiftShader + host memory pressure; berth walks are green at 390 + 768 and the desktop berth needs one Silo QA re-run on a quieter host (see PR body) · detective union: sound/visibility/stations/summary/replay/endings/flag green with solo re-run evidence for every batch death; companion K3-pan + K3-pinch pass solo; K2 grids + K5 swap got no clean run on this VM (swap's own spec reports "run invalidated by auto-kill") — flagged for Silo QA · [x] push + PR. NO MERGE.
 
 ## PROD PAIR VISIBILITY FIX — fix/prod-pair-visibility (2026-11-06)
 
@@ -94,6 +226,9 @@
   subset — the required e2e job runs 6 files / 22 tests).
 - [x] Panel on 85adc1a: **12/12, zero BLOCKs** (5 APPROVE · 7
   APPROVE-WITH-NITS, all LOW except one Frontend MED) · DevEx APPROVE ·
+  (First-panel tally as first reported — the re-vote tally is
+  corrected in the Correction block below this capsule: 11
+  non-blocking + 1 BLOCK.)
   Benchmark: DetectiveHost chunk +380 B (+2.6%), inside the 5% gate
 - [x] Cure round (this commit): C2 scroll reworked to hand-computed
   minimal scrollBy (Frontend MED: scrollIntoView's options dictionary
@@ -156,10 +291,10 @@
 - **Gates (Silo QA, verified on tip `26e2250`):** `npx tsc --noEmit` clean · unit 3,243 pass / 0 fail / 11 skipped (scripts 1,020 + src 2,223) · `node scripts/lint-cards.mjs` GATE PASSED · `npm run build:pages` green, entry chunk 457,814 B · detective-sound E2E 4/4. Known flake on this VM: Playwright artifact finalize at context close intermittently errors -122 (EDQUOT) on the gitignored `test-results` scratch despite 45G free — test (b)'s body passed in every run and its solo re-runs pass clean; treated per the repo contention-flake rule, not as a regression.
 - **Pre-registered alias cut (council):** if child sessions read a Holmes tap-mute as "the game broke", remove the detective-holmes-mute alias first — chip + toggles stay.
 - **Cure round (panel round 1, 2026-11-06):** QA PASS-WITH-NITS · DevEx PASS-WITH-NITS · benchmark PASS · panel 8 APPROVE-WITH-NITS / 4 BLOCK on `26e2250`. The two defects — (1) station chip + Holmes-mute overlapping the tap-mode Listen button (Listen's hittable strip ≈32 px, a mis-tap mutes and unmounts Listen), (2) duplicate chip + badge during NOTE_MARK's split placement — plus the folded Act-On nits (summary-celebration mid-line mute, alias aria/state, dual-tone focus rings, gesture-wait re-check, sfx canonical-channel note + ordering test, chip-offset comment, preset-off E2E, records) are cured on this branch in the cure commits after `26e2250`; the detective-sound spec grows to 10 cases with the tap-mode station proof, the NOTE_MARK count proof, the preset-off boot case, the summary preset-off gate case (the mid-line mute itself is unit-proven — the summary dialog is modal, so no mute surface is reachable in E2E while the line plays), and the three-width toggle placement cases (cure 12, owner amendment 2026-11-06: 390/768/1280 px on both in-screen toggles). Cure-7 note: the first implementation re-checked the generation counter after the gesture wait; neighbour A/B (main PASS · pre-cure-7 PASS · generation-check FAIL on detective.reduced) showed that check could abort the queue's current item when a stopAll landed after it parked, so the landed cure registers the stop handle BEFORE the wait — stopAll settles a parked clip through the player's existing stopped-item path, gate re-checked at wake; detective.reduced passes again on the cured tip. The cured tip gets a fresh Silo QA key + full panel re-vote before any merge.
-- **Gates (cured tip, builder-run):** `npx tsc --noEmit` clean · unit 3,253 pass / 0 fail / 11 skipped (scripts 1,020 + src 2,233) · worker suite 145 pass / 0 fail · `node scripts/lint-cards.mjs` GATE PASSED · `npm run build:pages` green, entry chunk 457,814 B · detective-sound E2E 10/10 (one earlier full-run (j) failure was a browser-closed infra flake; sequential re-run 10/10) · neighbours: stations/companion/replay green, detective-summary flag-off fails as it does on main (pre-existing), detective.reduced green on the cured tip after the cure-7 rework.
+- **Gates (cured tip, builder-run):** `npx tsc --noEmit` clean · unit 3,253 pass / 0 fail / 11 skipped (scripts 1,020 + src 2,233) · worker suite 145 pass / 0 fail · `node scripts/lint-cards.mjs` GATE PASSED · `npm run build:pages` green, entry chunk 457,814 B · detective-sound E2E 10/10 (one earlier full-run (j) failure was a browser-closed infra flake; sequential re-run 10/10) · neighbours: stations/companion/replay green, detective-summary flag-off fails as it does on main (pre-existing — SUPERSEDED by the #358 repair: the flag-off case passes on current main; a failure there is now a real signal), detective.reduced green on the cured tip after the cure-7 rework.
 - **Open owner question (follow-up, left open):** adding a SoundToggle inside the summary dialog — currently no mute surface is reachable while the modal summary is open; whether to add one is the owner's question, left open (not built in PR C).
-- **Dock-strip adjacency (UX Researcher NIT-3, round 1):** interim 44px separation ships in PR C; full dock-geometry fix belongs to PR B's FG-1 dock work.
-- **Forward obligation (Senior Architect, PR #357):** PR A (hostsStaging) must re-derive chipStationOffset/holmesStationOffset in DetectiveHost from the layout constants when it resizes the staging figures — the literals in PR C are arithmetic on the current 100/70px figures, not constants of record.
+- **Dock-strip adjacency (UX Researcher NIT-3, round 1):** interim 44px separation shipped in PR C. Dock adjacency RESOLVED by #358 (Holmes's dock moved beside Watson; the boxes no longer overlap) — see PR A's dock-alias decision in the hosts-staging section at the top of this file. FG-1 station occlusion remains PR B's (handbook ch.10); the dock/attribution item is handbook FG-8, not FG-1.
+- **Forward obligation (Senior Architect, PR #357):** PR A (hostsStaging) must re-derive chipStationOffset/holmesStationOffset in DetectiveHost from the layout constants when it resizes the staging figures — the literals in PR C are arithmetic on the current 100/70px figures, not constants of record. PR A also owns the dock tap-target call post-#358: restore the full 70px dock alias (the 44px narrowing is voluntary since #358) or record why not, including the full-width dock alias in this obligation, and re-check the map chip's placement against the wider dock cluster [12,190]. DISCHARGED in PR A — see the hosts-staging section at the top of this file.
 - **Cure round 2 (panel re-vote on `41c676e`):** panel 2 APPROVE / 8 APPROVE-WITH-NITS / 1 BLOCK (Office Hours: the celebration player leaked the line on unmount — `dispose()` never paused the held Audio element) + DevEx PASS-WITH-NITS; this cure = pause-on-dispose through the existing pause→settle path + 2 unit tests (dispose mid-line pauses exactly once and settles; dispose with no playback is a no-op) + these records. The new tip gets a delta Silo QA key + panel re-vote before any merge.
 - **Merge-up onto `53e6a6e` (#358, 2026-11-06):** main moved while PR C's pipeline ran (PR #358 prod-pair visibility fix merged). Merged (not rebased) at `78e86b6`. Conflicts resolved as faithful unions: this file carries both PR sections (#358 section marked merged); handbook ch.10 carries the #358 INCIDENT record first (shipped on main), then PR C's staging section — zero content lost vs either parent (verified by diff); `playwright.config.ts` carries BOTH `detective-sound` and `detective-visibility` projects. DetectiveHost auto-merged; semantic re-check: (a) `stationSoundShown` / `!stationSoundShown` chip guards remain mutually exclusive (DetectiveHost.tsx:1142,1201) — exactly one chip in every placement, incl. #358's new dock arrangement; (b) Listen-clearance geometry holds — #358 resized nothing at the station (figures still 104 px tall, Watson 100 / Holmes 70), so the 56 px lift, 44 px station strip and chipStationOffset literals stand; at the dock Holmes now sits at x=120 (`HOLMES_DOCK_X`), so his 44 px mute strip [120,164] is fully clear of Watson's replay box [12,112] — separation improved, no offset change needed; (c) #358's visibility harness, `fulfillFlagsOff` helper and summary flag-off repair coexist with PR C's specs (additive only). The new tip gets a fresh Silo QA key + panel re-vote before any merge.
 - **Status:** [x] units built + pushed · [x] self-gates · [x] docs (handbook ch.10 PR C section, README sound paragraph, this record) · [x] PR open (#357) · [ ] pipeline re-vote on the cured tip (Silo QA + panel — separate dispatch). NO MERGE — the owner's word / ship-when-ready on the pipeline verdict.

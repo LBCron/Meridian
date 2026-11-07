@@ -97,9 +97,9 @@ For the youngest players (Little Explorer, ages 5–7), GeoDetective is locked, 
 
 Two of the card films come in a second version, picked by the player's age band through two small selector functions in the same `card-media.ts` module. Little Explorer players (ages 5–7) see a softer Cold Trail film: the same walk out along the footprint trail and back, at a slower, gentler pace. Trail Scout players (ages 8–10) see a different Review film: the magnifying glass sweeps out and back over the satchel and settles on the usual picture, where the standard Review film overshoots, rewinds, and pauses to rethink. Every other player — including anyone who has not set a band, who gets the standard films — sees the films described above. The choice is exact and fails safe: only the one band named for each variant ever downloads it, the card boxes and the component never change, and the same reduced-motion, Save-Data, and low-memory rules apply to the variants too.
 
-### Detective audio (Holmes & Watson, in build)
+### Detective audio (Holmes & Watson)
 
-GeoDetective is gaining two spoken companions — Holmes on the map, Watson at the clue card — behind the `detectivePair` feature flag, which ships off. Their voices are **pre-rendered on purpose**: every line is recorded ahead of time with the two pinned voices, because a live text-to-speech voice on the player's device cannot hold the characters' measured pitch or pace. Lines live as plain MP3 files under `public/audio/detective/`, fetched only when a case plays — never bundled, never precached.
+GeoDetective has two spoken companions — Holmes on the map, Watson at the clue card — behind the `detectivePair` feature flag (live: `public/flags.json` carries it as `true` since the owner flipped it on 2026-11-06, PR #356). Their voices are **pre-rendered on purpose**: every line is recorded ahead of time with the two pinned voices, because a live text-to-speech voice on the player's device cannot hold the characters' measured pitch or pace. Lines live as plain MP3 files under `public/audio/detective/`, fetched only when a case plays — never bundled, never precached.
 
 The render pipeline lives in `scripts/detective/`. One command re-renders a case end to end (five clue reads plus the answer read):
 
@@ -121,6 +121,8 @@ Ending a game celebrates too, in every edition. When the pair is switched on and
 
 The pair ships **behind the `detectivePair` feature flag** (`public/flags.json` carries it as `true` — the owner flipped it on 2026-11-06, PR #356). With the flag off, none of their code mounts and the game is exactly the game described above. Turning them off again is a flags change, not a new release.
 
+Before a case's questions load, the pair wait on a bench under the map (the `hostsStaging` flag): Holmes glances at his watch, both sip coffee, and they speak the case-open lines from the bench. When the questions arrive they rise — Watson reads each clue from the gutter beside the clue card, never over its words, and Holmes stands in the bench slot until your first map interaction walks him onto the map. The coffee cups stay behind on the bench. Turning `hostsStaging` off restores the shipped pair — the pair as it first shipped, apart from two small permanent deltas that stay in both modes: Holmes's dock tap-to-mute area is his full figure width, and the pair's host mounts under the map section.
+
 On smaller or quieter setups the pair steps back instead of getting in the way:
 
 | What the device asks for | What the pair does |
@@ -130,7 +132,7 @@ On smaller or quieter setups the pair steps back instead of getting in the way:
 | Sound off | No speech at all; the pair is pictures only, and every fact stays on screen as text. |
 | Read-aloud set to "never" or "sometimes" | Same Listen button — it is never hidden, because it is the player's own tool. |
 
-The decision itself is one small pure function, `resolveDetectiveDegradation` in `src/game/loop/detective/detective-degradation.ts`, and the voices follow the pre-rendered pipeline in [Detective audio](#detective-audio-holmes--watson-in-build) above.
+The decision itself is one small pure function, `resolveDetectiveDegradation` in `src/game/loop/detective/detective-degradation.ts`, and the voices follow the pre-rendered pipeline in [Detective audio](#detective-audio-holmes--watson) above.
 
 ### Supporting the game
 
