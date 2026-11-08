@@ -1245,3 +1245,19 @@ has not measured.
   celebration.** Until then, §10 coverage for the walk
   is UNVERIFIED — the endpoint PASS does not cover the
   path between endpoints.
+
+- **(iii) §6.4 mouth travel for `delighted` and `pout`
+  is NOT MEASURED on record.** The §6.4 bar is ≥3 px of
+  mouth-centre/arc travel between the neutral drawing
+  and the reaction drawing. On record, only
+  `surprised`↔`wonder` travel is measured (3.56 / 3.93
+  rig px, ≥3). For `delighted` and `pout` no travel
+  measurement stands in the lock or the harness: the
+  cure record shows `delighted` is the biggest mouth in
+  Holmes's set by mouth-box dark-pixel count (size, not
+  travel), and `pout` was redrawn as an inverted arc
+  (shape, not travel). Until a travel number is
+  measured and recorded, §6.4 is UNVERIFIED for
+  `delighted` and `pout` for both characters — the
+  expression cells rest on the kid test (PR D), not on
+  a §6.4 pass claimed here.
