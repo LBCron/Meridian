@@ -1076,6 +1076,20 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
   const walkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const telegraphTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* C-precision (PR #364 cure): eviction-only machinery. evictionTimerRef
+   * is the ONE deferred legality re-check (unmount-cleaned alongside
+   * walkTimerRef/telegraphTimerRef); evictionArmRef keys that arm to
+   * the judged holmesXY and marks whether its firing may ACT as the
+   * confirming second measure; followTravelEndRef stamps the moment
+   * the current glide lands (telegraph + travel), stamped in
+   * applyFollowTarget where both values are computed. */
+  const evictionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const evictionArmRef = useRef<{
+    x: number;
+    y: number;
+    confirm: boolean;
+  } | null>(null);
+  const followTravelEndRef = useRef(0);
   const followPlacedRef = useRef(false);
 
   /** The old dock spot, in viewport coordinates — now used ONLY as
@@ -1211,6 +1225,10 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
       entryPendingRef.current = false;
       setHolmesTransition({ durationMs: 700, easing: EASE_OUT });
       setHolmesXY(dock);
+      // C-precision: stamp the entry walk's landing so the eviction
+      // settled gate can wait it out (a ref write only — no landing
+      // behaviour changes).
+      followTravelEndRef.current = performance.now() + 700;
       setWalking(true);
       if (walkTimerRef.current) clearTimeout(walkTimerRef.current);
       walkTimerRef.current = setTimeout(() => {
@@ -1237,6 +1255,11 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
         clearTimeout(telegraphTimerRef.current);
         telegraphTimerRef.current = null;
       }
+      if (evictionTimerRef.current) {
+        clearTimeout(evictionTimerRef.current);
+        evictionTimerRef.current = null;
+      }
+      evictionArmRef.current = null;
       if (watsonWalkTimerRef.current) {
         clearTimeout(watsonWalkTimerRef.current);
         watsonWalkTimerRef.current = null;
@@ -1312,19 +1335,31 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
     setBerthed(true);
     if (dist < 4) return;
     entryPendingRef.current = false; // a berth supersedes the entry walk
+    // C-precision: stamp the landing moment (telegraph delay + travel
+    // duration, both computed here) so eviction never judges mid-glide,
+    // even if the walking/telegraph state flickers off early.
+    followTravelEndRef.current =
+      performance.now() +
+      FOLLOW_TELEGRAPH_MS +
+      (degradationRef.current.walkMode === "cut" ? 0 : followTravelMs(dist));
     setFollowFacing(target.x >= cur.x ? "right" : "left");
     setFollowTelegraph(true);
     if (telegraphTimerRef.current) clearTimeout(telegraphTimerRef.current);
     telegraphTimerRef.current = setTimeout(() => {
       telegraphTimerRef.current = null;
       setFollowTelegraph(false);
-      if (followSuspendedRef.current()) return; // conditions changed: stay
+      if (followSuspendedRef.current()) {
+        followTravelEndRef.current = 0; // no travel launched: no landing
+        return; // conditions changed: stay
+      }
       const durationMs =
         degradationRef.current.walkMode === "cut"
           ? 0
           : followTravelMs(dist);
       setHolmesTransition({ durationMs, easing: EASE_OUT });
       setHolmesXY(target);
+      // C-precision: refine the landing stamp to the launched glide.
+      followTravelEndRef.current = performance.now() + durationMs;
       if (durationMs > 0) {
         setWalking(true);
         if (walkTimerRef.current) clearTimeout(walkTimerRef.current);
@@ -1398,13 +1433,91 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
   const legalPerchRef = useRef(legalPerch);
   legalPerchRef.current = legalPerch;
 
+  /* C-precision (PR #364 cure): the deferred eviction re-check. Arms
+   * ONE timer (superseding any previous arm) keyed to the judged
+   * position; on firing it rebuilds the forbidden rects FRESH and
+   * re-enters the legality check, which re-judges the CURRENT
+   * position by construction. */
+  const scheduleEvictionCheck = (
+    delayMs: number,
+    confirm: boolean,
+    cur: { x: number; y: number },
+  ) => {
+    if (evictionTimerRef.current) clearTimeout(evictionTimerRef.current);
+    evictionArmRef.current = { x: cur.x, y: cur.y, confirm };
+    evictionTimerRef.current = setTimeout(() => {
+      evictionTimerRef.current = null;
+      rebuildForbiddenRef.current();
+      checkHolmesLegalityRef.current();
+    }, Math.max(0, delayMs));
+  };
+  const clearEvictionCheck = () => {
+    if (evictionTimerRef.current) {
+      clearTimeout(evictionTimerRef.current);
+      evictionTimerRef.current = null;
+    }
+    evictionArmRef.current = null;
+  };
+
   const checkHolmesLegality = () => {
-    const rects = forbiddenRef.current;
     const cur = holmesXYRef.current;
+    /* C-precision settled gate: a mid-motion position is NEVER
+     * judged. While any motion signal is active — walking, the
+     * follow telegraph (state or its timer), an entry walk pending,
+     * a stamped travel landing still ahead, page scroll, or a busy
+     * camera — arm the one deferred re-check for the latest motion
+     * horizon + ~30 ms and return. Geometry measured mid-scroll /
+     * mid-glide is transient; the settled re-check judges the settled
+     * box against settled rects. Bounded exposure: a genuinely
+     * illegal settled overlap whose trigger coincides with motion
+     * waits one defer/confirm cycle (~250-300 ms) before eviction;
+     * the writer gates are untouched, so no NEW illegal landing can
+     * be created in that window. */
+    const now = performance.now();
+    const fs = followRef.current;
+    const motionUntil = Math.max(
+      followTravelEndRef.current,
+      fs.scrollingUntil,
+      fs.cameraBusyUntil,
+    );
+    const moving =
+      walking ||
+      followTelegraph ||
+      walkTimerRef.current !== null ||
+      telegraphTimerRef.current !== null ||
+      entryPendingRef.current ||
+      now < motionUntil;
+    if (moving) {
+      scheduleEvictionCheck(
+        motionUntil > now ? motionUntil - now + 30 : 250,
+        false,
+        cur,
+      );
+      return;
+    }
+    const rects = forbiddenRef.current;
     if (!holmesBoxHitsForbidden(cur, rects)) {
+      clearEvictionCheck();
       if (holmesHiddenRef.current) setHolmesHiddenBoth(false);
       return;
     }
+    /* C-precision two-measure confirm: a settled illegal verdict
+     * inside the ~250 ms window after the last motion horizon is a
+     * first measure only — geometry may still be settling from the
+     * scroll/glide that just ended. Defer ONCE to the end of that
+     * window; the deferred re-check (arm.confirm, same position)
+     * is the confirming second measure. Legal at confirm un-hides
+     * via the branch above and never moves him; a position change
+     * drops the arm (the holmesXY effect below), so a new position
+     * always earns its own first measure. */
+    const arm = evictionArmRef.current;
+    const confirmed =
+      arm !== null && arm.confirm && arm.x === cur.x && arm.y === cur.y;
+    if (!confirmed && motionUntil > 0 && now < motionUntil + 250) {
+      scheduleEvictionCheck(motionUntil + 250 - now + 30, true, cur);
+      return;
+    }
+    clearEvictionCheck();
     if (followTierRef.current === "DOCK_ONLY") {
       // The tier never berths: move the pin itself to a legal corner,
       // or hide him when no corner is legal.
@@ -1468,6 +1581,13 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
    * the burst-hide. Illegal landings are gated upstream, so this
    * only ever fires on a legal spot or not at all. */
   useEffect(() => {
+    // C-precision: a new landing supersedes any eviction arm keyed
+    // to the previous position — cancel it before it can confirm a
+    // verdict against a position he no longer occupies.
+    const arm = evictionArmRef.current;
+    if (arm && (arm.x !== holmesXY.x || arm.y !== holmesXY.y)) {
+      clearEvictionCheck();
+    }
     if (!holmesHiddenRef.current) return;
     if (!holmesBoxHitsForbidden(holmesXY, measureForbiddenRects())) {
       setHolmesHiddenBoth(false);
