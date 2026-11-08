@@ -72,16 +72,16 @@ placeholder.
 
 | Budget | Hard limit | Measured | Verdict |
 | :--- | :--- | :--- | :--- |
-| Total runtime pair assets (lazy-loaded) | ≤500 KB | {{TOTAL_ASSETS_KB}} KB | {{TOTAL_ASSETS_VERDICT}} |
-| Decoded memory | ≤32 MB | {{DECODED_MB}} MB | {{DECODED_VERDICT}} |
-| Palm-anchor error — Holmes `(99, 25)` | ≤3 px at rig scale | {{PALM_HOLMES_PX}} px | {{PALM_HOLMES_VERDICT}} |
-| Palm-anchor error — Watson `(15, 21)` | ≤3 px at rig scale | {{PALM_WATSON_PX}} px | {{PALM_WATSON_VERDICT}} |
-| Live per-frame SVG filters | 0 | {{LIVE_FILTERS_COUNT}} | {{LIVE_FILTERS_VERDICT}} |
-| Static composite — Holmes | ≈20–30 KB | {{STATIC_HOLMES_KB}} KB | {{STATIC_HOLMES_VERDICT}} |
-| Static composite — Watson | ≈20–30 KB | {{STATIC_WATSON_KB}} KB | {{STATIC_WATSON_VERDICT}} |
-| Scale ratio Watson / Holmes (every composite) | 0.73–0.79 (≈0.75 law) | {{SCALE_RATIO_RANGE}} | {{SCALE_RATIO_VERDICT}} |
-| Silhouette gate (grayscale, 104 px) | Approved before colour lock | {{SILHOUETTE_GATE}} | {{SILHOUETTE_VERDICT}} |
-| Harness target revision | — | {{HARNESS_REVISION}} | — |
+| Total runtime pair assets (lazy-loaded) | ≤500 KB | 147.9 KB | PASS |
+| Decoded memory | ≤32 MB | 1.54 MB | PASS |
+| Palm-anchor error — Holmes `(99, 25)` | ≤3 px at rig scale | 0.35 px | PASS |
+| Palm-anchor error — Watson `(15, 21)` | ≤3 px at rig scale | 0.35 px | PASS |
+| Live per-frame SVG filters | 0 | 0 | PASS |
+| Static composite — Holmes | ≈20–30 KB | 15.7 KB | PASS |
+| Static composite — Watson | ≈20–30 KB | 18.6 KB | PASS |
+| Scale ratio Watson / Holmes (every composite) | 0.73–0.79 (≈0.75 law) | 0.75–0.77 (mean 0.76) | PASS |
+| Silhouette gate (grayscale, 104 px) | Approved before colour lock | Approved — both figures read correctly in grayscale at 104 px before colour lock (Holmes tall/thin + deerstalker, 47 px wide; Watson short/stout + bowler, 63 px wide; locked in ASSET_LOCK.json `silhouette_gate`) | PASS |
+| Harness target revision | — | 1762e3f (the kid-test harness commit); the smoke re-run on the final art tip is recorded in the Harness line below | — |
 
 ## The laws, in summary
 
@@ -131,10 +131,20 @@ spec §14:
   `BRANCH_STATUS.md`.
 - **Protected — untouched:** the pair-behaviour train in full
   (`DetectiveHost.tsx`, `detective-state.ts`, `companion.ts`,
-  `follow.ts`, `watson-walk.ts`) and, for PR A, everything under
-  `src/`, `tests/`, `scripts/`, and `public/`.
-- Diff stat at vote time: {{DIFF_STAT}} — any `src/` / `tests/` /
-  `scripts/` / `public/` path in the final diff fails this PR.
+  `watson-walk.ts` — and `follow.ts`, the follow-model module
+  owned by OPEN PR #364 (`feat/holmes-follow`, tip `c90462a`),
+  which does not exist on main at `9e49da3` and is protected
+  by name regardless) and, for PR A, everything under
+  `src/`. (`tests/e2e/pair-art-kidtest.spec.ts`, the
+  `pair-art-kidtest` project in `playwright.config.ts`,
+  `scripts/kidtest-*`, and `public/assets/detective/pair-art/`
+  are PR A’s own harness and assets, in scope per the owner’s
+  brief.)
+- Diff stat at vote time: the full PR diff against main `9e49da3`: 77 files changed, 5,706 insertions(+), 133 deletions(-) — assets, docs, harness; zero `src/` paths — any `src/` path in
+  the final diff fails this PR; `tests/`, `scripts/`, and
+  `public/` paths beyond the kidtest spec, the playwright
+  project, the kidtest scripts, and the pair-art assets fail
+  it too.
 
 ## Where the study and the code disagreed
 
@@ -142,7 +152,7 @@ Flagged in spec §12, not papered over. Headlines:
 
 1. Coffee cup is **not** a rig prop — it lives in the host's
    bench markup and never enters play (code governs; no cup
-   part is drawn).
+   part is drawn for either character — one shared cup part is drawn for the bench hero tableau only).
 2. The shipped renderers lack distinct faces for Holmes
    `marking` and Watson `focused` / `attentive` / `hushed` /
    `wonder` — PR A draws all 22 faces anyway (spec §6.3).
@@ -157,7 +167,7 @@ Flagged in spec §12, not papered over. Headlines:
 
 - [ ] Diff audit — scope list above, staged files named only,
   never `git add -A`
-- [ ] Harness — {{HARNESS_COMMANDS}} on {{HARNESS_REVISION}}:
+- [ ] Harness — `node scripts/kidtest-smoke.mjs` + the `pair-art-kidtest` Playwright project on f2adf71:
   {{HARNESS_RESULT}}
 - [ ] Silo QA — keyed PR# + head SHA: {{SILO_QA_VERDICT}}
 - [ ] Panel — 13 seats incl. Game player, on the final tip:

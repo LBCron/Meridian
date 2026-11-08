@@ -6,6 +6,18 @@
   `docs/pair-art/MODEL_SHEET_SPEC.md` (this PR), handbook ch.10
   PR A addendum (this PR).
 
+## Coordinator pointers (2026-11-07 night)
+
+- Base of record for this branch: `main` @ `9e49da3`
+  (PRs #357–#365 merged + live). PR #364 (`feat/holmes-follow`,
+  PB-1 follow model) is OPEN, NOT merged, and was never part of
+  this branch’s base; on its own branch at tip `c90462a`.
+- #364’s E2E zero-overlap regression class C (Watson over clue
+  text) is NOT a PR A pass item: re-verify once #364 merges,
+  against the panel-voted cured tip.
+- PRs #351 / #353 (crash-report lane): OPEN, Chitti
+  monitor-only — not this lane’s work.
+
 ## Task capsule
 
 TASK / requested outcome: PR A of the Holmes & Watson character
@@ -51,6 +63,37 @@ Interpretations considered and selected reading:
 - The kid test is PR D's gate. PR A owes the automatable
   smoke gate (palm, budgets, ratio, silhouette renders),
   not a child panel.
+- COORDINATOR RULINGS (records cures, 2026-11-07 night — the
+  builder documents and the delivered assets disagreed; these
+  rulings make the record match the delivery, on evidence):
+  (a) Scope line: PR A’s own harness and assets are in scope
+  per the owner’s brief — `tests/e2e/pair-art-kidtest.spec.ts`,
+  the `pair-art-kidtest` project in `playwright.config.ts`,
+  `scripts/kidtest-*`, and
+  `public/assets/detective/pair-art/`. Only `src/` is out of
+  scope. The PR body’s scope audit now says exactly this.
+  (b) Coffee cup: the cups themselves live in the host’s bench
+  markup (code of record, unchanged by this ruling); PR A draws
+  exactly ONE shared cup part, `prop-cup.png`, for the bench
+  hero tableau — never for either character as a held or worn
+  prop, and a cup inside either character rig in any pose is a
+  defect. Spec §4 and the PR body’s scope audit now say this.
+  (c) Static composites: the delivered pose plates serve as the
+  static degradation composites — Holmes `holmes-pose-dock.png`
+  (15.7 KB), Watson `watson-pose-station-idle.png` (18.6 KB);
+  both within the study’s ≈20–30 KB band. The conflation with
+  LOCKED GAME-RUNTIME degradation tiers is dropped: the
+  low-memory tier keeps its own small static composite and the
+  in-game degradation architecture is untouched by PR A.
+  (d) The mouth-travel line in spec §5.4 is the MOUTH-HEIGHT
+  bar: the speaking flap needs a mouth region tall enough
+  (≥3 px at rig scale) to read as speech, never a ≥3 px
+  centroid-travel across expressions. Measurements in the lock
+  are recorded under that reading.
+  (e) Coverage status in the harness is measured against the
+  real built page (serveBuiltArtifact over the actual
+  GeoDetective page), never a static export: size/face/coverage
+  measures run on the same page the player sees.
 
 Tier and rationale: Tier 2 — Council. New feature programme,
 3+ files, a new asset surface, and a design-of-record decision
@@ -160,3 +203,16 @@ branch protection untouched.
 - [ ] Silo QA (keyed PR#+tip)
 - [ ] Panel 13 seats by name + DevEx + benchmark
 - [ ] Merge on verdict + branch deleted + tip SHA ledgered
+
+## Status — 2026-11-07 night (coordinator)
+
+- Build complete: spec `f12389c`, harness `1762e3f`, art
+  `8f0e5fd` + `f2adf71`. Measured gates all PASS: runtime
+  147,920 B of the 500,000 B budget; decoded 1.54 MB of 32 MB;
+  palm error 0.35 px both characters (gate ≤3 px); silhouette
+  gate PASS at 104 px grayscale; scale ratio 0.75–0.77.
+- Records cures applied (coordinator rulings above): scope
+  line, coffee-cup wording, static-composite sourcing,
+  mouth-height reading, coverage-against-real-page reading.
+- Next: push, open the PR, run the repo gates, Silo QA keyed
+  to the final tip, 13-seat panel by name.

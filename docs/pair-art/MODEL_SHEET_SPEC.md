@@ -272,10 +272,9 @@ from the pose specs in `DetectivePair.tsx`:
 > (`DetectiveHost.tsx` + `detective.css`), not in
 > `DetectivePair.tsx` — the rig file says so in its header
 > comment: "the cups stay on the bench and never enter
-> play." PR A's sheets therefore draw **no cup part for
-> either rig**. The bench cup is a hero-moment concern
+> play." PR A's sheets therefore draw **exactly one shared cup part for the bench hero tableau — never for either character as a held or worn prop, and never inside either character rig**. The bench cup is a shared hero-moment part
 > (PR C), drawn with the bench, in the host's bench scene.
-> A cup that appears in an in-play pose sheet is a defect
+> A cup rendered inside either character rig in any pose — seated, standing, or walking — is a defect
 > against the Staging Law (§9.2): no bench props in walk
 > or in-play frames.
 
@@ -378,6 +377,15 @@ is a quality bar, not a suggestion: painted faces raise the
 bar — a mouth flap that looked acceptable on flat art looks
 broken on painted art. Budget drawing time for the flap.
 
+> **Coordinator ruling (2026-11-07 night — records cure (d)):**
+> the mouth measure recorded for this programme is a
+> **mouth-height** bar, not a centroid-travel bar. The flap
+> must sit in a mouth region tall enough — ≥3 px at rig
+> scale — to read as speech on the painted face; expressions
+> are never required to move the mouth centroid by any
+> distance. Face measures recorded in the asset lock are
+> read under this ruling.
+
 **The static composite is a degradation image, not a
 pose.** When a device cannot run the rig, the player still
 sees a whole, painted figure standing at the station —
@@ -386,6 +394,17 @@ figure, §7). It has one neutral face, no pivots, and no
 animation. It is drawn **from** the sheets (same silhouette,
 same scale ratio), but it is not a pose and it is never
 blank. Degradation ends at a figure, never at an empty box.
+
+> **Delivered in PR A (coordinator ruling (c), 2026-11-07
+> night):** the static composites of record are the delivered
+> pose plates — Holmes `holmes-pose-dock.png` (15.7 KB),
+> Watson `watson-pose-station-idle.png` (18.6 KB) — both
+> within the ≈20–30 KB band (slightly under is fine; the band
+> is a budget, not a target). These are PR A’s sheet
+> composites for the kid test, NOT a change to the locked
+> in-game degradation tiers: the low-memory tier keeps its
+> own small static composite, and the shipped degradation
+> architecture is untouched by this PR.
 
 ---
 
