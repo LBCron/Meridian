@@ -568,7 +568,7 @@ and Watson. The mockup QA rounds measured a walk still at
 it a defect on sight. That number is recorded here so it
 is never re-litigated as a taste question.
 
-### 8.2 The locked in-play sizes
+### 8.2 The locked bench-tableau sizes
 
 One scale standard per width, anchored on the bench scene
 (the bench still is the presence reference for the whole

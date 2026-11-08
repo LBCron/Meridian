@@ -104,8 +104,11 @@ placeholder.
 Full text: `docs/pair-art/MODEL_SHEET_SPEC.md` §§8–10.
 
 - **Scale law:** Watson ≈0.75× Holmes in **every** frame (0.97
-  measured in mockup QA = defect). In-play lock: 390 px →
-  Holmes 170 / Watson 130; 1280 px → Holmes 150 / Watson 115.
+  measured in mockup QA = defect). Bench tableau lock:
+  390 px → Holmes 170 / Watson 130; 1280 px → Holmes 150 /
+  Watson 115. In-play sizes are governed by the §8.3 bands
+  alone (112–128 px at 390, and so on); in-play coverage was
+  proven at 128 px at 390, never at 170 px.
   Hero moments carry the ratio inside the artwork. Kid-test
   bands 112–128 / 128–144 / 144–160 / 160–176 px with face
   floors 38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920.
