@@ -2,11 +2,10 @@
 
 **Branch:** `feat/journal-movies` · **Base:** `origin/main` @ `9e49da3e` (#365)
 **Owner order:** 2026-11-07 — "Build all journals" (Old Faithful pilot approved)
-**Status:** BUILDING — 88/106 clips VERIFIED + LIVE (incl. pilot). Batches 01
-(9/9), 04 (9/9), 05 (9/9), 08 (8/8), 10 (9/9), 11 (9/9) complete; 02 (6),
-03 (7), 06 (4), 07 (6), 09 (6), 12 (5) shipped; 10 clips HELD (see below).
-Follow-ups in flight for 02, 03 (#2: star-city-shores + university-place
-fallback), 06, 07, 09, 12 (galapagos + potala regen).
+**Status:** BUILDING — 105/106 clips VERIFIED + LIVE (incl. pilot). Batches 01,
+02, 03, 04, 05, 07, 08, 09, 10, 11, 12 complete; batch 06 is 8/9 with the
+archway mix-only follow-up running. 1 clip left: archway (hold overturned
+— see below; mix in flight, no video call needed).
 
 ## Done
 - [x] 2026-11-08 — Branch created from origin/main 9e49da3e; worktree
@@ -120,6 +119,51 @@ fallback), 06, 07, 09, 12 (galapagos + potala regen).
       from ~6 s; alamo: heavy zoom, closing line plays over a facade-only
       shot with no garden visible). Peaks −1.0/−1.5 dB, decode 0.
       Bed-30% per worker measurement. Not verified by ear.
+- [x] 2026-11-08 — **Batch 07 follow-up DONE: 9/9 complete.** Chadron,
+      niobrara, white-house built (vdc_5723 / briggs / vdc_2561). White-house
+      ships flagged: near-static after 4 s (motion diffs ~2), fountain arc
+      compressed — option (b) still+narration only remains open. Niobrara
+      flagged (6/9.5 s drift toward photorealism). Peaks −1.0 dB, decode 0.
+      Bed-30% per worker measurement. Not verified by ear.
+- [x] 2026-11-08 — **Batch 02 follow-up DONE: 9/9 complete.** Holmes-lake,
+      wyuka, gateway regens replace the held ffmpeg-only v1s — real bed at
+      0.30 (gaps were −91.0 dB silent, now −46.6 to −47.8 dB). Gateway take 1
+      rejected (invented pseudo-text signage); take 2 blank, no text.
+      Wyuka flagged (headstone leaves frame, bird count varies 4→3→4);
+      gateway flagged (one awning green instead of striped). Peaks −1.4/−1.5
+      dB, decode 0. Bed-30% per worker measurement. Not verified by ear.
+- [x] 2026-11-08 — **Batch 09 follow-up DONE: 9/9 complete.** Everglades,
+      death-valley, hoover built. Everglades: heron visibly lifts off at 6 s
+      (fallback line not needed), confirmed in-frame. Hoover: v1 rejected
+      (invented waterfall through the arch), v2 rejected (bypass bridge as
+      hero); v3 locked-camera holds, no waterfall, dam is the hero —
+      confirmed in-frame at 6 s. Everglades peak −0.9 dB by volumedetect
+      (−1.01 dB by the worker's measure; headroom either way, no clipping).
+      Bed-30% per worker measurement. Not verified by ear.
+- [x] 2026-11-08 — **Batch 06 follow-up DONE: 4 of 5 regens swapped.**
+      Kingsley (spillway in full rush at 6 s), smith-falls (full wide flow
+      with mist, child pointing), fort-robinson (flag raises, full at 9.5 s),
+      chimney-rock (spire in frame at 2/6/9.5 s) — all four defects fixed,
+      confirmed in-frame. Batch 06 now 8/9. **Archway NOT swapped by the
+      worker** (its replace gate demanded exactly one wagon; the regen
+      shows two) — see Held below: the coordinator overturned that hold.
+      Peaks −1.0 dB, decode 0. Bed-30% per worker measurement.
+      Not verified by ear.
+- [x] 2026-11-08 — **Batch 12 follow-up DONE: 7/7 complete.** Galapagos
+      built (tortoises + iguanas, real visible verb; minor flag: dark
+      animals resting on the dock at 6/9.5 s). Potala v2 PASSES — the
+      white-and-red palace mass on the hill holds at 2/6/9.5 s, confirmed
+      in-frame at 6 s; v1's golden-temple reinterpretation gone. Voice-free
+      window 2.10 s, as in the pilot. Peaks −1.4/−1.5 dB, decode 0.
+      Bed-30% per worker measurement. Not verified by ear.
+- [x] 2026-11-08 — **Batch 03 follow-up #2 DONE: 9/9 complete.**
+      Star-city-shores built (fresh call, not a repeat of the failed one),
+      flagged: tight near-photoreal close-up of two slides over one pool;
+      the keyframe's wide watercolor aerial layout is gone — same failure
+      mode as hyde; re-render option recorded. University-place ships as a
+      still+narration FALLBACK (haymarket precedent, no 3rd regen): source
+      still held 10 s with existing Casper narration + v1 audio bed at 0.30,
+      peak −1.01 dB, no text possible. Batch 03 now 9/9.
 
 ## Video cap (discovered 2026-11-08, affects every batch)
 The media pipeline allows at most **6 successful videos per agent
@@ -131,33 +175,30 @@ instead of 12. Follow-up spawns are new messages, so each gets a fresh
 in one run — all 9 generations succeeded, cap did not block.** The cap
 is enforced per run, not per batch; do not assume it.
 
-## Held clips (gate failures — regens in flight, do not ship as-is)
-- university-place (batch 03): readable text "heritage" on the
-  destination board at 6 s + 9.5 s — hard no-text gate fail, v1 AND v2.
-  No 3rd regen: still+narration fallback building in follow-up #2
-  (haymarket precedent).
-- potala (batch 12): palace re-interpreted mid-clip as a different
-  golden-roofed temple with Buddha statues flanking the door (6 s +
-  9.5 s, confirmed in-frame). Locked-wide regen in follow-up, reusing TTS.
-- holmes-lake, wyuka, gateway (batch 02): ffmpeg Ken Burns only, NO bed
-  audio — voice-free gaps measure −91.0 dB silent. Bed is a load-bearing
-  recipe element; held for AI-video regen.
-- kingsley, smith-falls, fort-robinson (batch 06): ffmpeg-only, NO bed;
-  and the payoff has no visible payoff (spillway out of frame / falls
-  stay a thin trickle / static post).
-- chimney-rock (batch 06): spire cropped out of frame at the 6 s payoff
-  while L3 says "There it stands".
-- archway (batch 06): wagon exhibit duplicated (TWICE) in the 9.5 s
-  settle frame + mid-clip interior dive loses the bridge hero.
+## Held clips (gate failures — do not ship as-is)
+- archway (batch 06): the regen was NOT swapped by the follow-up worker
+  because its 9.5 s frame shows TWO wagons and the replace gate demanded
+  exactly one. **Coordinator overturn (2026-11-08): the hold was a misread.**
+  The calm keyframe itself contains two wagons — a white-covered wagon on
+  the left and an open wagon centre-right — and the regen shows the SAME two
+  wagons in the same positions, with the bridge + highway + cars in frame
+  (v1's interior dive fixed). The two wagons are the source art's own
+  exhibits, not a model duplication. Mix-only follow-up spawned (no video
+  call): mix the existing regen raw with existing TTS, verify, swap in.
+  The held v1 stays at `work/held-original-archway.mp4` until the swap.
 - haymarket (batch 01) ships as a flagged still+narration FALLBACK
   (AI video failed the no-text gate TWICE); a 3rd attempt would need a
   different approach (no clock tower in frame).
+- university-place (batch 03) ships as a flagged still+narration FALLBACK
+  (v1 + v2 both failed the no-text gate); see Done above.
 
-## Still unbuilt (no video yet)
-- star-city-shores (batch 03): video call failed, not retried; fresh call
-  in follow-up #2. L2b TTS ready.
-- galapagos (batch 12): blocked only by the 6-video cap; keyframe +
-  narration staged; build in follow-up (1 call).
+## Resolved holds (were held, now live — record kept here)
+- havelock, southpointe (batch 03): v2 regens passed, live.
+- neuschwanstein (batch 11): v2 regen passed, live.
+- holmes-lake, wyuka, gateway (batch 02): v2 AI regens with real bed, live.
+- kingsley, smith-falls, fort-robinson, chimney-rock (batch 06): v2 regens
+  with real bed + visible payoffs, live.
+- potala (batch 12): v2 locked-wide regen, palace holds, live.
 
 ## Storage decision (recorded in docs/journal-movies.md)
 Movies do NOT live in this repo (~600 MB would quadruple git objects and
