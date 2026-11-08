@@ -1667,20 +1667,32 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
         setFollowTier(next);
       }
     };
-    /* Cure round 5 (diagnosis D + F): the judge is not fed during
-     * motion the follow itself causes or the player causes \u2014 his
-     * own entry glide (followTravelEndRef horizon) and any active
-     * camera gesture (cameraBusyUntil, extended on every gesture
-     * event) both render at whatever the map costs, and billing
-     * those frames to the follow killed the tier mid-glide and
-     * mid-pan on healthy devices. The thresholds are unchanged
-     * (45 FPS kill / 55 FPS re-qualify, companion.ts); sustained
-     * degradation at rest still kills exactly as before. */
-    const judgeBusyUntil = () =>
-      Math.max(followTravelEndRef.current, followRef.current.cameraBusyUntil);
+    /* Cure rounds 5-6 (diagnosis D + F): the judge is not fed
+     * during motion the follow itself causes or the player
+     * causes, using the same motion signals the legality
+     * eviction gate already trusts \u2014 a follow travel or berth
+     * walk in flight (telegraph/walk timers, entry pending), the
+     * stamped travel landing, page scroll, or a busy camera. His
+     * own glides and the player's pans render at whatever the
+     * map costs; billing those frames and long tasks to the
+     * follow killed the tier mid-glide at 768 and mid-pan in
+     * K3. The thresholds are unchanged (45 FPS kill / 55 FPS
+     * re-qualify, companion.ts); sustained degradation at rest
+     * \u2014 no motion signals active \u2014 still kills exactly as
+     * before (the throttled kill/recovery gate is the pin). */
+    const judgeBusy = (now: number) =>
+      walkTimerRef.current !== null ||
+      telegraphTimerRef.current !== null ||
+      entryPendingRef.current ||
+      now <
+        Math.max(
+          followTravelEndRef.current,
+          followRef.current.scrollingUntil,
+          followRef.current.cameraBusyUntil,
+        );
     const tick = (now: number) => {
       if (stopped) return;
-      if (now >= judgeBusyUntil()) {
+      if (!judgeBusy(now)) {
         killRef.current?.feedFrame(now - last, now);
       }
       last = now;
@@ -1693,10 +1705,10 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
     try {
       observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          // Same round-5 gating for long tasks: a task that began
-          // inside a gesture/travel window is the gesture's own
+          // Same rounds 5-6 gating for long tasks: a task that
+          // ended inside a motion window is that motion's own
           // rendering cost, not follow degradation.
-          if (entry.startTime < judgeBusyUntil()) continue;
+          if (judgeBusy(entry.startTime + entry.duration)) continue;
           killRef.current?.feedLongTask(
             entry.duration,
             entry.startTime + entry.duration,
