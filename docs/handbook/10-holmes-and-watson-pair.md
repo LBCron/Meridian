@@ -731,9 +731,12 @@ shipped in PRs #355–#363.*
     → low-memory static composite ≈20–30 KB/figure.
     Degradation ends at a figure, never blank.
   - **Scale law:** Watson ≈0.75× Holmes in every frame
-    (0.97 measured in mockup QA = defect). In-play lock:
-    390 px → Holmes 170 / Watson 130; 1280 px → Holmes 150 /
-    Watson 115. Hero moments carry the ratio inside the
+    (0.97 measured in mockup QA = defect). Bench tableau
+    lock: 390 px → Holmes 170 / Watson 130; 1280 px →
+    Holmes 150 / Watson 115. In-play sizes are governed by
+    the spec §8.3 bands alone (112–128 px at 390, and so
+    on); in-play coverage was proven at 128 px at 390,
+    never at 170 px. Hero moments carry the ratio inside the
     artwork. Kid-test bands 112–128 / 128–144 / 144–160 /
     160–176 px with face floors 38 / 44 / 48 / 52 px at
     390 / 768 / 1280 / 1920.
@@ -763,7 +766,8 @@ shipped in PRs #355–#363.*
     travel ≥3 px at rig scale from neutral.
   - **Silhouette gate (PR A, crew-internal):** grayscale
     renders at 104 px approved before colour lock; the
-    renders live with the sheets in `docs/pair-art/`.
+    renders live with the sheets in
+    `public/assets/detective/pair-art/`.
   - **Kid test (PR D go / no-go):** per width × background
     cell — find-Holmes ≥27/30 in ≤2 s in every cell
     including the static fallback (≤25 = kill), identity

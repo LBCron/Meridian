@@ -131,9 +131,10 @@ Done condition / scenarios / evidence:
   `public/assets/detective/pair-art/`.
 
 Files in scope: `docs/pair-art/MODEL_SHEET_SPEC.md` (new),
-`docs/pair-art/PR_BODY.md` (new), `docs/pair-art/` sheet
-assets + grayscale renders + harness output (sibling crews,
-paths named in the PR body when they land),
+`docs/pair-art/PR_BODY.md` (new),
+`public/assets/detective/pair-art/` sheet assets +
+grayscale renders and `docs/pair-art/` harness output
+(sibling crews, paths named in the PR body when they land),
 `docs/handbook/10-holmes-and-watson-pair.md` (addendum only),
 `BRANCH_STATUS.md` (this file).
 Protected / untouched — the pair-behaviour train, in full:
@@ -207,7 +208,7 @@ branch protection untouched.
   2 static composites) — sibling crew, landed `8f0e5fd` +
   `f2adf71`
 - [x] Harness: palm / budget / ratio report committed —
-  sibling crew, landed `1762e3f`; kidtest E2E 5/5 on the
+  sibling crew, landed `1762e3f`; kidtest E2E 6 tests on the
   final art (face floor recorded FAIL — ruling (f) below)
 - [x] Silhouette gate: grayscale 104 px renders +
   sign-off before colour lock — sibling crew, PASS in
@@ -275,6 +276,14 @@ see:
    panel votes with this finding on the table; a panel BLOCK
    on it is a legitimate outcome and escalates to the owner
    with the same numbers.
+5. **Demotion addendum (panel re-vote cure, 2026-11-08;
+   spec §16.5):** the floors are DEMOTED to **PENDING THE
+   OWNER'S RULING**. Point 4(a) above is superseded on this
+   point: until the owner rules, the floors are **NOT
+   binding law** — not on PR A, and not on the PR D flip.
+   The §8.3 size band stands. The choice — re-proportion
+   Holmes's head vs amend the floors — is the owner's and
+   is deferred; no side is picked in this record.
 
 ## CI cure — 2026-11-08 (coordinator)
 
@@ -464,3 +473,41 @@ harness/protocol `36c792b` → art re-cut `e0e03e0` → plates
   briefs per the owner's retro law, 2026-11-08), then
   DevEx + benchmark, then the merge call. The face-floor
   owner question rides with the re-vote report either way.
+
+## Panel re-vote spec/records cure — 2026-11-08 (cure/366-spec)
+
+Spec/records crew, on top of `652cf13` — docs only, no
+art, no `src/`, no flags:
+
+- **In-play lock contradiction cured:** §8.2 heading is
+  now "The locked bench-tableau sizes"; PR body and
+  handbook ch.10 say the same — 170/130 is the bench
+  tableau lock, in-play is governed by the §8.3 bands
+  alone, and in-play coverage was proven at 128 px at
+  390, never at 170 px (spec §16.2).
+- **Face floors demoted:** spec §8.3 + new §16.5, PR
+  body, asset lock, and the ruling-(f) addendum above —
+  floors are PENDING THE OWNER'S RULING and NOT binding
+  law until he rules; the size band stands; the choice
+  (re-proportion Holmes's head vs amend the floors) is
+  the owner's and is deferred.
+- **Coverage scope stated:** new spec §16.6 — coverage
+  is proven only for static single-figure endpoints;
+  the celebration slot is UN-DIMENSIONED (PR C must
+  dimension + prove it before claiming §9.2) and
+  Watson's swept walk path is UNMEASURED (PR B must
+  measure the sweep at band maximum before claiming
+  §10 coverage for walk/celebration).
+- **Records nits:** kidtest count corrected to 6 tests
+  (above); silhouette Holmes width corrected 47 → 43 px
+  in `ASSET_LOCK.json`, `asset-lock.md`, and the PR body
+  (43 is the scale lock's value); sheet/silhouette paths
+  corrected from `docs/pair-art/` to
+  `public/assets/detective/pair-art/` in spec §11/§13/§14,
+  handbook ch.10, the PR body, and this file.
+- **PR B carry-overs recorded** in the PR body under
+  "Recorded for PR B — not built here" (5 items).
+- Left for the coordinator's convergence pass, as
+  briefed: PR-body diff stat, asset-lock palm headline,
+  composite byte sizes (art crew regeneration changes
+  them).

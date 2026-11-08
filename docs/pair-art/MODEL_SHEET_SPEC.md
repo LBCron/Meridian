@@ -568,7 +568,7 @@ and Watson. The mockup QA rounds measured a walk still at
 it a defect on sight. That number is recorded here so it
 is never re-litigated as a taste question.
 
-### 8.2 The locked in-play sizes
+### 8.2 The locked bench-tableau sizes
 
 One scale standard per width, anchored on the bench scene
 (the bench still is the presence reference for the whole
@@ -607,7 +607,7 @@ two cannot drift apart (the study's staging addendum
 requires the model sheets to state them, for exactly
 this reason):
 
-| Viewport width | Figure height band | Face floor |
+| Viewport width | Figure height band | Face floor — pending owner's ruling, not binding (see below) |
 | :--- | :--- | :--- |
 | 390 px | 112–128 px | **38 px** |
 | 768 px | 128–144 px | **44 px** |
@@ -618,6 +618,25 @@ this reason):
 brim to chin) allowed in that cell. Below the floor, the
 §6 faces cannot read in two seconds, and the expression
 gate in §10 cannot pass honestly.
+
+> **Face floors DEMOTED — PENDING THE OWNER'S RULING
+> (panel re-vote cure, 2026-11-08; see §16.5):** why this
+> demotion exists: the size band and the face floors in
+> this section cannot both be met for Holmes. At his
+> delivered head share (~24% of figure height), meeting
+> the floors would need figure heights of 157 / 181 /
+> 197 / 213 px — above the band maxima of 128 / 144 /
+> 160 / 176 px in every cell. A law no sheet can obey
+> must not stand as binding law, and this spec does not
+> pick a winner. The choice — **re-proportion Holmes's
+> head** away from the owner-approved register, **or
+> amend the floors** — is the owner's, and it is
+> **deferred** until he rules. **Until he rules, the
+> face floors are NOT binding law. The size band
+> stands** and remains binding. The measured shortfall
+> (Holmes 31 / 35 / 39 / 43 px against the floors) stays
+> on record as a measurement, not as a breach of a
+> binding floor.
 
 > **In-play governance (panel round 1; see §16.2):** these
 > bands are the ONLY in-play size law. PR B must not
@@ -756,7 +775,7 @@ art files.
 | :--- | :--- | :--- |
 | Find Holmes | **≥27/30 children, in ≤2 s, in every cell** — including the static-fallback cell (rung 4, §7) | **≤25/30 in any cell = kill.** 26/30 is a fail that may be re-drawn and re-tested once per the panel's call; it is not a pass. |
 | Identity | **≥27/30** | The child names which figure is Holmes and which is Watson; ≤3/30 confusion with each other, the Cold Trail tracker, or Jolly. |
-| Expression | **≥26/30** | The child reads the face's feeling (delighted / surprised / pout at minimum) from the §6 art at the cell's face floor. |
+| Expression | **≥26/30** | The child reads the face's feeling (delighted / surprised / pout at minimum) from the §6 art at the cell's in-band size (face floors pending the owner's ruling — §16.5). |
 | Clue-text coverage | **Zero** | At the maximum in-band size (§8.3), sampled through play: bench, walk, reading, celebration, closed states. One covered word fails the cell. |
 | Performance | **Sustained ~60 fps** on a 2 GB-class Android during map pan + Holmes follow + Watson walk, on the built page at 390 / 768 / 1280 | Measured, not felt. Frame collapse that trips the pair's auto-kill counts as a failure of this bar, not as the device's fault. |
 
@@ -801,7 +820,10 @@ by outline first — hat, height, width, stance.
    if the gate fails — that is the point of the order.
 
 The grayscale renders **live with the sheets** in the
-repo (committed alongside them under `docs/pair-art/`),
+repo (committed alongside them under
+`public/assets/detective/pair-art/` — the renders are
+asset files, not docs; `docs/pair-art/` holds only this
+spec, the PR body, and the locks),
 so the panel can re-check the gate from the PR alone,
 without regenerating anything.
 
@@ -940,9 +962,11 @@ Done condition / scenarios / evidence that will prove it:
 Files and interfaces in scope:
   - docs/pair-art/MODEL_SHEET_SPEC.md (this file, new)
   - docs/pair-art/PR_BODY.md (new)
-  - docs/pair-art/ (sheet assets + grayscale renders +
-    harness output, as delivered by the art + harness
-    crews — paths named in the PR body when they land)
+  - public/assets/detective/pair-art/ (sheet assets +
+    grayscale renders, as delivered by the art crew)
+  - docs/pair-art/ (spec, PR body, locks + harness
+    output, as delivered by the harness crew — paths
+    named in the PR body when they land)
   - docs/handbook/10-holmes-and-watson-pair.md
     (additive PR A addendum ONLY — no rewrite of any
     existing section)
@@ -1056,7 +1080,7 @@ context. PR A's audit:
 | Surface PR A adds | Existing surface it could be confused with | Verdict | Reason |
 | :--- | :--- | :--- | :--- |
 | PR A measurement harness (palm error, budgets, scale ratio, silhouette renders) | The detective E2E suite (`tests/e2e/detective-*.spec.ts`: visibility, staging, stations, watson-walk, swap, berth, closed-state, sound, …) | **Keep — complements, does not duplicate** | The E2E suite tests the **wired game in a browser**: placement, occlusion, speech timing, answer-blindness in play. The harness tests **loose sheet files before any wiring exists**: palm pixels, file budgets, height ratios, grayscale legibility. Neither can do the other's job — E2E cannot measure an unwired sheet, and the harness cannot prove in-play occlusion. When PR B wires the sheets, PR B re-runs the E2E suite on the flag-on tip; the harness is not re-purposed as an E2E substitute. |
-| Painted model sheets under `docs/pair-art/` | The inline SVG art inside `DetectivePair.tsx` | **Keep — complements, does not duplicate** | Two art paths exist **on purpose, for a bounded time**: the inline art is the shipping fallback (Save-Data rung 3, §7, and the flag-off path for PRs B–C); the sheets are the source PR B wires behind `pairArt`. The duplication is retired in exactly one place — PR D deletes the flat path after the flip. Until then, neither path is edited to mimic the other. |
+| Painted model sheets under `public/assets/detective/pair-art/` | The inline SVG art inside `DetectivePair.tsx` | **Keep — complements, does not duplicate** | Two art paths exist **on purpose, for a bounded time**: the inline art is the shipping fallback (Save-Data rung 3, §7, and the flag-off path for PRs B–C); the sheets are the source PR B wires behind `pairArt`. The duplication is retired in exactly one place — PR D deletes the flat path after the flip. Until then, neither path is edited to mimic the other. |
 | This spec (`docs/pair-art/MODEL_SHEET_SPEC.md`) | Handbook ch.10 (`docs/handbook/10-holmes-and-watson-pair.md`) | **Keep — different jobs** | The handbook is the decision record: what was ruled, when, by whom. This spec is the build contract: pivots, numbers, gates an artist and a harness can execute. The handbook addendum (§15 pointer) summarises and points here; it does not copy the tables. |
 | `docs/pair-art/PR_BODY.md` | `BRANCH_STATUS.md` | **Keep — different readers** | BRANCH_STATUS is the branch's living capsule + checklist, updated as work lands. The PR body is the one-time merge record the panel votes on. Same facts, two moments in the lifecycle — the repo's standing convention for every branch. |
 
@@ -1169,3 +1193,55 @@ also noted inline at §5.2, §6.4, §8.2, and §8.3.
   population estimates (27/30 Wilson 95% CI ≈ 74–97%), and
   that the all-cells-pass requirement in practice demands
   a true rate well above 90%.
+
+### 16.5 Face floors demoted — pending the owner's ruling (panel re-vote cure, 2026-11-08)
+
+- **Why:** §8.3's size band and face floors are jointly
+  unsatisfiable for Holmes. Meeting the floors at his
+  delivered head share (~24% of figure height) would need
+  figure heights of 157 / 181 / 197 / 213 px, against band
+  maxima of 128 / 144 / 160 / 176 px.
+- **What now governs:** the face floors are **DEMOTED to
+  PENDING THE OWNER'S RULING**. They are **not binding
+  law** until the owner rules. The §8.3 **size band
+  stands** and remains binding.
+- **The deferred choice is the owner's alone:**
+  re-proportion Holmes's head away from the register he
+  approved, or amend the floors. This spec takes no side,
+  and no later PR may present either option as already
+  decided.
+- **What does not change:** the measurements stay on
+  record (Holmes 31 / 35 / 39 / 43 px; Watson 38 / 43 /
+  48 / 53 px at 390 / 768 / 1280 / 1920). They are
+  recorded shortfalls against a pending floor, not
+  breaches of a binding one. Earlier text that said the
+  floors "bind the PR D flip" is superseded by this
+  demotion until the owner rules.
+
+### 16.6 Coverage scope — what the proof does and does not cover (panel re-vote cure, 2026-11-08)
+
+Why this section exists: a coverage PASS is easy to read
+as wider than it is. The record must say plainly where
+the proof stops, so a later PR does not claim a bar it
+has not measured.
+
+- **Proven, and only this:** zero clue-text coverage is
+  proven for **static single-figure endpoints** — a
+  figure standing at a measured place, at the §8.3 band
+  maximum (128 px at 390, and the other cells' maxima).
+  Nothing beyond those endpoints is proven by that PASS.
+- **(i) The celebration slot is UN-DIMENSIONED.** No
+  width, height, or figure size for the celebration slot
+  (§9.2) is dimensioned in this spec or measured on
+  record. **PR C must dimension the celebration slot and
+  prove zero clue-text coverage inside it before
+  claiming §9.2** for the celebration. Until then, any
+  §9.2 celebration claim is UNVERIFIED.
+- **(ii) Watson's swept walk path is UNMEASURED.** The
+  walk moves Watson through the gutter; the area his
+  figure sweeps while moving has not been measured
+  against clue text. **PR B must measure the sweep at the
+  band maximum before claiming §10 coverage for walk or
+  celebration.** Until then, §10 coverage for the walk
+  is UNVERIFIED — the endpoint PASS does not cover the
+  path between endpoints.

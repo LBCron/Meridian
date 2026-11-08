@@ -95,8 +95,8 @@ placeholder.
 | Static composite — Holmes | ≈20–30 KB | 15.7 KB | PASS |
 | Static composite — Watson | ≈20–30 KB | 18.6 KB | PASS |
 | Scale ratio Watson / Holmes (every composite) | 0.73–0.79 (≈0.75 law) | 0.75–0.77 (mean 0.76) | PASS |
-| Silhouette gate (grayscale, 104 px) | Approved before colour lock | Approved — both figures read correctly in grayscale at 104 px before colour lock (Holmes tall/thin + deerstalker, 47 px wide; Watson short/stout + bowler, 63 px wide; locked in ASSET_LOCK.json `silhouette_gate`) | PASS |
-| Face height at max in-band size (§8.3 floors) | Holmes ≥38 / 44 / 48 / 52 px · Watson ≥38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920 | Holmes 31 / 35 / 39 / 43 px · Watson 38 / 43 / 48 / 53 px | **FAIL — ruling (f): recorded, not cured in PR A; the floors bind the PR D flip (owner ruling 4); PR B owns reconciliation; the panel's face BLOCKs escalate the cure choice to the owner** |
+| Silhouette gate (grayscale, 104 px) | Approved before colour lock | Approved — both figures read correctly in grayscale at 104 px before colour lock (Holmes tall/thin + deerstalker, 43 px wide; Watson short/stout + bowler, 63 px wide; locked in ASSET_LOCK.json `silhouette_gate`) | PASS |
+| Face height at max in-band size (§8.3 floors) | Holmes ≥38 / 44 / 48 / 52 px · Watson ≥38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920 | Holmes 31 / 35 / 39 / 43 px · Watson 38 / 43 / 48 / 53 px | **MEASURED BELOW THE FLOORS — floors DEMOTED to PENDING THE OWNER'S RULING (spec §16.5): they are NOT binding law until the owner rules, so this is a recorded shortfall, not a breach of a binding floor; the §8.3 size band stands; the choice — re-proportion Holmes's head vs amend the floors — is the owner's and is deferred** |
 | Harness target revision | — | 1762e3f (the kid-test harness commit); the smoke re-run on the final art tip is recorded in the Harness line below | — |
 
 ## The laws, in summary
@@ -104,8 +104,11 @@ placeholder.
 Full text: `docs/pair-art/MODEL_SHEET_SPEC.md` §§8–10.
 
 - **Scale law:** Watson ≈0.75× Holmes in **every** frame (0.97
-  measured in mockup QA = defect). In-play lock: 390 px →
-  Holmes 170 / Watson 130; 1280 px → Holmes 150 / Watson 115.
+  measured in mockup QA = defect). Bench tableau lock:
+  390 px → Holmes 170 / Watson 130; 1280 px → Holmes 150 /
+  Watson 115. In-play sizes are governed by the §8.3 bands
+  alone (112–128 px at 390, and so on); in-play coverage was
+  proven at 128 px at 390, never at 170 px.
   Hero moments carry the ratio inside the artwork. Kid-test
   bands 112–128 / 128–144 / 144–160 / 160–176 px with face
   floors 38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920.
@@ -116,13 +119,19 @@ Full text: `docs/pair-art/MODEL_SHEET_SPEC.md` §§8–10.
   published face box is the whole head crop (hat brim →
   chin), exactly §8.3's definition, so the shortfall is
   real: the head is ~24% of Holmes's figure height in the
-  approved register, the floors assume ~30%. Recorded as
-  coordinator ruling (f) in `BRANCH_STATUS.md`: the floors
-  bind the PR D flip, not PR A's sheets; both cures
-  (re-proportion the head away from the owner-approved
-  register, or amend the study floors) are owner-level
-  calls, so PR B owns the reconciliation and the panel
-  votes with this finding on the table.
+  approved register, the floors assume ~30%. **The floors
+  are DEMOTED to PENDING THE OWNER'S RULING (spec §16.5):**
+  the band and the floors cannot both be met for Holmes
+  (the floors would need figure heights of 157 / 181 /
+  197 / 213 px against band maxima of 128 / 144 / 160 /
+  176 px), so until the owner rules the floors are **NOT
+  binding law** — the size band stands. The choice —
+  re-proportion the head away from the owner-approved
+  register, or amend the study floors — is the owner's,
+  it is deferred, and no side is picked here. Recorded
+  as coordinator ruling (f) in `BRANCH_STATUS.md`, as
+  demoted by §16.5; the panel votes with this finding on
+  the table.
 - **Staging law:** figures live in page space (the gutter) —
   never on map tiles, the map frame, attribution, buttons, or
   any UI chrome. Zero clue-text coverage. No bench furniture
@@ -150,7 +159,7 @@ spec §14:
 | Surface | Could duplicate | Verdict |
 | :--- | :--- | :--- |
 | PR A harness (palm / budgets / ratio / silhouette) | Detective E2E suite (`tests/e2e/detective-*.spec.ts`) | **Complements, does not duplicate** — E2E tests the wired game in a browser; the harness tests loose sheets before wiring exists. Neither can do the other's job. |
-| Painted sheets (`docs/pair-art/`) | Inline SVG art in `DetectivePair.tsx` | **Complements, does not duplicate** — the inline art stays the shipping fallback (Save-Data rung + flag-off path) until PR D retires it after the flip. Bounded, named, with a deletion PR. |
+| Painted sheets (`public/assets/detective/pair-art/`) | Inline SVG art in `DetectivePair.tsx` | **Complements, does not duplicate** — the inline art stays the shipping fallback (Save-Data rung + flag-off path) until PR D retires it after the flip. Bounded, named, with a deletion PR. |
 | Model sheet spec | Handbook ch.10 | **Different jobs** — handbook = decision record; spec = executable build contract. The addendum summarises and points; it does not copy tables. |
 | This PR body | `BRANCH_STATUS.md` | **Different moments** — branch status is the living capsule; the PR body is the one-time merge record the panel votes on. Repo convention. |
 
@@ -175,6 +184,19 @@ spec §14:
   `public/` paths beyond the kidtest spec, the playwright
   project, the kidtest scripts, and the pair-art assets fail
   it too.
+
+## Recorded for PR B — not built here
+
+These five items are recorded for PR B. None of them is
+built, measured, or claimed in PR A:
+
+1. Manifest plates-adapter drift test.
+2. `manifest.json` (33,208 B) classification in the lock.
+3. Composites promoted to runtime per ruling (c).
+4. Mouth-box entry measurement (§16.1).
+5. Kid-test protocol pre-D-run fixes (tap-boundary
+   definition, full counterbalance rotations, same-band
+   replacement rule, §4 "floor scale" sentence).
 
 ## Where the study and the code disagreed
 
