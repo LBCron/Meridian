@@ -481,17 +481,18 @@ test("follow OFF (f): PAUSE_BERTH tier — sweeps ignored, pause berths + holds 
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
-    expect(await followTier(page)).toBe("PAUSE_BERTH");
-    // Cure round 2 — explicit entry: this spec gates the
-    // PAUSE_BERTH tier AFTER entry, so entry happens here, by the
-    // adjudicated contract (the player's first map interaction;
-    // the staging specs gate entry itself). Before this drag he
-    // may legitimately still be standing at the bench slot with
-    // no wrapper in the DOM.
-    await enterViaMapDrag(page);
-    await waitForSearchIdle(page);
+    // Ordering rule (cure round 4): tier and wrapper-rect reads
+    // require entry — followTier() reads the follow root, which
+    // exists only once Holmes has entered the map, so any such
+    // read before an entry interaction returns null by
+    // construction. Entry is the FIRST map interaction: the
+    // entry drag runs immediately after showMap, before every
+    // tier/rect read below, and the second idle wait re-settles
+    // him post-entry.
     // The drag is a pan/entry gesture only — it must not change
     // the tier this spec gates.
+    await enterViaMapDrag(page);
+    await waitForSearchIdle(page);
     expect(await followTier(page)).toBe("PAUSE_BERTH");
     // Cure A4: the SETTLED rect after the cured idle wait — it may
     // be a dwell berth, not the dock. The sweep comparison below is

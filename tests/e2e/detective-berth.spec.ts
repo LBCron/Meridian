@@ -156,10 +156,14 @@ test("pause-berth tier: a FAR pause berths in its neighbourhood and holds (1280,
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
-    expect(await followTier(page)).toBe("PAUSE_BERTH");
-    // Cure round 2 — explicit entry (see enterViaMapDrag): this
-    // test gates post-entry berth behaviour, so enter first, then
-    // read the settled position under the helper's strict tier.
+    // Ordering rule (cure round 4): tier and wrapper-rect reads
+    // require entry — followTier() reads the follow root, which
+    // exists only once Holmes has entered the map, so any such
+    // read before an entry interaction returns null by
+    // construction. Entry is the FIRST map interaction: the
+    // entry drag runs immediately after showMap, before every
+    // tier/rect read below, and the second idle wait re-settles
+    // him post-entry.
     await enterViaMapDrag(page);
     await waitForSearchIdle(page);
     expect(await followTier(page)).toBe("PAUSE_BERTH");
@@ -208,15 +212,20 @@ test("pause-berth tier: touch pause berths near the finger (390, follow OFF)", a
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
-    expect(await followTier(page)).toBe("PAUSE_BERTH");
     const mb = await page.getByTestId("loop-map").boundingBox();
     expect(mb).not.toBeNull();
     const cdp = await context.newCDPSession(page);
-    // Cure round 2 — explicit entry (see enterViaMapDrag): the
-    // touch form of the same step — a small CDP touch drag on the
-    // map (~14 px) is this player's first map interaction. It is
-    // kept small and on the map; the touch-pause stimulus below
-    // is unchanged.
+    // Ordering rule (cure round 4), touch form of the same step:
+    // tier and wrapper-rect reads require entry — followTier()
+    // reads the follow root, which exists only once Holmes has
+    // entered the map, so any such read before an entry
+    // interaction returns null by construction. Entry is the
+    // FIRST map interaction: this small CDP touch drag on the
+    // map (~14 px, see enterViaMapDrag) runs immediately after
+    // showMap, before every tier/rect read below, and the idle
+    // wait after it re-settles him post-entry. It is kept small
+    // and on the map; the touch-pause stimulus below is
+    // unchanged.
     const dragStart = {
       x: mb!.x + mb!.width * 0.5,
       y: mb!.y + mb!.height * 0.5,
