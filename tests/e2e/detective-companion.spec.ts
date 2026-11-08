@@ -338,11 +338,22 @@ async function ensureTouchSearchIdle(
         .poll(() => currentPhase(page), { timeout: 10_000 })
         .toBe("SEARCH_IDLE");
       return;
-    } catch {
-      /* fall through to the clear error below if it is SEARCH_AREA */
-      if ((await currentPhase(page)) !== "SEARCH_AREA") {
+    } catch (pollErr) {
+      // Round 8 (diagnosis #2 Q1): a poll that died on a destroyed
+      // execution context is a dead page (renderer loss), not a
+      // phase verdict \u2014 name it as the environment failure it is
+      // instead of manufacturing a phase diagnosis from it.
+      const msg = pollErr instanceof Error ? pollErr.message : String(pollErr);
+      if (/Execution context was destroyed|Target closed/i.test(msg)) {
         throw new Error(
-          `[K2 touch grid] fresh-pause gate: phase is ${await currentPhase(page)}, not SEARCH_IDLE/SEARCH_AREA — cannot start a stimulus lawfully`,
+          `[K2 touch grid] fresh-pause gate: page lost during the settle poll (environment): ${msg}`,
+        );
+      }
+      /* fall through to the clear error below if it is SEARCH_AREA */
+      const phaseNow = await currentPhase(page).catch(() => null);
+      if (phaseNow !== "SEARCH_AREA") {
+        throw new Error(
+          `[K2 touch grid] fresh-pause gate: phase is ${phaseNow}, not SEARCH_IDLE/SEARCH_AREA — cannot start a stimulus lawfully`,
         );
       }
     }
@@ -370,9 +381,18 @@ async function ensureTouchSearchIdle(
     await expect
       .poll(() => currentPhase(page), { timeout: 15_000 })
       .toBe("SEARCH_IDLE");
-  } catch {
+  } catch (pollErr) {
+    // Round 8 (diagnosis #2 Q1): as above \u2014 a destroyed context
+    // in the poll is a dead page, not a phase that never returned.
+    const msg = pollErr instanceof Error ? pollErr.message : String(pollErr);
+    if (/Execution context was destroyed|Target closed/i.test(msg)) {
+      throw new Error(
+        `[K2 touch grid] fresh-pause gate: page lost during the post-drag poll (environment): ${msg}`,
+      );
+    }
+    const lastPhase = await currentPhase(page).catch(() => null);
     throw new Error(
-      `[K2 touch grid] fresh-pause gate: phase never returned to SEARCH_IDLE after the lawful >12 px drag reset (last phase=${await currentPhase(page)})`,
+      `[K2 touch grid] fresh-pause gate: phase never returned to SEARCH_IDLE after the lawful >12 px drag reset (last phase=${lastPhase})`,
     );
   }
 }
