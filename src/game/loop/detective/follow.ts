@@ -82,6 +82,18 @@ const PARK_OFFSET_TARGET_PX = 90;
  * resting finger or cursor never sits under the figure. */
 export const CLEARANCE_TOUCH_PX = 64;
 export const CLEARANCE_DESKTOP_PX = 56; // K2 edge law (companion gates)
+/** Render margin (K2 cure, PR #364): legality is judged ABOVE the
+ * law by this much, because a solve must honour the law AFTER the
+ * host renders it — solveFollow rounds the box to whole px
+ * (<= 0.5 px/axis) and the spec's anchor can sit up to ~2.24 px
+ * from the solver's anchor, a worst-case stack of ~2.8 px. Without
+ * the margin a candidate whose continuous edge is exactly the law
+ * (56.000) renders as low as ~55.3 px edge and fails K2 as a
+ * SETTLED violation. Precedent: the pre-PB-1 solver on main
+ * (companion.ts berthFor) carried exactly this +3 px margin —
+ * centre floor = law + 3, edge rejection at < law + 3 — with a
+ * comment documenting this same failure mode; PB-1 dropped it. */
+export const RENDER_MARGIN_PX = 3;
 /** Solve triggers (host-enforced, named here so tests pin them):
  * solve on >= 32 px displacement from the last solved pointer, or
  * >= 150 ms of dwell; at most one solve per 100 ms. */
@@ -136,7 +148,7 @@ function legal(
   // stay at least `clearance` px away from the pointer point.
   const dxEdge = Math.max(Math.abs(pointer.x - cx) - holmesBox.w / 2, 0);
   const dyEdge = Math.max(Math.abs(pointer.y - cy) - holmesBox.h / 2, 0);
-  if (Math.hypot(dxEdge, dyEdge) < clearance) return false;
+  if (Math.hypot(dxEdge, dyEdge) < clearance + RENDER_MARGIN_PX) return false;
   // Zero intersection with forbidden rects — the text-coverage law.
   if (boxIntersectsForbidden(x, y, holmesBox.w, holmesBox.h, forbidden)) {
     return false;
@@ -162,7 +174,7 @@ export function solveFollow(input: FollowInput): FollowBerth | null {
   // candidates turns up a legal berth.
   const minCentre = Math.max(
     PARK_OFFSET_MIN_PX,
-    clearance + Math.min(holmesBox.w, holmesBox.h) / 2,
+    clearance + RENDER_MARGIN_PX + Math.min(holmesBox.w, holmesBox.h) / 2,
   );
   const maxCentre = 260;
   const prevSideX = currentCentre
