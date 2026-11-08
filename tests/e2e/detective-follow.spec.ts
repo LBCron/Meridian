@@ -176,6 +176,20 @@ async function mapPoint(
   return { x: mb!.x + mb!.width * fx, y: mb!.y + mb!.height * fy };
 }
 
+/** Explicit entry step (cure round 2): with follow OFF, entry is
+ * the player's first MAP interaction by design (#361 — the staging
+ * specs gate entry itself). A small pan drag on the map (~14 px,
+ * pointerdown -> move -> up, no place selection) IS that first
+ * interaction, so specs whose subject is post-entry behaviour run
+ * it explicitly before reading any settled wrapper rect. */
+async function enterViaMapDrag(page: Page): Promise<void> {
+  const start = await mapPoint(page, 0.5, 0.5);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 14, start.y, { steps: 3 });
+  await page.mouse.up();
+}
+
 test("follow (a)+(b): mouse travel, planted park, no dock return (1280)", async ({
   browser,
 }) => {
@@ -467,6 +481,17 @@ test("follow OFF (f): PAUSE_BERTH tier — sweeps ignored, pause berths + holds 
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
+    expect(await followTier(page)).toBe("PAUSE_BERTH");
+    // Cure round 2 — explicit entry: this spec gates the
+    // PAUSE_BERTH tier AFTER entry, so entry happens here, by the
+    // adjudicated contract (the player's first map interaction;
+    // the staging specs gate entry itself). Before this drag he
+    // may legitimately still be standing at the bench slot with
+    // no wrapper in the DOM.
+    await enterViaMapDrag(page);
+    await waitForSearchIdle(page);
+    // The drag is a pan/entry gesture only — it must not change
+    // the tier this spec gates.
     expect(await followTier(page)).toBe("PAUSE_BERTH");
     // Cure A4: the SETTLED rect after the cured idle wait — it may
     // be a dwell berth, not the dock. The sweep comparison below is
