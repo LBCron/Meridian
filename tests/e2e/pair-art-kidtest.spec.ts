@@ -459,13 +459,24 @@ for (const width of WIDTHS) {
 
         /* Measure 2 — face height clears the floor. Needs the plate
          * manifest's face box; without one this measure is NOT RUN
-         * for that plate — recorded, never assumed. */
+         * for that plate — recorded, never assumed.
+         * SOFT assert (owner rule 15 cure, 2026-11-08): a hard expect
+         * here fail-fasted the whole width test on Holmes's recorded
+         * face-floor shortfall, so Watson's size/face legs and the
+         * Measure 3 coverage loop NEVER EXECUTED — an unmeasured law
+         * (zero clue-text coverage is product law) cannot go to the
+         * panel as "not reached" when a harness property causes it.
+         * expect.soft asserts the SAME floor with the SAME numbers
+         * and still FAILS this test at the end; it only lets every
+         * remaining leg of the test run first. Nothing is weakened. */
         if (plate.faceBox) {
           const facePx = Math.round(plate.faceBox.h * probe.h);
-          expect(
-            facePx,
-            `${plate.id} face ${facePx}px must clear the ${band.faceFloor}px floor @${width}`,
-          ).toBeGreaterThanOrEqual(band.faceFloor);
+          expect
+            .soft(
+              facePx,
+              `${plate.id} face ${facePx}px must clear the ${band.faceFloor}px floor @${width}`,
+            )
+            .toBeGreaterThanOrEqual(band.faceFloor);
         } else {
           test.info().annotations.push({
             type: "not-run",
