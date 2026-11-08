@@ -700,18 +700,43 @@ test("K3 planted — a pan does NOT cancel a berth (PB-1)", async ({ page, conte
 test("K3 — a tap (<250 ms) never summons Holmes", async ({ page, context }) => {
   await fulfillFlagsOn(context);
   await openSeamCase(page, 137);
-  await waitForSearchIdle(page);
+  // Cure E (1) — proven un-berthed premise. The cured
+  // waitForSearchIdle may lawfully settle "berthed" (the setup
+  // dwell), so it cannot prove this test's pre-stimulus state:
+  // use a phase-only poll for SEARCH_IDLE, then assert the
+  // placement is "dock" immediately before the stimulus. The
+  // assertion is the pin — if a solve races in ahead of it, the
+  // test fails AT THE PREMISE rather than weakening it.
+  await expect
+    .poll(() => currentPhase(page), { timeout: 120_000 })
+    .toBe("SEARCH_IDLE");
   const box = await mapBox(page);
-  // Record every placement the host reports during the tap window.
+  expect(
+    await currentPlacement(page),
+    "Cure E premise: Holmes must be un-berthed (dock) immediately before the tap",
+  ).toBe("dock");
+  // Cure E (3) — record TRANSITIONS, not state. The old sampler
+  // observed childList over the whole document and pushed the
+  // CURRENT placement on any DOM mutation, so a latch state set
+  // at any earlier time was logged as an in-window event. This
+  // observer is seeded with the placement at arm time and pushes
+  // only when data-holmes-placement actually changes.
   await page.evaluate(() => {
     const w = window as unknown as { __tapPlacements: string[] };
     w.__tapPlacements = [];
-    const obs = new MutationObserver(() => {
+    const read = () => {
       const el =
         document.querySelector('[data-testid="detective-host"]') ??
         document.querySelector('[data-testid="detective-station"]');
-      const p = el?.getAttribute("data-holmes-placement");
-      if (p) w.__tapPlacements.push(p);
+      return el?.getAttribute("data-holmes-placement") ?? null;
+    };
+    let last = read();
+    const obs = new MutationObserver(() => {
+      const p = read();
+      if (p !== last) {
+        last = p;
+        if (p) w.__tapPlacements.push(p);
+      }
     });
     obs.observe(document.documentElement, {
       childList: true,
@@ -724,13 +749,24 @@ test("K3 — a tap (<250 ms) never summons Holmes", async ({ page, context }) =>
   await page.mouse.move(point.x, point.y);
   await page.mouse.down();
   await page.mouse.up(); // a tap: well under 250 ms, no travel
-  // Sample the recorded placements over the following ~1.2 s (the
-  // measurement window — a berth would need only ~460 ms to fire).
+  // Cure E (2) — remove the rest channel. The old test left the
+  // mouse RESTING on the tap point for the whole sample window:
+  // that sustained dwell (460 ms pause-confirm + ≥350 ms
+  // stillness), not the press, is what berthed him — the press
+  // itself is invisible to the pause detector. Move far away
+  // immediately, so the pointer does not dwell at the tap point
+  // during the window. (The positive control stands elsewhere in
+  // this spec: berthAtDockNearPoint in the pinch/pan tests proves
+  // a genuine pause at this same point DOES berth.)
+  await page.mouse.move(0, 0);
+  // Sample the recorded transitions over the following ~1.2 s
+  // (the measurement window — a berth would need only ~460 ms
+  // to fire).
   await page.waitForTimeout(1200);
   const placements = await page.evaluate(
     () => (window as unknown as { __tapPlacements: string[] }).__tapPlacements,
   );
-  console.log(`[K3 tap] placements seen during tap window: ${JSON.stringify(placements)}`);
+  console.log(`[K3 tap] placement transitions during tap window: ${JSON.stringify(placements)}`);
   expect(placements).not.toContain("berth");
   const now = await currentPlacement(page);
   expect(now === "dock" || now === null).toBe(true);
@@ -739,5 +775,4 @@ test("K3 — a tap (<250 ms) never summons Holmes", async ({ page, context }) =>
   if (await dialog.isVisible().catch(() => false)) {
     await page.keyboard.press("Escape");
   }
-  void currentPhase;
 });
