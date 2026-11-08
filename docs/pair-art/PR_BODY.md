@@ -92,8 +92,8 @@ placeholder.
 | Palm-anchor error — Holmes `(99, 25)` | ≤3 px at rig scale | 0.22 rig px — measured by the shipped assembly measurer on the cured parts (dedicated raised-arm part, drawn explicitly per the rig contract) | PASS |
 | Palm-anchor error — Watson `(15, 21)` | ≤3 px at rig scale | 0.33 rig px — measured by the shipped assembly measurer on the cured parts (dedicated raised-arm part) | PASS |
 | Live per-frame SVG filters | 0 | 0 | PASS |
-| Static composite — Holmes | ≈20–30 KB | 15.7 KB | PASS |
-| Static composite — Watson | ≈20–30 KB | 18.6 KB | PASS |
+| Static composite — Holmes (holmes-pose-dock.png) | ≈20–30 KB | 14,690 B | PASS |
+| Static composite — Watson (watson-pose-station-idle.png) | ≈20–30 KB | 16,651 B | PASS |
 | Scale ratio Watson / Holmes (every composite) | 0.73–0.79 (≈0.75 law) | 0.75–0.77 (mean 0.76) | PASS |
 | Silhouette gate (grayscale, 104 px) | Approved before colour lock | Approved — both figures read correctly in grayscale at 104 px before colour lock (Holmes tall/thin + deerstalker, 43 px wide; Watson short/stout + bowler, 63 px wide; locked in ASSET_LOCK.json `silhouette_gate`) | PASS |
 | Face height at max in-band size (§8.3 floors) | Holmes ≥38 / 44 / 48 / 52 px · Watson ≥38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920 | Holmes 31 / 35 / 39 / 43 px · Watson 38 / 43 / 48 / 53 px | **MEASURED BELOW THE FLOORS — floors DEMOTED to PENDING THE OWNER'S RULING (spec §16.5): they are NOT binding law until the owner rules, so this is a recorded shortfall, not a breach of a binding floor; the §8.3 size band stands; the choice — re-proportion Holmes's head vs amend the floors — is the owner's and is deferred** |
@@ -179,7 +179,7 @@ spec §14:
   `scripts/kidtest-*`, and `public/assets/detective/pair-art/`
   are PR A’s own harness and assets, in scope per the owner’s
   brief.)
-- Diff stat at vote time: the full PR diff against main `9e49da3`: 84 files changed, 7,741 insertions(+), 138 deletions(-) (measured at the panel-cured tip `008c9fb`; records-only commits after it change prose counts, never scope) — assets, docs, harness; zero `src/` paths — any `src/` path in
+- Diff stat at vote time: the full PR diff against main `9e49da3`: 84 files changed, 7,944 insertions(+), 138 deletions(-) (recount at the converged cure tip `b925386`; the records-only commits carrying this line change prose counts, never scope) — assets, docs, harness; zero `src/` paths — any `src/` path in
   the final diff fails this PR; `tests/`, `scripts/`, and
   `public/` paths beyond the kidtest spec, the playwright
   project, the kidtest scripts, and the pair-art assets fail
