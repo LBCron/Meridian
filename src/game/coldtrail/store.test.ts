@@ -353,7 +353,7 @@ test("a v1 blob under the v2 key fails closed (never silently accepted)", () => 
 // the old open flag is gone — nothing reads or writes it. What Home
 // needs instead is the resume peek: is a case mid-play in a store?
 // The peek mirrors peekLoopProgress — read-only, fail-closed.
-const PACK_KEY = "meridian.coldtrail.pack.capitals.v1";
+// (PACK_KEY itself is declared with the pack-store tests below.)
 
 test("peekColdTrailProgress: no store reads as no case in progress", () => {
   const { restore } = stubStorage();
