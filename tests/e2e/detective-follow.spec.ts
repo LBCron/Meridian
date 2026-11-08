@@ -134,6 +134,15 @@ async function waitArrived(
   let candidateAt = 0;
   while (Date.now() < deadline) {
     last = await holmesRect(page);
+    // Owner test-design law (2026-11-08), negative 3: the zero
+    // clue-overlap law is sampled DURING the walk, not only at
+    // the park \u2014 every poll of this loop is a travel sample.
+    if (last) {
+      expect(
+        await clueOverlap(page),
+        "clue overlap during travel",
+      ).toBe(0);
+    }
     let matches = false;
     if (last && (await currentPlacement(page)) === "berth") {
       const c = centre(last);
