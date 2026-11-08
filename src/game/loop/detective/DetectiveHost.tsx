@@ -754,11 +754,28 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
 
   /* Cure C2: entry intent recorded during "bench" fires the moment
    * the stage reaches "standing" — the duet is never cut short, and
-   * the interaction handlers themselves are untouched. */
+   * the interaction handlers themselves are untouched.
+   *
+   * Cure D2 (PR #364 cure round 2): with holmesFollow ON, Holmes
+   * enters automatically at "standing" — no map touch required.
+   * The owner's PB-1 role model is explicit: bench + intro are
+   * first-entry only, and once play starts the pair holds roles
+   * (Watson at the clues, Holmes on the map following the pointer
+   * across the whole page), so a follow-ON Holmes waiting at the
+   * bench for a map interaction never takes his post. This uses
+   * the same enterMap path as C2 intent (his first placement is
+   * the entry dock; the follow machinery owns him from there).
+   * With the flag OFF nothing changes: entry stays intent-only
+   * (cure D). followFlagOn is the boot-time flag const declared
+   * with the follow section below; it is read only inside the
+   * effect body, which runs after render, so the declaration is
+   * initialised by then — it cannot sit in this deps array. */
   useEffect(() => {
-    if (stagingStage !== "standing" || !entryIntentRef.current) return;
+    if (stagingStage !== "standing") return;
+    if (!entryIntentRef.current && !followFlagOn) return;
     entryIntentRef.current = false;
     enterMapRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stagingStage]);
 
   /* Cure C3: a case that ends with Holmes never entered (no map
