@@ -558,3 +558,41 @@ the tip):
   converged tip → Silo QA re-key (the `df7adbc` key is
   void) → panel re-vote (round 3) on the converged tip,
   clean-context briefs per the owner's retro law.
+
+## Negative gates (owner rule 15) — guard landed on `cure/366-neg` — 2026-11-08
+
+- **Guard:** `scripts/pair-art-guard.test.mjs` (new, off the
+  converged tip `c76bc08` in its own worktree
+  `meridian-366-neg`, branch `cure/366-neg`) — 13 tests under
+  the existing `npm test` scripts glob, node builtins only
+  (PNG decode via `node:zlib`; no pngjs exists in this repo).
+  Six contractual checks, each with a real-set assertion and
+  a sabotage control on synthetic temp-dir fixtures:
+  `neg/faces-distinct` (22 faces pairwise md5 + pixel
+  distinct; copy + re-encode sabotages flagged),
+  `neg/no-baked-props` (cure-record zones/bands: notebook
+  zone plates 0/0/0/3 vs threshold 10, parts ≤4; lens 0 on
+  all parts, glass=null plates 0/0/10 vs 16; pencil 0 on
+  Watson parts; positive controls find the real props),
+  `neg/plate-palms-open` (Holmes 0.30 / Watson 1.03 rig px,
+  bbox 12.5×17 / 13.5×12.5 vb, fill 0.27 / 0.42; filled-disc
+  sabotage fails the open-palm limb),
+  `neg/budget-bites` (real 171,918 B positive control;
+  padded 618,123 B fixture and understated-lock fixture both
+  FAIL the same gate function), `neg/gaze-no-answer`
+  (structural scan clean + planted-field sabotage flagged;
+  per-pose table: 16 measured PASS, 0 contradictions, the 6
+  `delighted` plates NOT MEASURED by name — closed eye arc,
+  no pupils), `neg/decoded-bites` (real 2.436 MB positive
+  control; 3000×3000 fixture = 36.0 MB decoded FAILS).
+  Guard alone: 13/13 pass. Full scripts suite with the guard
+  included: 1,045 tests, 1,034 pass / 0 fail / 11 skipped
+  (pre-existing skips). PR body carries the matching
+  "Negative gates (owner rule 15)" section.
+- **Kidtest run status (not invented):** at the time this
+  guard was built, a `pair-art-kidtest` Playwright run was
+  IN FLIGHT in the `meridian-pair-art` worktree (coordinator
+  brief). The guard lane did not run that project (shared
+  E2E lock + VM load) and its results had NOT landed when
+  this section was written — no kidtest outcome is recorded
+  here, in either direction.

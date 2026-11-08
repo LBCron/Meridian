@@ -151,6 +151,25 @@ Full text: `docs/pair-art/MODEL_SHEET_SPEC.md` §§8–10.
   390 / 768 / 1280. A failed bar flips `pairArt` off with no
   re-vote.
 
+## Negative gates (owner rule 15)
+
+Owner test-design law (Veeresh, 2026-11-08): test cases include
+positive AND negative scenarios, mainly negative — a gate that only
+passes is not a gate. Six negative gates run in
+`scripts/pair-art-guard.test.mjs` under `npm test` (the existing
+`node --test 'scripts/**/*.test.mjs'` glob; 13 tests, all sabotage
+controls operate on synthetic fixtures in a temp dir — the shipped
+assets are never mutated):
+
+| Check | What it forbids | Sabotage control |
+| :--- | :--- | :--- |
+| `neg/faces-distinct` | Any two of the 22 face files (11 per character) being byte- or pixel-identical — the pre-cure surprised ≡ wonder ship is impossible | A fixture dir with one face copied over another (and a byte-different re-encode with identical pixels) is flagged both ways |
+| `neg/no-baked-props` | A notebook, magnifying glass, or pencil baked into a torso/head part or plate where the rig hides it (notebook: false / glass: null poses), measured in the cure records' own zones and bands | A notebook-brown patch composited into a fixture copy of Watson's torso (and a pale-lens patch into Holmes's) is caught by the same scans |
+| `neg/plate-palms-open` | A high-five plate whose anchor skin cluster is off-anchor (>3 rig px) or a closed fist: cluster bbox <10×10 vb or skin fill ratio >0.85 | A fixture plate with a filled skin disc at the anchor passes the anchor limb and FAILS the open-palm limb |
+| `neg/budget-bites` | The runtime-budget gate passing a blown or dishonestly recorded set: total >500,000 B, or a lock total that understates the real bytes | Both violations are fed to the same gate function the real-set assertion uses; the real set (171,918 B) is the positive control |
+| `neg/gaze-no-answer` | An answer coordinate leaking into the sheets: any answer/target/coordinate field beyond the seven §4.1 host-prop keys in the manifest or lock, and any measured gaze that contradicts its §5.2/§6.2 declared target or aims down-and-outward at the map (own-prop targets excepted). Honest scope: at PR A a sheet carries no runtime answer coordinate, so this proves structure + directional consistency, not runtime blindness. `delighted` plates (6) are NOT MEASURED by name — a closed eye arc has no pupils | A planted `targetX` / `answerLat` field in a fixture manifest copy is flagged by the same scanner |
+| `neg/decoded-bites` | The decoded-size gate passing a set decoded past 32 MB | A synthetic 3000×3000 PNG (36 MB decoded, ~35 KB on disk) fed to the same decoded function FAILS; the real set (2.436 MB) is the positive control |
+
 ## Redundancy audit
 
 Per the owner's standing rule (2026-10-29) — full table in
