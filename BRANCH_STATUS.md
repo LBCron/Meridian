@@ -550,7 +550,7 @@ the tip):
   reads at the cell's in-band size.
 - **Convergence records (coordinator):** asset-lock
   per-file bytes + runtime total updated to the cured
-  art (171,918 B); palm headline 0.22 / 0.33 rig px
+  art (171,918 B); palm headline THEN 0.22 / 0.33 rig px — superseded by the converged-tip re-measure 0.53 / 0.56 (below)
   (assembled) with plate values alongside; composites
   14,690 / 16,651 B; PR-body diff stat recounted at
   `b925386` (84 files, 7,944 insertions, 138 deletions).
