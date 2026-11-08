@@ -317,6 +317,17 @@ async function ensureTouchSearchIdle(
   >,
   box: { x: number; y: number; width: number; height: number },
 ): Promise<void> {
+  // Cure round 5 (diagnosis E): the previous point's lift-in-place
+  // is a tap on the map \u2014 the place-confirm sheet may be open
+  // with the host unmounted under it by design (phase reads null).
+  // Dismiss it first; the phase logic below then judges the
+  // returned SEARCH state exactly as before.
+  const notThisOne = page.getByRole("button", { name: "Not this one" });
+  const sheetOpened = await notThisOne
+    .waitFor({ state: "visible", timeout: 1_500 })
+    .then(() => true)
+    .catch(() => false);
+  if (sheetOpened) await notThisOne.click();
   const phase0 = await currentPhase(page);
   if (phase0 === "SEARCH_IDLE") return;
   if (phase0 !== "SEARCH_AREA") {

@@ -112,7 +112,13 @@ async function clueOverlap(page: Page): Promise<number> {
 }
 
 /** Poll until Holmes's centre is within `within` px of the point
- * and placement reads berth. */
+ * and placement reads berth \u2014 and he has SETTLED there: two
+ * matching samples at least 250 ms apart whose centres agree
+ * within 2 px. (Cure round 5, diagnosis A/B: arrival alone fires
+ * mid-glide \u2014 the walk takes up to ~800 ms after the telegraph \u2014
+ * and a mid-glide rect used as a planted baseline manufactures
+ * "drift" equal to the rest of the glide. The 200 px / berth
+ * conditions are unchanged; settling is now part of "arrived".) */
 async function waitArrived(
   page: Page,
   point: { x: number; y: number },
@@ -121,11 +127,28 @@ async function waitArrived(
 ): Promise<Rect> {
   const deadline = Date.now() + timeoutMs;
   let last: Rect | null = null;
+  let candidate: Rect | null = null;
+  let candidateAt = 0;
   while (Date.now() < deadline) {
     last = await holmesRect(page);
+    let matches = false;
     if (last && (await currentPlacement(page)) === "berth") {
       const c = centre(last);
-      if (Math.hypot(c.x - point.x, c.y - point.y) <= within) return last;
+      matches = Math.hypot(c.x - point.x, c.y - point.y) <= within;
+    }
+    if (matches && last) {
+      if (candidate && Date.now() - candidateAt >= 250) {
+        const a = centre(candidate);
+        const b = centre(last);
+        if (Math.hypot(a.x - b.x, a.y - b.y) <= 2) return last;
+        candidate = last;
+        candidateAt = Date.now();
+      } else if (!candidate) {
+        candidate = last;
+        candidateAt = Date.now();
+      }
+    } else {
+      candidate = null;
     }
     await page.waitForTimeout(300);
   }
@@ -311,12 +334,32 @@ test("follow (a): touch travel + planted after finger lifts (390)", async ({
         await page.waitForTimeout(300);
       }
       const landed = await waitArrived(page, p1);
+      // Planted while the finger is DOWN: the held pause is the
+      // planted state (cure round 5, diagnosis C). Lifting in
+      // place is a tap on the map \u2014 the place-confirm sheet
+      // opens and the host unmounts under it by design \u2014 so the
+      // mounted/planted claim is sampled before the lift.
+      await assertPlanted(page, landed, 3_000, settled!);
       await cdp.send("Input.dispatchTouchEvent", {
         type: "touchEnd",
         touchPoints: [],
       });
-      // Finger gone: he STAYS (the owner's core complaint).
-      await assertPlanted(page, landed, 3_000, settled!);
+      // The lift was a tap: if the confirm sheet opened, dismiss
+      // it \u2014 burst-return rejoins him at the same berth, and he
+      // must STILL be planted there (the owner's core complaint:
+      // finger gone, he STAYS).
+      const notThisOne = page.getByRole("button", { name: "Not this one" });
+      const sheetOpened = await notThisOne
+        .waitFor({ state: "visible", timeout: 2_500 })
+        .then(() => true)
+        .catch(() => false);
+      if (sheetOpened) {
+        await notThisOne.click();
+        await expect
+          .poll(() => currentPhase(page), { timeout: 30_000 })
+          .toBe("SEARCH_IDLE");
+      }
+      await assertPlanted(page, landed, 2_000, settled!);
     } finally {
       await cdp
         .send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
@@ -421,9 +464,30 @@ test("follow (d): speech lock — a selection read holds him still (1280)", asyn
     await expect
       .poll(() => currentPhase(page), { timeout: 30_000 })
       .toMatch(/SELECTION_READ|REVEAL/);
+    // Cure round 5 (diagnosis A(d)): the planted baseline is his
+    // SETTLED position once the read has begun \u2014 the guess
+    // interaction above swept the pointer across the page and he
+    // lawfully followed it during SEARCH_AREA, so the pre-guess
+    // berth is a position he legitimately left. During the read
+    // itself he must not move at all.
+    let readBase = await holmesRect(page);
+    for (let i = 0; i < 10 && readBase; i++) {
+      await page.waitForTimeout(300);
+      const again = await holmesRect(page);
+      if (
+        again &&
+        Math.abs(again.x - readBase.x) <= 2 &&
+        Math.abs(again.y - readBase.y) <= 2
+      ) {
+        readBase = again;
+        break;
+      }
+      readBase = again;
+    }
+    expect(readBase, "Holmes must be mounted during the read").not.toBeNull();
     const far = await mapPoint(page, 0.2, 0.75);
     await page.mouse.move(far.x, far.y, { steps: 6 });
-    await assertPlanted(page, landed, 1_500);
+    await assertPlanted(page, readBase!, 1_500);
     await guessPromise;
     // Back in SEARCH: follow resumes to the new hover point.
     await expect

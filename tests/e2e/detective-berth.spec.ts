@@ -166,7 +166,17 @@ test("pause-berth tier: a FAR pause berths in its neighbourhood and holds (1280,
     // him post-entry.
     await enterViaMapDrag(page);
     await waitForSearchIdle(page);
-    expect(await followTier(page)).toBe("PAUSE_BERTH");
+    // The tier read polls (30 s, the same bound the kill/recovery
+    // test below uses for its DOCK_ONLY read): the FG-5 latch is
+    // pre-existing law (#356/#362, untouched by PB-1) and on a
+    // software-rendered runner its re-qualification \u2014 a clean 5 s
+    // window at \u226555 FPS after any kill during the opening \u2014 can
+    // land after the idle wait settles. The assertion is unchanged
+    // (the tier must BE PAUSE_BERTH before the pause stimulus);
+    // the poll only waits out the latch's own recovery latency.
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("PAUSE_BERTH");
     // Cure A4: the SETTLED position after the cured idle wait —
     // it may be a dwell berth, not the dock. checkLanded's >40 px
     // displacement-from-start still works from a settled berth:
@@ -230,20 +240,37 @@ test("pause-berth tier: touch pause berths near the finger (390, follow OFF)", a
       x: mb!.x + mb!.width * 0.5,
       y: mb!.y + mb!.height * 0.5,
     };
+    // The entry drag must read as a PAN, never a tap: a single
+    // 14 px CDP touch move sits inside the map's tap
+    // discrimination and selected a place \u2014 the confirm sheet
+    // opened and the idle wait below could never settle (cure
+    // round 5; failure screenshot showed the sheet over "Libya").
+    // The drag is therefore stepped: 4 moves \u00d7 16 px with real
+    // time between them \u2014 unambiguously a pan by distance and
+    // duration. The test's subject is unchanged.
     await cdp.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [{ x: dragStart.x, y: dragStart.y, id: 1 }],
     });
-    await cdp.send("Input.dispatchTouchEvent", {
-      type: "touchMove",
-      touchPoints: [{ x: dragStart.x + 14, y: dragStart.y, id: 1 }],
-    });
+    for (let step = 1; step <= 4; step++) {
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [
+          { x: dragStart.x + step * 16, y: dragStart.y, id: 1 },
+        ],
+      });
+      await page.waitForTimeout(50);
+    }
     await cdp.send("Input.dispatchTouchEvent", {
       type: "touchEnd",
       touchPoints: [],
     });
     await waitForSearchIdle(page);
-    expect(await followTier(page)).toBe("PAUSE_BERTH");
+    // Tier read polls, as in the FAR test above (FG-5 recovery
+    // latency on software-rendered runners; assertion unchanged).
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("PAUSE_BERTH");
     // Cure A4: settled position, as in the FAR test above.
     const settledPos = await holmesWrapperPos(page);
     expect(settledPos).not.toBeNull();
