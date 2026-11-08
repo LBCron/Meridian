@@ -275,6 +275,14 @@ see:
    panel votes with this finding on the table; a panel BLOCK
    on it is a legitimate outcome and escalates to the owner
    with the same numbers.
+5. **Demotion addendum (panel re-vote cure, 2026-11-08;
+   spec §16.5):** the floors are DEMOTED to **PENDING THE
+   OWNER'S RULING**. Point 4(a) above is superseded on this
+   point: until the owner rules, the floors are **NOT
+   binding law** — not on PR A, and not on the PR D flip.
+   The §8.3 size band stands. The choice — re-proportion
+   Holmes's head vs amend the floors — is the owner's and
+   is deferred; no side is picked in this record.
 
 ## CI cure — 2026-11-08 (coordinator)
 
