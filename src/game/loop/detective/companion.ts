@@ -228,6 +228,14 @@ export interface AutoKillTracker {
   feedLongTask(durationMs: number, t: number): void;
   /** Clear the kill and every window (host: on case change). */
   reset(): void;
+  /** Mark a feeding gate transition (host: judge feeding resumes
+   * after a motion-gated stretch). The FPS math divides fed frames
+   * by the wall-clock span between the first and last fed
+   * timestamps, so a gated glide inside a window dilutes the
+   * measured rate and can trip the kill at a true 60 fps. Clearing
+   * the windows at the transition makes each window measure only
+   * one continuously-fed run. Kill state is untouched. */
+  noteGate(t: number): void;
   readonly killed: boolean;
   /** Why the kill fired (for the host's console line), once killed. */
   readonly killReason: "fps" | "longtask" | null;
@@ -320,6 +328,11 @@ export function createAutoKillTracker(): AutoKillTracker {
     reset() {
       killed = false;
       killReason = null;
+      frameEnds = [];
+      longTaskEnds = [];
+      healthyFrameEnds = [];
+    },
+    noteGate(_t: number) {
       frameEnds = [];
       longTaskEnds = [];
       healthyFrameEnds = [];

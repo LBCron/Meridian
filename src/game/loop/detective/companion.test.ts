@@ -167,6 +167,22 @@ test("reset: clears a latched kill and every window (the host's case-change cure
   assert.equal(k.killed, false);
 });
 
+test("noteGate: a gated gap inside the window does not dilute the measured rate into a kill", () => {
+  const k = createAutoKillTracker();
+  // ~1.5 s of honest 60 fps frames.
+  for (let t = 17; t <= 1500; t += 17) k.feedFrame(17, t);
+  // A motion-gated stretch: the host feeds nothing for 900 ms,
+  // marks the transition, then resumes at 60 fps. Without the
+  // gate mark, the resumed window's span would include the gap
+  // (~2.4 s span over ~1.5 s of frames \u2248 34 fps) and trip the
+  // kill on a healthy device \u2014 the landing-kill pattern of
+  // PR #364's cure rounds 5-6.
+  k.noteGate(2400);
+  for (let t = 2417; t <= 6000; t += 17) k.feedFrame(17, t);
+  assert.equal(k.killed, false);
+  assert.equal(k.killReason, null);
+});
+
 test("kill: healthy 60 fps stream never fires", () => {
   const k = createAutoKillTracker();
   for (let t = 17; t <= 20000; t += 17) k.feedFrame(17, t);

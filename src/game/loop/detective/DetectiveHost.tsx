@@ -1595,6 +1595,31 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holmesXY]);
 
+  /* Round 7 (diagnosis Q2): recovery from a step-down that
+   * interrupted a berth. The DOCK_ONLY pin below teleports XY to
+   * the perch, but the berth claim (his own flag or the machine's
+   * placement) survives, and the pause that earned the berth is
+   * consumed \u2014 nothing ever re-solves, so he would sit at the
+   * perch under a "berth" label forever. When the tier steps back
+   * UP out of DOCK_ONLY and he is still exactly at the perch under
+   * a live berth claim, re-solve once at the last pointer so the
+   * berth is re-earned. By-design dock-only devices never leave
+   * DOCK_ONLY, so this never fires for them. */
+  const prevTierRef = useRef(followTier);
+  useEffect(() => {
+    const prev = prevTierRef.current;
+    prevTierRef.current = followTier;
+    if (prev !== "DOCK_ONLY" || followTier === "DOCK_ONLY") return;
+    const claimed =
+      berthedRef.current || viewRef.current.holmes.placement === "berth";
+    if (!claimed) return;
+    const perch = legalPerchRef.current(forbiddenRef.current);
+    const cur = holmesXYRef.current;
+    if (!perch || cur.x !== perch.x || cur.y !== perch.y) return;
+    const p = followRef.current.lastPointer;
+    if (p) solveFollowAtRef.current(p, p.pointerType);
+  }, [followTier]);
+
   /** DOCK_ONLY: pin him to the viewport perch when the tier lands
    * there (by-design dock-only device, or the perf bottom tier after
    * two kill verdicts). This is a pin, not a return: the tier never
@@ -1690,9 +1715,18 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
           followRef.current.scrollingUntil,
           followRef.current.cameraBusyUntil,
         );
+    // Round 7 (diagnosis Q1/Q2): when feeding resumes after a
+    // gated stretch, prune the tracker windows first \u2014 otherwise
+    // the gated span dilutes the measured FPS and the kill trips
+    // at motion landings on healthy devices.
+    killRef.current?.noteGate(performance.now());
+    let wasBusy = false;
     const tick = (now: number) => {
       if (stopped) return;
-      if (!judgeBusy(now)) {
+      const busy = judgeBusy(now);
+      if (!busy && wasBusy) killRef.current?.noteGate(now);
+      wasBusy = busy;
+      if (!busy) {
         killRef.current?.feedFrame(now - last, now);
       }
       last = now;
@@ -1705,10 +1739,22 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
     try {
       observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          // Same rounds 5-6 gating for long tasks: a task that
-          // ended inside a motion window is that motion's own
-          // rendering cost, not follow degradation.
-          if (judgeBusy(entry.startTime + entry.duration)) continue;
+          // Same rounds 5-6 gating for long tasks, judged at
+          // the task's START against the motion horizon: a task
+          // that began inside a gesture can END after the
+          // horizon lapses (it was itself blocking the main
+          // thread), and the pan's own jank must not bill the
+          // follow (diagnosis F; the end-based form let K3's
+          // pan task through and docked him).
+          if (
+            entry.startTime <
+            Math.max(
+              followTravelEndRef.current,
+              followRef.current.scrollingUntil,
+              followRef.current.cameraBusyUntil,
+            )
+          )
+            continue;
           killRef.current?.feedLongTask(
             entry.duration,
             entry.startTime + entry.duration,
@@ -1852,11 +1898,17 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
       const now = performance.now();
       const prev = cache.get(e.pointerId);
       if (prev) cache.set(e.pointerId, { ...prev, x: e.clientX, y: e.clientY });
-      followRef.current.lastPointer = {
-        x: e.clientX,
-        y: e.clientY,
-        pointerType: e.pointerType,
-      };
+      // Round 7 (diagnosis Q4): while the confirm sheet is open
+      // the follow's pointer memory is frozen \u2014 clicks inside
+      // the sheet (the dismiss button above all) must not become
+      // the position he rejoins at when the sheet closes.
+      if (!seenSheetRef.current) {
+        followRef.current.lastPointer = {
+          x: e.clientX,
+          y: e.clientY,
+          pointerType: e.pointerType,
+        };
+      }
       followRef.current.pointersDown = cache.size;
       const onMap =
         mapElRef.current?.contains(e.target as Node) ?? false;
@@ -1901,11 +1953,14 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
         downY: e.clientY,
       });
       followRef.current.pointersDown = cache.size;
-      followRef.current.lastPointer = {
-        x: e.clientX,
-        y: e.clientY,
-        pointerType: e.pointerType,
-      };
+      // Round 7 (diagnosis Q4): sheet freeze, as in onMove.
+      if (!seenSheetRef.current) {
+        followRef.current.lastPointer = {
+          x: e.clientX,
+          y: e.clientY,
+          pointerType: e.pointerType,
+        };
+      }
       // Cure D: the pinch branch threads the same containment as the
       // pointerdown itself, so an off-map pinch cannot re-arm intent.
       if (cache.size >= 2)
@@ -2028,10 +2083,14 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
     if (!wasSearch && isSearch) {
       const p = followRef.current.lastPointer;
       if (p) {
-        const t = setTimeout(
-          () => solveFollowAtRef.current(p, p.pointerType),
-          FOLLOW_CAMERA_IDLE_MS,
-        );
+        const t = setTimeout(() => {
+          // Round 7 (diagnosis Q4): rebuild the forbidden set
+          // fresh before the return solve \u2014 a just-closed
+          // sheet's rect must not linger in the cache and push
+          // his rejoin ring outward.
+          rebuildForbiddenRef.current();
+          solveFollowAtRef.current(p, p.pointerType);
+        }, FOLLOW_CAMERA_IDLE_MS);
         return () => clearTimeout(t);
       }
     }
