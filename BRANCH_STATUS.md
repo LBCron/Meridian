@@ -654,7 +654,7 @@ the tip):
   `neg/*` gates, kid-test scope as fact); it carries
   no coordinator recommendation and no vote request —
   the tally goes in the body after the re-vote.
-- **Widow leg open:** the kidtest width-test re-run
+- **Width leg open:** the kidtest width-test re-run
   (coverage + Watson legs under the soft asserts) was
   still running when this section was written; its
   numbers land here when the runner reports.
