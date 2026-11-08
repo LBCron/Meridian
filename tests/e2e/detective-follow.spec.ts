@@ -254,6 +254,16 @@ test("follow (a)+(b): mouse travel, planted park, no dock return (1280)", async 
     await page.mouse.move(p2.x, p2.y, { steps: 12 });
     const travelDeadline = Date.now() + 30_000;
     let landed2: Rect | null = null;
+    // Round 7 (diagnosis Q3): arrival at p2 must mean SETTLED, as
+    // in waitArrived \u2014 the first berth+within-200 sample can be
+    // his p1 berth (184 px from p2, inside the 200 band) while the
+    // p2 glide has not even landed, and baselining assertPlanted
+    // on it read the lawful glide as "drift". The travel guards
+    // below (never through the settled corner, zero overlap) run
+    // on every sample exactly as before; a candidate must now
+    // also hold within 2 px across 900 ms to count as landed.
+    let candidate2: Rect | null = null;
+    let candidate2At = 0;
     while (Date.now() < travelDeadline && !landed2) {
       const r = await holmesRect(page);
       if (r) {
@@ -263,11 +273,23 @@ test("follow (a)+(b): mouse travel, planted park, no dock return (1280)", async 
         ).toBeGreaterThan(30);
         expect(await clueOverlap(page)).toBe(0);
         const c = centre(r);
-        if (
+        const matches =
           (await currentPlacement(page)) === "berth" &&
-          Math.hypot(c.x - p2.x, c.y - p2.y) <= 200
-        ) {
-          landed2 = r;
+          Math.hypot(c.x - p2.x, c.y - p2.y) <= 200;
+        if (matches) {
+          if (candidate2 && Date.now() - candidate2At >= 900) {
+            const a = centre(candidate2);
+            if (Math.hypot(a.x - c.x, a.y - c.y) <= 2) landed2 = r;
+            else {
+              candidate2 = r;
+              candidate2At = Date.now();
+            }
+          } else if (!candidate2) {
+            candidate2 = r;
+            candidate2At = Date.now();
+          }
+        } else {
+          candidate2 = null;
         }
       }
       await page.waitForTimeout(200);
@@ -373,9 +395,14 @@ test("follow (a): touch travel + planted after finger lifts (390)", async ({
         .catch(() => false);
       if (sheetOpened) {
         await notThisOne.click();
+        // Burst-return completion reads on PLACEMENT, not phase
+        // (round 6 run): he rejoins as a berth at the last
+        // pointer while the phase sits in SEARCH_AREA \u2014 the
+        // dismiss tap's own pause \u2014 so polling for SEARCH_IDLE
+        // times out on a healthy return.
         await expect
-          .poll(() => currentPhase(page), { timeout: 30_000 })
-          .toBe("SEARCH_IDLE");
+          .poll(() => currentPlacement(page), { timeout: 30_000 })
+          .toBe("berth");
       }
       await assertPlanted(page, landed, 2_000, settled!);
     } finally {

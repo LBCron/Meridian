@@ -166,6 +166,33 @@ test("pause-berth tier: a FAR pause berths in its neighbourhood and holds (1280,
     // him post-entry.
     await enterViaMapDrag(page);
     await waitForSearchIdle(page);
+    // Round 7 (diagnosis Q1): log the runner's sustained frame
+    // rate beside the poll \u2014 below the 55 fps re-qualify floor
+    // a DOCK_ONLY latch is a capability wall, not a latency, and
+    // the log line is what tells the panel which one a red run
+    // was. The poll and its asserted value are unchanged.
+    const sustainedFps = await page.evaluate(
+      () =>
+        new Promise<number>((res) => {
+          let frames = 0;
+          const start = performance.now();
+          const tick = () => {
+            frames++;
+            if (performance.now() - start < 2_000)
+              requestAnimationFrame(tick);
+            else
+              res(
+                Math.round(
+                  (frames * 1000) / (performance.now() - start),
+                ),
+              );
+          };
+          requestAnimationFrame(tick);
+        }),
+    );
+    console.log(
+      `[berth-tier FAR] sustained fps before tier poll: ${sustainedFps}`,
+    );
     // The tier read polls (30 s, the same bound the kill/recovery
     // test below uses for its DOCK_ONLY read): the FG-5 latch is
     // pre-existing law (#356/#362, untouched by PB-1) and on a
