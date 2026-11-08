@@ -1910,6 +1910,11 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
         };
       }
       followRef.current.pointersDown = cache.size;
+      // Round 8: a held drag keeps the camera busy \u2014 re-stamp
+      // the horizon on every move while a pointer is down.
+      if (cache.size > 0) {
+        followRef.current.cameraBusyUntil = now + FOLLOW_CAMERA_IDLE_MS;
+      }
       const onMap =
         mapElRef.current?.contains(e.target as Node) ?? false;
       // A real move away from the pause point, on the map, is the
@@ -1945,6 +1950,14 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
       );
       const now = performance.now();
       followRef.current.lastMapActivityT = now;
+      // Round 8 (diagnosis #2 Q3): the camera-busy horizon must
+      // cover a drag's whole duration, not just its end \u2014
+      // startGesture never fires during a single-pointer pan in
+      // SEARCH_IDLE, so without this stamp the FG-5 judge was fed
+      // the pan's own long tasks and docked him mid-pan. Moves
+      // while a pointer is down re-stamp it (onMove); endGesture
+      // stamps the trailing idle as before.
+      followRef.current.cameraBusyUntil = now + FOLLOW_CAMERA_IDLE_MS;
       cache.set(e.pointerId, {
         x: e.clientX,
         y: e.clientY,
