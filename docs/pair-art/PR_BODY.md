@@ -181,8 +181,8 @@ Flagged in spec §12, not papered over. Headlines:
 
 - [ ] Diff audit — scope list above, staged files named only,
   never `git add -A`
-- [ ] Harness — `node scripts/kidtest-smoke.mjs` + the `pair-art-kidtest` Playwright project on f2adf71:
-  {{HARNESS_RESULT}}
+- [x] Harness — `node scripts/kidtest-smoke.mjs` + the `pair-art-kidtest` Playwright project, re-run on the final tip `504ddbc`:
+  smoke RAN (64 plates, 0 missing; face measure live via the manifest `plates` adapter — Holmes below floor in every cell, Watson 768 by 1 px, both recorded under ruling (f), NOT cured); Playwright 5/5 PASS in 33.6 m (size band + zero clue-text coverage measured on the real built page at 390/768/1280/1920; face floor FAILED for Holmes at every width exactly as the smoke predicted — the harness asserts the shortfall; human trials prepared, never faked: trial manifest + find screens exported, `results: null` throughout). Repo gates on the same tip: tsc clean · `npm test` 3,287 pass / 0 fail · worker suite 145/0 (run for completeness; no `workers/` files touched) · lint-cards GATE PASSED · `build:pages` green (65 pair-art files in dist, inert until PR B imports them).
 - [ ] Silo QA — keyed PR# + head SHA: {{SILO_QA_VERDICT}}
 - [ ] Panel — 13 seats incl. Game player, on the final tip:
   {{PANEL_TALLY}}
