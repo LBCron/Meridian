@@ -1076,6 +1076,73 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
         };
   };
 
+  /* Cure C (PR #364 cure round) — placement legality helpers.
+   * PR #364 moved Holmes to a position:fixed app-root portal with no
+   * clipping ancestor, and no placement writer except solveFollow
+   * ever checked the forbidden rects — so a stale or unchecked
+   * landing paints him over clue text (the zero-overlap law is
+   * PRODUCT LAW). These helpers measure the forbidden set FRESH
+   * (the same DOM sources rebuildForbidden caches, written back to
+   * the cache) and test Holmes's box against it. Geometry/refs only:
+   * Holmes stays answer-blind. */
+  const measureForbiddenRects = (): ForbiddenRect[] => {
+    const out: ForbiddenRect[] = [];
+    const push = (el: Element | null, pad = 0) => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return;
+      out.push({
+        x: r.left - pad,
+        y: r.top - pad,
+        w: r.width + pad * 2,
+        h: r.height + pad * 2,
+      });
+    };
+    document
+      .querySelectorAll('article[aria-label^="Clue "]')
+      .forEach((el) => push(el));
+    push(document.querySelector('[data-testid="detective-station"]'));
+    push(document.querySelector('[data-testid="detective-dock"]'));
+    push(document.querySelector("header"));
+    push(document.querySelector('[data-testid="loop-result-card"]'));
+    push(document.querySelector('[data-testid="loop-reveal"]'));
+    mapElRef.current
+      ?.querySelectorAll(".maplibregl-marker")
+      .forEach((el) => push(el, 48));
+    return out;
+  };
+  const holmesBoxHitsForbidden = (
+    target: { x: number; y: number },
+    rects: ForbiddenRect[],
+  ): boolean =>
+    rects.some(
+      (r) =>
+        target.x < r.x + r.w &&
+        target.x + HOLMES_BOX.w > r.x &&
+        target.y < r.y + r.h &&
+        target.y + HOLMES_BOX.h > r.y,
+    );
+  /** Gate for every non-solver placement writer: rebuild the
+   * forbidden rects fresh (never the cache), then test the box. */
+  const freshPlacementLegal = (target: { x: number; y: number }): boolean => {
+    const rects = measureForbiddenRects();
+    forbiddenRef.current = rects;
+    return !holmesBoxHitsForbidden(target, rects);
+  };
+  /** Cure C, point 3 (defence-in-depth): the entry dock measured
+   * from the LIVE map element at call time, not the mapRectRef
+   * cache — the cache is taken at scroll 0 with the map below the
+   * fold, which placed Holmes below the viewport in the C-1 traces. */
+  const liveDockXY = () => {
+    const node = document.querySelector('[data-testid="loop-map"]');
+    if (!node) return dockXY();
+    const r = node.getBoundingClientRect();
+    return {
+      x: r.left + HOLMES_DOCK_X,
+      y: r.top + r.height - DOCK_INSET - HOLMES_BOX.h,
+    };
+  };
+
   /* Staging entry walk (PR A unit 4), retargeted to viewport
    * coordinates: the FIRST map interaction walks Holmes from below
    * the map to his first placement. After that the follow engine
@@ -1106,8 +1173,13 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
       return;
     setStagingStage("entering");
     if (berthedRef.current) return; // already following: no entry walk
-    const dock = dockXY();
+    const dock = liveDockXY();
     followPlacedRef.current = true;
+    // Cure C, point 1: if the entry dock intersects a fresh forbidden
+    // rect, do not land there — the stage still enters (the slot
+    // collapses), and the eviction check / follow solves place him
+    // legally instead of painting him over clue text.
+    if (!freshPlacementLegal(dock)) return;
     if (degradationRef.current.walkMode === "cut") {
       setHolmesTransition({ durationMs: 0, easing: EASE_OUT });
       setHolmesXY(dock);
@@ -1180,35 +1252,21 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
    * whose ground is the pin marker's own rect, padded below). */
   const forbiddenRef = useRef<ForbiddenRect[]>([]);
   const rebuildForbidden = () => {
-    const out: ForbiddenRect[] = [];
-    const push = (el: Element | null, pad = 0) => {
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      if (r.width === 0 && r.height === 0) return;
-      out.push({
-        x: r.left - pad,
-        y: r.top - pad,
-        w: r.width + pad * 2,
-        h: r.height + pad * 2,
-      });
-    };
-    document
-      .querySelectorAll('article[aria-label^="Clue "]')
-      .forEach((el) => push(el));
-    push(document.querySelector('[data-testid="detective-station"]'));
-    push(document.querySelector('[data-testid="detective-dock"]'));
-    push(document.querySelector("header"));
-    push(document.querySelector('[data-testid="loop-result-card"]'));
-    push(document.querySelector('[data-testid="loop-reveal"]'));
-    mapElRef.current
-      ?.querySelectorAll(".maplibregl-marker")
-      .forEach((el) => push(el, 48));
-    forbiddenRef.current = out;
+    forbiddenRef.current = measureForbiddenRects();
   };
   const rebuildForbiddenRef = useRef(rebuildForbidden);
   rebuildForbiddenRef.current = rebuildForbidden;
+  /* Cure C: the current-position eviction check (defined below,
+   * after solveFollowAt) is reached through this ref from the
+   * rebuild triggers that sit above its definition. */
+  const checkHolmesLegalityRef = useRef<() => void>(() => {});
   useEffect(() => {
     rebuildForbiddenRef.current();
+    // Cure C, point 2: after every forbidden rebuild, test Holmes's
+    // CURRENT box against the fresh rects — host-caused layout
+    // motion (reading scroll, bench-slot collapse, clue reveal) can
+    // move clue text under a Holmes who never moved himself.
+    checkHolmesLegalityRef.current();
   }, [phase, cluesRevealed, caseIndex, status]);
 
   const followSuspended = (): boolean => {
@@ -1287,16 +1345,142 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
   const solveFollowAtRef = useRef(solveFollowAt);
   solveFollowAtRef.current = solveFollowAt;
 
+  /* Cure C, point 2 — current-position eviction. holmesHidden is the
+   * burst-hide state: while his current box is illegal AND a
+   * suspension holds (speech above all — he must not travel
+   * mid-speech; the follow spec's speech-lock gate pins that), he is
+   * hidden with the existing .detective-host-holmes-hidden pattern
+   * (80 ms) rather than painted over clue text, and re-solved when
+   * the suspension lifts. When no suspension holds he re-solves at
+   * the last pointer immediately, through the same pure solver. */
+  const [holmesHidden, setHolmesHidden] = useState(false);
+  const holmesHiddenRef = useRef(false);
+  const setHolmesHiddenBoth = (hidden: boolean) => {
+    holmesHiddenRef.current = hidden;
+    setHolmesHidden(hidden);
+  };
+  /** The first legal DOCK_ONLY perch: dockPerch's bottom-left first
+   * (kept whenever legal — behaviour at 1280 unchanged), then the
+   * other viewport corners in reading order. */
+  const legalPerch = (
+    rects: ForbiddenRect[],
+  ): { x: number; y: number } | null => {
+    const viewport = { w: window.innerWidth, h: window.innerHeight };
+    const def = dockPerch(HOLMES_BOX, viewport);
+    const spots = [
+      def,
+      { x: viewport.w - DOCK_INSET - HOLMES_BOX.w, y: def.y },
+      { x: def.x, y: DOCK_INSET },
+      { x: viewport.w - DOCK_INSET - HOLMES_BOX.w, y: DOCK_INSET },
+    ];
+    for (const spot of spots) {
+      if (!holmesBoxHitsForbidden(spot, rects)) return spot;
+    }
+    return null;
+  };
+  const legalPerchRef = useRef(legalPerch);
+  legalPerchRef.current = legalPerch;
+
+  const checkHolmesLegality = () => {
+    const rects = forbiddenRef.current;
+    const cur = holmesXYRef.current;
+    if (!holmesBoxHitsForbidden(cur, rects)) {
+      if (holmesHiddenRef.current) setHolmesHiddenBoth(false);
+      return;
+    }
+    if (followTierRef.current === "DOCK_ONLY") {
+      // The tier never berths: move the pin itself to a legal corner,
+      // or hide him when no corner is legal.
+      const perch = legalPerch(rects);
+      if (!perch) {
+        setHolmesHiddenBoth(true);
+        return;
+      }
+      setHolmesHiddenBoth(false);
+      berthedRef.current = false;
+      setBerthed(false);
+      setHolmesTransition({ durationMs: 0, easing: EASE_OUT });
+      setHolmesXY(perch);
+      return;
+    }
+    if (followSuspendedRef.current()) {
+      setHolmesHiddenBoth(true);
+      return;
+    }
+    const pt = followRef.current.lastPointer;
+    if (!pt) {
+      setHolmesHiddenBoth(true);
+      return;
+    }
+    const berth = solveFollow({
+      pointer: pt,
+      holmesBox: HOLMES_BOX,
+      viewport: { w: window.innerWidth, h: window.innerHeight },
+      forbidden: rects,
+      pointerType: pt.pointerType,
+      currentCentre: {
+        x: cur.x + HOLMES_BOX.w / 2,
+        y: cur.y + HOLMES_BOX.h / 2,
+      },
+    });
+    followRef.current.lastSolved = { x: pt.x, y: pt.y };
+    followRef.current.lastSolveT = performance.now();
+    if (!berth) {
+      // Nothing legal at the pointer either: staying painted over
+      // text is the one outcome the law forbids — hide instead.
+      setHolmesHiddenBoth(true);
+      return;
+    }
+    setHolmesHiddenBoth(false);
+    applyFollowTargetRef.current({ x: berth.x, y: berth.y });
+  };
+  checkHolmesLegalityRef.current = checkHolmesLegality;
+
+  /* Suspension lift (speech end): the speech lock is the suspension
+   * that must never leave him painted over text, so the moment a
+   * line finishes the legality check runs again on fresh rects — a
+   * hidden Holmes re-solves now, a legal one simply un-hides. */
+  useEffect(() => {
+    if (speakingWho) return;
+    rebuildForbiddenRef.current();
+    checkHolmesLegalityRef.current();
+  }, [speakingWho]);
+
+  /* A legal landing un-hides him: any placement writer (entry,
+   * perch, follow solve) that lands his box on legal ground clears
+   * the burst-hide. Illegal landings are gated upstream, so this
+   * only ever fires on a legal spot or not at all. */
+  useEffect(() => {
+    if (!holmesHiddenRef.current) return;
+    if (!holmesBoxHitsForbidden(holmesXY, measureForbiddenRects())) {
+      setHolmesHiddenBoth(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holmesXY]);
+
   /** DOCK_ONLY: pin him to the viewport perch when the tier lands
    * there (by-design dock-only device, or the perf bottom tier after
    * two kill verdicts). This is a pin, not a return: the tier never
    * berths, so there is nothing to return FROM. */
   useEffect(() => {
     if (followTier !== "DOCK_ONLY") return;
-    const perch = dockPerch(HOLMES_BOX, {
-      w: window.innerWidth,
-      h: window.innerHeight,
-    });
+    // Cure C, points 1+2 (the C-2 traces): the perch pin used to land
+    // at bottom-left with NO forbidden check — after the reading
+    // scroll, bottom-left IS the clue column at 390/768 (identical
+    // 727.39 px2 over clue text in both). Rebuild fresh and scan the
+    // corners for the first legal perch; if none is legal, keep the
+    // previous position (hiding him if that spot is illegal too).
+    rebuildForbiddenRef.current();
+    const perch = legalPerchRef.current(forbiddenRef.current);
+    if (!perch) {
+      if (
+        holmesBoxHitsForbidden(holmesXYRef.current, forbiddenRef.current)
+      ) {
+        setHolmesHiddenBoth(true);
+      }
+      return;
+    }
+    setHolmesHiddenBoth(false);
     berthedRef.current = false;
     setBerthed(false);
     setHolmesTransition({ durationMs: 0, easing: EASE_OUT });
@@ -1606,6 +1790,10 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
       s.scrollTimer = setTimeout(() => {
         s.scrollTimer = null;
         rebuildForbiddenRef.current();
+        // Cure C, point 2: eviction at the scroll-end trigger — the
+        // scroll may have swept clue text through his fixed slice
+        // while he never moved (the C-1 traces).
+        checkHolmesLegalityRef.current();
         const p = followRef.current.lastPointer;
         if (p) solveFollowAtRef.current(p, p.pointerType);
       }, 200);
@@ -1639,7 +1827,13 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
   useEffect(() => {
     if (mapEl && !followPlacedRef.current) {
       followPlacedRef.current = true;
-      setHolmesXY(dockXY());
+      // Cure C, points 1+3: measure the map LIVE (the cached rect is
+      // taken at scroll 0 with the map below the fold and placed him
+      // below the viewport in the C-1 traces) and gate the landing on
+      // fresh forbidden rects — an illegal dock is never landed on;
+      // the eviction check and follow solves place him legally.
+      const dock = liveDockXY();
+      if (freshPlacementLegal(dock)) setHolmesXY(dock);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapEl]);
@@ -1804,9 +1998,12 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
   const holmesMapEl = holmesOnMap ? (
     <div
       className={
-        walking
+        (walking
           ? "detective-host-holmes detective-follow-overlay detective-follow-travelling"
-          : "detective-host-holmes detective-follow-overlay"
+          : "detective-host-holmes detective-follow-overlay") +
+        // Cure C: burst-hide while his current box is illegal under a
+        // suspension — hidden, never painted over clue text.
+        (holmesHidden ? " detective-host-holmes-hidden" : "")
       }
       data-testid="detective-holmes-wrapper"
       data-walk-mode={degradation.walkMode}
