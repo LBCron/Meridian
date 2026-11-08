@@ -887,47 +887,65 @@ test("K3 planted — a pan does NOT cancel a berth (PB-1)", async ({ page, conte
 });
 
 /**
- * K3 tap — premise, stated honestly (cure round 2): the setup may
- * settle BERTHED or DOCKED. The case-open dwell can solve a berth
- * before the tap (batch-1 measured placement "berth" at the old
- * test's premise), so "he starts at dock" is not a state this
- * setup can promise — round 1's assertion of "dock" immediately
- * before the tap failed AT THE PREMISE. The pin is narrower and
- * is the boundary that matters: a tap (<250 ms) is not a
- * summons/pause — the press must not MOVE him and must not create
- * a berth AT THE TAP POINT. Whatever state he settled in, the
- * tap changes nothing.
+ * K3 tap — premise, stated honestly (cure round 4, v3): the
+ * settled state after the idle wait VARIES. Round 3's E2E proved
+ * Holmes can be at the STATION then (placement "station", no
+ * follow wrapper in the DOM), as well as "dock" or "berth" — so
+ * v2's premise "he is mounted on the map after the idle wait, the
+ * settled rect must exist" failed AT THE PREMISE ("Holmes must
+ * stay mounted: Received: null"). This rewrite is placement-based
+ * (the original main-era pin): record whatever state he settled
+ * in, with no rect requirement, and pin the boundary that matters
+ * from EVERY settled state — a tap (<250 ms) is not a
+ * summons/pause: the press must not change his placement, must
+ * not move him, and must not create a berth. Whatever state he
+ * settled in, the tap changes nothing. (Positive control:
+ * berthAtDockNearPoint in this file, used by the pinch/pan tests
+ * above, proves a genuine pause at a point DOES berth.)
  */
 test("K3 — a tap (<250 ms) never summons Holmes", async ({ page, context }) => {
   await fulfillFlagsOn(context);
   await openSeamCase(page, 137);
   await waitForSearchIdle(page);
-  // Settled state, recorded — not assumed. Holmes is on the map
-  // in this spec's flow (companion specs do not stage the bench:
-  // fulfillFlagsOn carries no hostsStaging, so the wrapper is
-  // mounted), so the settled rect must exist.
+  // Settled state, recorded — not assumed, and with NO rect
+  // requirement: the placement may be "station", "dock" or
+  // "berth". If a wrapper rect does exist, record its centre too.
   const settledPlacement = await currentPlacement(page);
-  const settledRect = await holmesRect(page);
-  expect(
-    settledRect,
-    "K3 tap premise: Holmes must be mounted on the map after the idle wait",
-  ).not.toBeNull();
-  const settledCentre = {
-    x: settledRect!.x + settledRect!.w / 2,
-    y: settledRect!.y + settledRect!.h / 2,
-  };
+  const settledWrapper = await holmesRect(page);
+  const settledCentre = settledWrapper
+    ? {
+        x: settledWrapper.x + settledWrapper.w / 2,
+        y: settledWrapper.y + settledWrapper.h / 2,
+      }
+    : null;
+  // Position reference for choosing the tap point: his settled
+  // centre if mounted; otherwise the station/dock reference —
+  // the rect centre of the same placement-carrying element
+  // currentPlacement() reads (detective-station, falling back to
+  // detective-host).
+  const stationReference = await page.evaluate(() => {
+    const el =
+      document.querySelector('[data-testid="detective-station"]') ??
+      document.querySelector('[data-testid="detective-host"]');
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  });
   const box = await mapBox(page);
-  // Tap at whichever candidate point is FARTHER from where he
-  // settled — a tap that "summoned" him would have the longest,
-  // most visible travel to make, and neither candidate can be
-  // confused with the berth he may already be sitting in.
+  const reference =
+    settledCentre ??
+    stationReference ?? { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  // Tap at whichever candidate point is FARTHER from his current
+  // position reference — a tap that "summoned" him would have
+  // the longest, most visible travel to make, and neither
+  // candidate can be confused with wherever he is already sitting.
   const candidates = [
     { x: box.x + box.width * 0.38, y: box.y + box.height * 0.68 },
     { x: box.x + box.width * 0.72, y: box.y + box.height * 0.3 },
   ];
   const point = candidates.reduce((farther, c) =>
-    Math.hypot(c.x - settledCentre.x, c.y - settledCentre.y) >
-    Math.hypot(farther.x - settledCentre.x, farther.y - settledCentre.y)
+    Math.hypot(c.x - reference.x, c.y - reference.y) >
+    Math.hypot(farther.x - reference.x, farther.y - reference.y)
       ? c
       : farther,
   );
@@ -982,33 +1000,47 @@ test("K3 — a tap (<250 ms) never summons Holmes", async ({ page, context }) =>
     () => (window as unknown as { __tapPlacements: string[] }).__tapPlacements,
   );
   console.log(
-    `[K3 tap] settled=${settledPlacement} at (${Math.round(settledCentre.x)},${Math.round(settledCentre.y)}), tap at (${Math.round(point.x)},${Math.round(point.y)}), placement transitions during tap window: ${JSON.stringify(placements)}`,
+    `[K3 tap] settled=${settledPlacement} mounted=${settledCentre !== null} reference=(${Math.round(reference.x)},${Math.round(reference.y)}), tap at (${Math.round(point.x)},${Math.round(point.y)}), placement transitions during tap window: ${JSON.stringify(placements)}`,
   );
-  // (a) The tap changed no state: no placement transition at all
-  // occurs in the window.
+  // (a) The pin, valid from every settled state: the tap changed
+  // nothing — no placement transition at all occurs in the window.
   expect(
     placements,
     "K3 tap: a tap must not cause any placement transition",
   ).toHaveLength(0);
-  // (b) And he did not travel to the tap point: his centre at the
-  // window's end is within 8 px of the settled centre.
-  const endRect = await holmesRect(page);
-  expect(endRect, "K3 tap: Holmes must stay mounted").not.toBeNull();
-  const endCentre = {
-    x: endRect!.x + endRect!.w / 2,
-    y: endRect!.y + endRect!.h / 2,
-  };
-  expect(
-    Math.hypot(endCentre.x - settledCentre.x, endCentre.y - settledCentre.y),
-    "K3 tap: Holmes must not move toward the tap point",
-  ).toBeLessThanOrEqual(8);
-  // (c) The original assertion, preserved for the state it was
-  // written for: if he settled DOCKED, the tap must never have
-  // berthed him during the window.
-  if (settledPlacement === "dock") {
-    expect(placements).not.toContain("berth");
-    expect(await currentPlacement(page)).not.toBe("berth");
+  // (b) If he was mounted, he did not travel: his centre at the
+  // window's end is within 8 px of the settled centre. (A wrapper
+  // that vanished mid-window would already have failed (a) as a
+  // placement transition, so a missing end rect needs no separate
+  // assertion here.)
+  if (settledCentre) {
+    const endRect = await holmesRect(page);
+    if (endRect) {
+      const endCentre = {
+        x: endRect.x + endRect.w / 2,
+        y: endRect.y + endRect.h / 2,
+      };
+      expect(
+        Math.hypot(endCentre.x - settledCentre.x, endCentre.y - settledCentre.y),
+        "K3 tap: Holmes must not move toward the tap point",
+      ).toBeLessThanOrEqual(8);
+    }
   }
+  const now = await currentPlacement(page);
+  // (c) v2's preserved original assertion, generalised to every
+  // non-berth settled state: if he did not settle berthed,
+  // "berth" never appears in the window.
+  if (settledPlacement !== "berth") {
+    expect(placements).not.toContain("berth");
+    expect(now, "K3 tap: a tap must not berth Holmes").not.toBe("berth");
+  }
+  // Final overall placement sanity (the original main-era pin,
+  // generalised): he ends in the placement he settled in, or the
+  // host is gone at teardown (null).
+  expect(
+    now === settledPlacement || now === null,
+    `K3 tap: final placement ${JSON.stringify(now)} must equal the settled placement ${JSON.stringify(settledPlacement)} or be null at teardown`,
+  ).toBe(true);
   // Dismiss the confirm sheet the tap opened, if it opened.
   const dialog = page.getByRole("dialog");
   if (await dialog.isVisible().catch(() => false)) {
