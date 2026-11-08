@@ -2,9 +2,10 @@
 
 **Branch:** `feat/journal-movies` · **Base:** `origin/main` @ `9e49da3e` (#365)
 **Owner order:** 2026-11-07 — "Build all journals" (Old Faithful pilot approved)
-**Status:** BUILDING — 24/106 clips VERIFIED + LIVE (incl. pilot). Batches 01
-(6), 03 (3), 04 (9), 11 (5) shipped; 4 clips HELD for regen (see below).
-Batches 02, 05–10, 12 still running; follow-ups in flight for 01, 03, 11.
+**Status:** BUILDING — 64/106 clips VERIFIED + LIVE (incl. pilot). Batches 01
+(9/9), 02 (6), 03 (3), 04 (9/9), 05 (9/9), 06 (4), 07 (6), 08 (6), 09 (6),
+11 (5) shipped; 12 clips HELD for regen (see below). Batches 10, 12 still
+running; follow-ups in flight for 02, 03, 06, 07, 08, 09, 11.
 
 ## Done
 - [x] 2026-11-08 — Branch created from origin/main 9e49da3e; worktree
@@ -58,6 +59,25 @@ Batches 02, 05–10, 12 still running; follow-ups in flight for 01, 03, 11.
       (holds confirmed in-frame; flags confirmed). Bed-30% per worker
       measurement (NOTES.md). Not verified by ear — owner's listen is
       the final check.
+- [x] 2026-11-08 — **Batch 01 follow-up DONE: set 3 verified + LIVE**
+      (sunken-gardens vdc_5723, childrens-zoo casper, 48th-and-o magnus
+      with bad-fit flag). **Haymarket regen FAILED the no-text gate a
+      2nd time** (clock gains hands/numerals at 6/9.5 s despite the
+      blank-clock prompt); fallback NOT overwritten and stands as the
+      shipped version. A 3rd attempt would need a different approach
+      (no clock tower in frame). Batch 01 is now 9/9 complete.
+- [x] 2026-11-08 — **Batches 02, 05, 06, 07, 08, 09 landed; 40 clips
+      coordinator-verified and LIVE** (meridian-media push in flight):
+      02: pioneers-park, wilderness-park, antelope-park, oak-lake,
+      lincoln-airport, union-plaza (6); 05: all 9; 06: old-market,
+      scotts-bluff, durham, carhenge (4); 07: all 6; 08: all 6;
+      09: all 6. Independent checks: ffprobe/decode/audio re-measured
+      on all 48 (means match workers; peaks −0.9 to −1.6 dB, 0 clipped),
+      8 decision frames viewed by the coordinator. Bed-30% per worker
+      measurement. Not verified by ear — owner's listen is the final check.
+- [x] 2026-11-08 — Follow-ups spawned for 02 (3 AI regens), 06 (5 regens),
+      07 (3 builds), 08 (2 builds), 09 (3 builds). Batches 03 + 11
+      follow-ups already running. Batches 10 + 12 still running.
 
 ## Video cap (discovered 2026-11-08, affects every batch)
 The media pipeline allows at most **6 successful videos per agent
@@ -77,9 +97,19 @@ is enforced per run, not per batch; do not assume it.
   sunset, pilot-v1 failure mode) + small bird on the fence.
 - neuschwanstein (batch 11): invented rooster standing on the lake
   ~6 s + faint ghost-castle silhouette at 2 s.
+- holmes-lake, wyuka, gateway (batch 02): ffmpeg Ken Burns only, NO bed
+  audio — voice-free gaps measure −91.0 dB silent. Bed is a load-bearing
+  recipe element; held for AI-video regen.
+- kingsley, smith-falls, fort-robinson (batch 06): ffmpeg-only, NO bed;
+  and the payoff has no visible payoff (spillway out of frame / falls
+  stay a thin trickle / static post).
+- chimney-rock (batch 06): spire cropped out of frame at the 6 s payoff
+  while L3 says "There it stands".
+- archway (batch 06): wagon exhibit duplicated (TWICE) in the 9.5 s
+  settle frame + mid-clip interior dive loses the bridge hero.
 - haymarket (batch 01) ships as a flagged still+narration FALLBACK
-  (AI video failed the no-text gate); regen in flight, fallback stays
-  unless the regen passes every gate.
+  (AI video failed the no-text gate TWICE); a 3rd attempt would need a
+  different approach (no clock tower in frame).
 
 ## Storage decision (recorded in docs/journal-movies.md)
 Movies do NOT live in this repo (~600 MB would quadruple git objects and
