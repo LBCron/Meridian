@@ -160,7 +160,15 @@ async function mapBox(page: Page) {
   return box!;
 }
 
-async function dockRect(page: Page) {
+/**
+ * The wrapper's CURRENT settled rect. (This helper used to be
+ * `dockRect`: under the owner's STAYS model there is no true dock
+ * reference to capture once a dwell has berthed him — the rect
+ * read after the cured idle wait may be a berth, not the dock.
+ * K2's remote classification is therefore re-derived per grid
+ * point from THIS settled rect — see runGridMouse/runGridTouch.)
+ */
+async function settledRect(page: Page) {
   return page.evaluate(() => {
     const w = document.querySelector('[data-testid="detective-holmes-wrapper"]');
     if (!w) return null;
@@ -200,9 +208,18 @@ interface GridResult {
 
 async function runGridMouse(page: Page): Promise<GridResult> {
   const box = await mapBox(page);
-  const dock = await dockRect(page);
   const res: GridResult = { samples: [], berths: 0, remotes: 0, hides: 0, remoteSamples: [] };
   for (const [fx, fy] of GRID) {
+    // Remote re-derivation (Cure A2, option (b)): a sample set is
+    // "remote" when the solver answered THIS point's pause by not
+    // moving — i.e. every sample sits on the rect Holmes was
+    // settled at BEFORE this point's stimulus. The old grid-start
+    // dock capture cannot serve: after the cured idle wait that
+    // rect may be a dwell berth, not the dock, and under STAYS the
+    // settled spot changes point to point. (Option (a), a fresh
+    // context's pre-pause capture, was rejected: its own unlock
+    // dwell can berth it too, and its geometry need not match.)
+    const settled = await settledRect(page);
     const point = { x: box.x + box.width * fx, y: box.y + box.height * fy };
     await page.mouse.move(point.x, point.y, { steps: 8 });
     await page.mouse.move(point.x + 2, point.y + 1, { steps: 2 });
@@ -211,24 +228,25 @@ async function runGridMouse(page: Page): Promise<GridResult> {
       res.hides += 1;
     } else if (outcome === "berth") {
       const samples = await sampleBerth(page, { fx, fy }, 900);
-      const atDock = samples.filter(
-        (s) => dock && Math.abs(s.left - dock.left) < 4 && Math.abs(s.top - dock.top) < 4,
+      const atSettled = samples.filter(
+        (s) => settled && Math.abs(s.left - settled.left) < 4 && Math.abs(s.top - settled.top) < 4,
       );
-      if (samples.length > 0 && atDock.length === samples.length) {
+      if (samples.length > 0 && atSettled.length === samples.length) {
         res.remotes += 1;
         res.remoteSamples.push(...samples);
       } else if (samples.length > 0) {
         res.berths += 1;
-        res.samples.push(...samples.filter((s) => !atDock.includes(s)));
+        res.samples.push(...samples.filter((s) => !atSettled.includes(s)));
       } else {
         res.remotes += 1;
       }
-      // Cancel back to the dock: a real move away from the pause point.
-      await page.mouse.move(point.x + 150, point.y + 90, { steps: 6 });
-      await expect
-        .poll(() => currentPlacement(page), { timeout: 10_000 })
-        .toBe("dock");
-      await waitForSearchIdle(page, 30_000);
+      // PB-1 STAYS: there is NO cancel back to the dock — a move
+      // or drag away does not un-berth him (the deleted-model step
+      // that polled for "dock" here is gone). The next grid point's
+      // own move + jitter is the fresh stimulus, and pauseOutcome
+      // judges its outcome: in this spec's flag-OFF (PAUSE_BERTH)
+      // tier a fresh berth requires a genuine new pause at the new
+      // point.
     } else {
       res.remotes += 1;
     }
@@ -238,10 +256,12 @@ async function runGridMouse(page: Page): Promise<GridResult> {
 
 async function runGridTouch(page: Page): Promise<GridResult> {
   const box = await mapBox(page);
-  const dock = await dockRect(page);
   const cdp = await page.context().newCDPSession(page);
   const res: GridResult = { samples: [], berths: 0, remotes: 0, hides: 0, remoteSamples: [] };
   for (const [fx, fy] of GRID) {
+    // Per-point settled reference for the remote classification —
+    // same Cure A2 re-derivation as runGridMouse (option (b)).
+    const settled = await settledRect(page);
     const dispatchPoint = { x: box.x + box.width * fx, y: box.y + box.height * fy };
     // Capture the pointer coordinate the PAGE reports for this touch:
     // Chromium's touch pipeline reports the contact centroid, which
@@ -316,28 +336,25 @@ async function runGridTouch(page: Page): Promise<GridResult> {
           `[K2 touch grid] point (${fx},${fy}) worst centre=${Math.min(...samples.map((s) => s.centreDist)).toFixed(2)} worst edge=${Math.min(...samples.map((s) => s.edgeDist)).toFixed(2)} distToClientPoint=${distToClientPoint.toFixed(2)} transformVsRect=${await page.evaluate(() => { const w = document.querySelector('[data-testid="detective-holmes-wrapper"]') as HTMLElement | null; const m = document.querySelector('[data-testid="loop-map"]'); if (!w || !m) return null; const r = w.getBoundingClientRect(); const mr = m.getBoundingClientRect(); const t = new DOMMatrixReadOnly(getComputedStyle(w).transform); return `intended=(${t.e.toFixed(2)},${t.f.toFixed(2)}) renderedMapRel=(${(r.left - mr.left).toFixed(2)},${(r.top - mr.top).toFixed(2)})`; })}`,
         );
       }
-      const atDock = samples.filter(
-        (s) => dock && Math.abs(s.left - dock.left) < 4 && Math.abs(s.top - dock.top) < 4,
+      const atSettled = samples.filter(
+        (s) => settled && Math.abs(s.left - settled.left) < 4 && Math.abs(s.top - settled.top) < 4,
       );
-      if (samples.length > 0 && atDock.length === samples.length) {
+      if (samples.length > 0 && atSettled.length === samples.length) {
         res.remotes += 1;
         res.remoteSamples.push(...samples);
       } else if (samples.length > 0) {
         res.berths += 1;
-        res.samples.push(...samples.filter((s) => !atDock.includes(s)));
+        res.samples.push(...samples.filter((s) => !atSettled.includes(s)));
       } else {
         res.remotes += 1;
       }
-      // Cancel: drag away, then lift.
-      await cdp.send("Input.dispatchTouchEvent", {
-        type: "touchMove",
-        touchPoints: [{ x: point.x + 120, y: point.y + 70, id: 1 }],
-      });
+      // PB-1 STAYS: no drag-away cancel and no dock poll — a drag
+      // does not un-berth him. The finger is simply LIFTED (touch
+      // lifecycle for the next grid point's touchStart, not a
+      // cancel stimulus: a lift in place starts no gesture), and
+      // the next point's touch + jitter supplies the fresh pause
+      // that pauseOutcome judges.
       await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-      await expect
-        .poll(() => currentPlacement(page), { timeout: 10_000 })
-        .toBe("dock");
-      await waitForSearchIdle(page, 30_000);
     } else {
       res.remotes += 1;
       await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
