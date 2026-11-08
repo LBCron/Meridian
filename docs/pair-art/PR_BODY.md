@@ -185,6 +185,19 @@ spec §14:
   project, the kidtest scripts, and the pair-art assets fail
   it too.
 
+## Recorded for PR B — not built here
+
+These five items are recorded for PR B. None of them is
+built, measured, or claimed in PR A:
+
+1. Manifest plates-adapter drift test.
+2. `manifest.json` (33,208 B) classification in the lock.
+3. Composites promoted to runtime per ruling (c).
+4. Mouth-box entry measurement (§16.1).
+5. Kid-test protocol pre-D-run fixes (tap-boundary
+   definition, full counterbalance rotations, same-band
+   replacement rule, §4 "floor scale" sentence).
+
 ## Where the study and the code disagreed
 
 Flagged in spec §12, not papered over. Headlines:
