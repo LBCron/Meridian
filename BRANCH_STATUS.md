@@ -2,10 +2,11 @@
 
 **Branch:** `feat/journal-movies` · **Base:** `origin/main` @ `9e49da3e` (#365)
 **Owner order:** 2026-11-07 — "Build all journals" (Old Faithful pilot approved)
-**Status:** BUILDING — 64/106 clips VERIFIED + LIVE (incl. pilot). Batches 01
-(9/9), 02 (6), 03 (3), 04 (9/9), 05 (9/9), 06 (4), 07 (6), 08 (6), 09 (6),
-11 (5) shipped; 12 clips HELD for regen (see below). Batches 10, 12 still
-running; follow-ups in flight for 02, 03, 06, 07, 08, 09, 11.
+**Status:** BUILDING — 88/106 clips VERIFIED + LIVE (incl. pilot). Batches 01
+(9/9), 04 (9/9), 05 (9/9), 08 (8/8), 10 (9/9), 11 (9/9) complete; 02 (6),
+03 (7), 06 (4), 07 (6), 09 (6), 12 (5) shipped; 10 clips HELD (see below).
+Follow-ups in flight for 02, 03 (#2: star-city-shores + university-place
+fallback), 06, 07, 09, 12 (galapagos + potala regen).
 
 ## Done
 - [x] 2026-11-08 — Branch created from origin/main 9e49da3e; worktree
@@ -78,6 +79,47 @@ running; follow-ups in flight for 02, 03, 06, 07, 08, 09, 11.
 - [x] 2026-11-08 — Follow-ups spawned for 02 (3 AI regens), 06 (5 regens),
       07 (3 builds), 08 (2 builds), 09 (3 builds). Batches 03 + 11
       follow-ups already running. Batches 10 + 12 still running.
+- [x] 2026-11-08 — **Batch 10: 9/9 coordinator-verified and LIVE**
+      (eiffel, colosseum, liberty, taj, opera-house, redeemer, sagrada,
+      giza, cn-tower). Video take 1 was rejected for ALL 9 (camera zoomed
+      into photoreal close-ups, invented pigeons, pseudo-text glyphs,
+      statue cropped out) and re-shot with a style-lock prompt (camera
+      NEVER moves, framing/style/palette NEVER change); take 2 held the
+      wide watercolor shot on all 9 — confirmed at 6 s in-frame
+      (colosseum, redeemer, eiffel). All 9 are static landmarks, flagged
+      gentle-motion bad fits; key moment is a light change or a small
+      vehicle (train, ferry, camels). Peaks −1.2 to −1.6 dB, decode 0.
+      Bed-30% per worker measurement. Not verified by ear.
+- [x] 2026-11-08 — **Batch 12: 5/6 coordinator-verified and LIVE**
+      (victoria-falls, fushimi, iguazu, tongariki, timbuktu). **HELD:**
+      potala — the model re-interpreted the palace mid-clip as a different
+      golden-roofed temple with Buddha statues flanking the door,
+      confirmed in-frame at 6 s + 9.5 s. Tongariki ships flagged (settle
+      frame pushes to a ~6-moai close-up, fifteen-in-a-row composition
+      lost; reddish caps not in source art). Peaks −1.3 to −1.6 dB,
+      decode 0. Bed-30% per worker measurement. Not verified by ear.
+      Follow-up spawned: galapagos build (1 call, staged) + potala
+      locked-wide regen reusing TTS.
+- [x] 2026-11-08 — **Batch 03 follow-up DONE: 4 more clips verified +
+      LIVE** (college-view, quilt-museum, havelock v2, southpointe v2).
+      Havelock v2: rooster gone, confirmed in-frame at 6 s. Southpointe
+      v2: intra-clip palette constant, no fence bird (v1 failure mode
+      gone); caveat — framed warmer/closer than the keyframe. Batch 03
+      now 7 LIVE. **Still HELD:** university-place (v2 board still not
+      blank — 2nd failed regen). **Still pending:** star-city-shores
+      (video call failed, not retried). Follow-up #2 spawned: 1 fresh
+      star-city-shores call + university-place still+narration fallback
+      (haymarket precedent — no 3rd regen).
+- [x] 2026-11-08 — **Batch 11 follow-up DONE: 9/9 complete.** Neuschwanstein
+      v2 PASSES — rooster + ghost castle gone, swans only, one castle,
+      confirmed in-frame at 6 s. Angkor, table-mountain, uluru built.
+      Peaks −1.4 to −1.5 dB, decode 0. Bed-30% per worker measurement.
+      Not verified by ear.
+- [x] 2026-11-08 — **Batch 08 follow-up DONE: 8/8 complete.** Niagara +
+      alamo built, both flagged (niagara: Horseshoe Falls leaves frame
+      from ~6 s; alamo: heavy zoom, closing line plays over a facade-only
+      shot with no garden visible). Peaks −1.0/−1.5 dB, decode 0.
+      Bed-30% per worker measurement. Not verified by ear.
 
 ## Video cap (discovered 2026-11-08, affects every batch)
 The media pipeline allows at most **6 successful videos per agent
@@ -91,12 +133,12 @@ is enforced per run, not per batch; do not assume it.
 
 ## Held clips (gate failures — regens in flight, do not ship as-is)
 - university-place (batch 03): readable text "heritage" on the
-  destination board at 6 s + 9.5 s — hard no-text gate fail.
-- havelock (batch 03): invented rooster by the lamp post/barrel.
-- southpointe (batch 03): palette does not hold (saturated golden
-  sunset, pilot-v1 failure mode) + small bird on the fence.
-- neuschwanstein (batch 11): invented rooster standing on the lake
-  ~6 s + faint ghost-castle silhouette at 2 s.
+  destination board at 6 s + 9.5 s — hard no-text gate fail, v1 AND v2.
+  No 3rd regen: still+narration fallback building in follow-up #2
+  (haymarket precedent).
+- potala (batch 12): palace re-interpreted mid-clip as a different
+  golden-roofed temple with Buddha statues flanking the door (6 s +
+  9.5 s, confirmed in-frame). Locked-wide regen in follow-up, reusing TTS.
 - holmes-lake, wyuka, gateway (batch 02): ffmpeg Ken Burns only, NO bed
   audio — voice-free gaps measure −91.0 dB silent. Bed is a load-bearing
   recipe element; held for AI-video regen.
@@ -110,6 +152,12 @@ is enforced per run, not per batch; do not assume it.
 - haymarket (batch 01) ships as a flagged still+narration FALLBACK
   (AI video failed the no-text gate TWICE); a 3rd attempt would need a
   different approach (no clock tower in frame).
+
+## Still unbuilt (no video yet)
+- star-city-shores (batch 03): video call failed, not retried; fresh call
+  in follow-up #2. L2b TTS ready.
+- galapagos (batch 12): blocked only by the 6-video cap; keyframe +
+  narration staged; build in follow-up (1 call).
 
 ## Storage decision (recorded in docs/journal-movies.md)
 Movies do NOT live in this repo (~600 MB would quadruple git objects and
