@@ -84,6 +84,23 @@ async function showMap(page: Page) {
   await page.waitForTimeout(700);
 }
 
+/** Explicit entry step (cure round 2): with follow OFF, entry is
+ * the player's first MAP interaction by design (#361 — the staging
+ * specs gate entry itself). A small pan drag on the map (~14 px,
+ * pointerdown -> move -> up, no place selection) IS that first
+ * interaction, so specs whose subject is post-entry behaviour run
+ * it explicitly before reading any settled wrapper position.
+ * (The touch test below runs the same step as a CDP touch drag.) */
+async function enterViaMapDrag(page: Page): Promise<void> {
+  const mb = await page.getByTestId("loop-map").boundingBox();
+  expect(mb).not.toBeNull();
+  const start = { x: mb!.x + mb!.width * 0.5, y: mb!.y + mb!.height * 0.5 };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 14, start.y, { steps: 3 });
+  await page.mouse.up();
+}
+
 /** A berth counts only as a MEASURED ARRIVAL: placement "berth",
  * wrapper displaced > 40 px from its start, centre within 220 px
  * of the pause point (the follow neighbourhood). */
@@ -140,6 +157,12 @@ test("pause-berth tier: a FAR pause berths in its neighbourhood and holds (1280,
     await waitForSearchIdle(page);
     await showMap(page);
     expect(await followTier(page)).toBe("PAUSE_BERTH");
+    // Cure round 2 — explicit entry (see enterViaMapDrag): this
+    // test gates post-entry berth behaviour, so enter first, then
+    // read the settled position under the helper's strict tier.
+    await enterViaMapDrag(page);
+    await waitForSearchIdle(page);
+    expect(await followTier(page)).toBe("PAUSE_BERTH");
     // Cure A4: the SETTLED position after the cured idle wait —
     // it may be a dwell berth, not the dock. checkLanded's >40 px
     // displacement-from-start still works from a settled berth:
@@ -186,13 +209,36 @@ test("pause-berth tier: touch pause berths near the finger (390, follow OFF)", a
     await waitForSearchIdle(page);
     await showMap(page);
     expect(await followTier(page)).toBe("PAUSE_BERTH");
+    const mb = await page.getByTestId("loop-map").boundingBox();
+    expect(mb).not.toBeNull();
+    const cdp = await context.newCDPSession(page);
+    // Cure round 2 — explicit entry (see enterViaMapDrag): the
+    // touch form of the same step — a small CDP touch drag on the
+    // map (~14 px) is this player's first map interaction. It is
+    // kept small and on the map; the touch-pause stimulus below
+    // is unchanged.
+    const dragStart = {
+      x: mb!.x + mb!.width * 0.5,
+      y: mb!.y + mb!.height * 0.5,
+    };
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: dragStart.x, y: dragStart.y, id: 1 }],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: dragStart.x + 14, y: dragStart.y, id: 1 }],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await waitForSearchIdle(page);
+    expect(await followTier(page)).toBe("PAUSE_BERTH");
     // Cure A4: settled position, as in the FAR test above.
     const settledPos = await holmesWrapperPos(page);
     expect(settledPos).not.toBeNull();
-    const mb = await page.getByTestId("loop-map").boundingBox();
-    expect(mb).not.toBeNull();
     const point = { x: mb!.x + mb!.width * 0.7, y: mb!.y + mb!.height * 0.32 };
-    const cdp = await context.newCDPSession(page);
     await cdp.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [{ x: point.x, y: point.y, id: 1 }],
@@ -251,6 +297,12 @@ test("pause-berth tier: kill steps down to DOCK_ONLY, re-qualify restores the be
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
+    // Cure round 2 — explicit entry (see enterViaMapDrag): this
+    // test reads a wrapper position (startPos) before its first
+    // stimulus, so it takes the same entry step as the FAR/touch
+    // tests above before reading it.
+    await enterViaMapDrag(page);
+    await waitForSearchIdle(page);
     const startPos = await holmesWrapperPos(page);
     expect(startPos).not.toBeNull();
     const mb = await page.getByTestId("loop-map").boundingBox();
