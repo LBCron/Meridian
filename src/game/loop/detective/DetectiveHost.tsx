@@ -1667,9 +1667,22 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
         setFollowTier(next);
       }
     };
+    /* Cure round 5 (diagnosis D + F): the judge is not fed during
+     * motion the follow itself causes or the player causes \u2014 his
+     * own entry glide (followTravelEndRef horizon) and any active
+     * camera gesture (cameraBusyUntil, extended on every gesture
+     * event) both render at whatever the map costs, and billing
+     * those frames to the follow killed the tier mid-glide and
+     * mid-pan on healthy devices. The thresholds are unchanged
+     * (45 FPS kill / 55 FPS re-qualify, companion.ts); sustained
+     * degradation at rest still kills exactly as before. */
+    const judgeBusyUntil = () =>
+      Math.max(followTravelEndRef.current, followRef.current.cameraBusyUntil);
     const tick = (now: number) => {
       if (stopped) return;
-      killRef.current?.feedFrame(now - last, now);
+      if (now >= judgeBusyUntil()) {
+        killRef.current?.feedFrame(now - last, now);
+      }
       last = now;
       judge();
       if (stopped) return;
@@ -1680,6 +1693,10 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
     try {
       observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
+          // Same round-5 gating for long tasks: a task that began
+          // inside a gesture/travel window is the gesture's own
+          // rendering cost, not follow degradation.
+          if (entry.startTime < judgeBusyUntil()) continue;
           killRef.current?.feedLongTask(
             entry.duration,
             entry.startTime + entry.duration,
