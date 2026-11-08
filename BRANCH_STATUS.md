@@ -123,8 +123,12 @@ Done condition / scenarios / evidence:
   palm ≤3 px, budgets inside limits, ratio 0.73–0.79 on
   every composite; grayscale 104 px silhouette renders
   committed + gate sign-off recorded before colour lock.
-- Diff audit: no file under `src/`, `tests/`, `scripts/`,
-  or `public/` in the diff.
+- Diff audit (coordinator ruling (a), 2026-11-08): no file
+  under `src/` in the diff. PR A's own harness and assets
+  ARE in scope, on the owner's brief: `tests/e2e/
+  pair-art-kidtest.spec.ts`, the `pair-art-kidtest` project
+  in `playwright.config.ts`, `scripts/kidtest-*`, and
+  `public/assets/detective/pair-art/`.
 
 Files in scope: `docs/pair-art/MODEL_SHEET_SPEC.md` (new),
 `docs/pair-art/PR_BODY.md` (new), `docs/pair-art/` sheet
@@ -139,10 +143,13 @@ Protected / untouched — the pair-behaviour train, in full:
 `src/game/loop/detective/follow.ts` (not present on main @
 9e49da3 — protected by name regardless; PR A must not
 create it), `src/game/loop/detective/watson-walk.ts` —
-and, for PR A, everything else under `src/`, `tests/`,
-`scripts/`, `public/`, including `DetectivePair.tsx` and
-`detective-host-props.ts` themselves (read as the contract;
-PR B's scope, not PR A's).
+and, for PR A, everything else under `src/`, including
+`DetectivePair.tsx` and `detective-host-props.ts`
+themselves (read as the contract; PR B's scope, not
+PR A's). The sanctioned harness surfaces named in the
+diff audit above (kidtest spec, its Playwright project,
+`scripts/kidtest-*`, the pair-art assets) are PR A's own
+deliverables, not protected files.
 
 Dependencies / ordering: this spec lands first — it is the
 art + harness crews' shared contract. PR B blocks on sheets
@@ -194,12 +201,15 @@ branch protection untouched.
 - [x] Study-vs-code disagreements flagged in spec §12
   (coffee cup, face coverage, follow.ts, pairArt flag,
   rig height, mouth-flap location, study reconstruction)
-- [ ] Art: model sheets (parts / 22 poses / 22 faces /
-  2 static composites) — sibling crew
-- [ ] Harness: palm / budget / ratio report committed —
-  sibling crew
-- [ ] Silhouette gate: grayscale 104 px renders +
-  sign-off before colour lock — sibling crew
+- [x] Art: model sheets (parts / 22 poses / 22 faces /
+  2 static composites) — sibling crew, landed `8f0e5fd` +
+  `f2adf71`
+- [x] Harness: palm / budget / ratio report committed —
+  sibling crew, landed `1762e3f`; kidtest E2E 5/5 on the
+  final art (face floor recorded FAIL — ruling (f) below)
+- [x] Silhouette gate: grayscale 104 px renders +
+  sign-off before colour lock — sibling crew, PASS in
+  the asset lock
 - [ ] Silo QA (keyed PR#+tip)
 - [ ] Panel 13 seats by name + DevEx + benchmark
 - [ ] Merge on verdict + branch deleted + tip SHA ledgered
@@ -262,3 +272,24 @@ see:
    panel votes with this finding on the table; a panel BLOCK
    on it is a legitimate outcome and escalates to the owner
    with the same numbers.
+
+## CI cure — 2026-11-08 (coordinator)
+
+- Tip `48e507e` CI (run 42446830253): GitGuardian PASS;
+  `build (22.x)` FAIL on guard tests 322/323 — the kidtest
+  spec calls `browser.newContext(` but was missing from
+  `CONTEXT_FILES` in `scripts/e2e-telemetry-guard.test.mjs`.
+  Cure: registered `pair-art-kidtest.spec.ts` there (the
+  spec already imports + calls `serveBuiltArtifact`, so
+  rule (a) holds). Guard suite re-run locally: 6/6 PASS.
+- `e2e` job FAIL in the same run: `round-loop-a11y.spec.ts`
+  3C "Tab 32 left the dialog to BODY". Evidence it is NOT
+  PR-caused: the spec is byte-identical to main (zero diff);
+  the only config change is the additive kidtest project,
+  which CI's e2e job never selects; main @ `9e49da3` CI was
+  green at 03:21Z including this spec; the three earlier
+  branch runs failed the build job only (e2e green). The
+  known no-focus-trap nit (#365 panel record) is the
+  standing suspect. Baseline check: sequential local run
+  of the spec against unmodified main; classification
+  recorded from its result before the panel votes.
