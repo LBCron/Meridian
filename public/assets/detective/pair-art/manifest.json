@@ -54,6 +54,26 @@
             120,
             264
           ]
+        },
+        "legA": {
+          "viewBox": [
+            52,
+            118
+          ],
+          "px": [
+            104,
+            236
+          ]
+        },
+        "legB": {
+          "viewBox": [
+            64,
+            118
+          ],
+          "px": [
+            128,
+            236
+          ]
         }
       },
       "palmAnchor": {
@@ -82,7 +102,7 @@
         {
           "part": "hat",
           "file": "holmes-hat.png",
-          "bytes": 2091,
+          "bytes": 2495,
           "widthPx": 73,
           "heightPx": 54,
           "rectViewBox": [
@@ -94,71 +114,90 @@
           "rectPx": {
             "x": 75.0,
             "y": -2.0,
-            "width": 73.0,
-            "height": 54.0
+            "width": 73,
+            "height": 54
           }
         },
         {
-          "part": "legs",
-          "file": "holmes-legs.png",
-          "bytes": 4758,
+          "part": "leg-a",
+          "file": "holmes-leg-a.png",
+          "bytes": 2620,
           "widthPx": 99,
           "heightPx": 140,
           "rectViewBox": [
             35.5,
-            109.0,
-            85.0,
-            179.0
+            109,
+            85,
+            179
           ],
           "rectPx": {
             "x": 71.0,
-            "y": 218.0,
-            "width": 99.0,
-            "height": 140.0
+            "y": 218,
+            "width": 99,
+            "height": 140
+          }
+        },
+        {
+          "part": "leg-b",
+          "file": "holmes-leg-b.png",
+          "bytes": 3173,
+          "widthPx": 99,
+          "heightPx": 140,
+          "rectViewBox": [
+            35.5,
+            109,
+            85,
+            179
+          ],
+          "rectPx": {
+            "x": 71.0,
+            "y": 218,
+            "width": 99,
+            "height": 140
           }
         },
         {
           "part": "arm-back",
           "file": "holmes-arm-back.png",
-          "bytes": 1723,
-          "widthPx": 38,
-          "heightPx": 97,
+          "bytes": 2656,
+          "widthPx": 60,
+          "heightPx": 120,
           "rectViewBox": [
-            33.5,
-            48.0,
-            52.5,
-            96.5
+            28,
+            47,
+            58,
+            107
           ],
           "rectPx": {
-            "x": 67.0,
-            "y": 96.0,
-            "width": 38.0,
-            "height": 97.0
+            "x": 56,
+            "y": 94,
+            "width": 60,
+            "height": 120
           }
         },
         {
           "part": "arm-front",
           "file": "holmes-arm-front.png",
-          "bytes": 1367,
-          "widthPx": 33,
-          "heightPx": 62,
+          "bytes": 2335,
+          "widthPx": 64,
+          "heightPx": 92,
           "rectViewBox": [
-            70.0,
-            48.0,
-            86.5,
-            79.0
+            66,
+            47,
+            98,
+            93
           ],
           "rectPx": {
-            "x": 140.0,
-            "y": 96.0,
-            "width": 33.0,
-            "height": 62.0
+            "x": 132,
+            "y": 94,
+            "width": 64,
+            "height": 92
           }
         },
         {
           "part": "torso",
           "file": "holmes-torso.png",
-          "bytes": 8818,
+          "bytes": 8289,
           "widthPx": 112,
           "heightPx": 194,
           "rectViewBox": [
@@ -170,14 +209,14 @@
           "rectPx": {
             "x": 64.0,
             "y": 84.0,
-            "width": 112.0,
-            "height": 194.0
+            "width": 112,
+            "height": 194
           }
         },
         {
           "part": "head",
           "file": "holmes-head.png",
-          "bytes": 3621,
+          "bytes": 3946,
           "widthPx": 102,
           "heightPx": 86,
           "rectViewBox": [
@@ -189,15 +228,34 @@
           "rectPx": {
             "x": 65.0,
             "y": 42.0,
-            "width": 102.0,
-            "height": 86.0
+            "width": 102,
+            "height": 86
+          }
+        },
+        {
+          "part": "halo",
+          "file": "holmes-halo.png",
+          "bytes": 3449,
+          "widthPx": 240,
+          "heightPx": 356,
+          "rectViewBox": [
+            0,
+            0,
+            120,
+            178
+          ],
+          "rectPx": {
+            "x": 0,
+            "y": 0,
+            "width": 240,
+            "height": 356
           }
         }
       ],
       "faces": {
         "neutral": {
           "file": "holmes-face-neutral.png",
-          "bytes": 3621,
+          "bytes": 3946,
           "faceBox": {
             "x": 65.0,
             "y": 42.0,
@@ -214,7 +272,7 @@
         },
         "focused": {
           "file": "holmes-face-focused.png",
-          "bytes": 3581,
+          "bytes": 3912,
           "faceBox": {
             "x": 65.0,
             "y": 41.0,
@@ -231,7 +289,7 @@
         },
         "thinking": {
           "file": "holmes-face-thinking.png",
-          "bytes": 3605,
+          "bytes": 3943,
           "faceBox": {
             "x": 65.0,
             "y": 39.0,
@@ -248,7 +306,7 @@
         },
         "attentive": {
           "file": "holmes-face-attentive.png",
-          "bytes": 3567,
+          "bytes": 3897,
           "faceBox": {
             "x": 65.0,
             "y": 42.0,
@@ -265,7 +323,7 @@
         },
         "hushed": {
           "file": "holmes-face-hushed.png",
-          "bytes": 3592,
+          "bytes": 3918,
           "faceBox": {
             "x": 65.0,
             "y": 42.0,
@@ -282,7 +340,7 @@
         },
         "wonder": {
           "file": "holmes-face-wonder.png",
-          "bytes": 3609,
+          "bytes": 3932,
           "faceBox": {
             "x": 65.0,
             "y": 37.0,
@@ -299,7 +357,7 @@
         },
         "reading": {
           "file": "holmes-face-reading.png",
-          "bytes": 3565,
+          "bytes": 3891,
           "faceBox": {
             "x": 65.0,
             "y": 42.0,
@@ -316,7 +374,7 @@
         },
         "marking": {
           "file": "holmes-face-marking.png",
-          "bytes": 3529,
+          "bytes": 3869,
           "faceBox": {
             "x": 65.0,
             "y": 41.0,
@@ -333,7 +391,7 @@
         },
         "delighted": {
           "file": "holmes-face-delighted.png",
-          "bytes": 3468,
+          "bytes": 3795,
           "faceBox": {
             "x": 65.0,
             "y": 42.0,
@@ -350,7 +408,7 @@
         },
         "surprised": {
           "file": "holmes-face-surprised.png",
-          "bytes": 3609,
+          "bytes": 3932,
           "faceBox": {
             "x": 65.0,
             "y": 37.0,
@@ -367,7 +425,7 @@
         },
         "pout": {
           "file": "holmes-face-pout.png",
-          "bytes": 3591,
+          "bytes": 3972,
           "faceBox": {
             "x": 65.0,
             "y": 41.0,
@@ -382,6 +440,74 @@
           },
           "note": "faceBox = the face/head plate's own placement box in the assembled figure's natural pixels"
         }
+      },
+      "armPalmMeasurements": {
+        "band": "skin = alpha>10, R 170-245, G 120-185, B 85-155, R-G 25-70, G-B 10-60",
+        "holmes-arm-front.png": {
+          "skin_px": 229,
+          "palm_vb": [
+            87,
+            83
+          ],
+          "skin_centroid_vb": [
+            86.4,
+            82.7
+          ],
+          "pivot_vb": [
+            78,
+            58
+          ],
+          "pivot_alpha": 249
+        },
+        "holmes-arm-back.png": {
+          "skin_px": 272,
+          "palm_vb": [
+            37,
+            98
+          ],
+          "skin_centroid_vb": [
+            36.4,
+            97.6
+          ],
+          "pivot_vb": [
+            44,
+            58
+          ],
+          "pivot_alpha": 250
+        },
+        "watson-arm-front.png": {
+          "skin_px": 222,
+          "palm_vb": [
+            26,
+            89
+          ],
+          "skin_centroid_vb": [
+            25.5,
+            88.8
+          ],
+          "pivot_vb": [
+            36,
+            54
+          ],
+          "pivot_alpha": 248
+        },
+        "watson-arm-back.png": {
+          "skin_px": 257,
+          "palm_vb": [
+            97,
+            93
+          ],
+          "skin_centroid_vb": [
+            96.5,
+            93.0
+          ],
+          "pivot_vb": [
+            82,
+            54
+          ],
+          "pivot_alpha": 235
+        },
+        "note": "Before the cure: holmes-arm-front/holmes-arm-back/watson-arm-front carried 0 narrow-band skin px and their palms lay outside the crops. After: every arm contains its hand, the palm point is skin (3x3 neighbourhood 8-9/9 skin px), the skin centroid sits within 0.6 vb of the rig hand point, and the shoulder pivot is inside painted pixels (alpha 235-250)."
       }
     },
     "watson": {
@@ -434,6 +560,26 @@
             120,
             220
           ]
+        },
+        "legA": {
+          "viewBox": [
+            52,
+            92
+          ],
+          "px": [
+            104,
+            184
+          ]
+        },
+        "legB": {
+          "viewBox": [
+            66,
+            92
+          ],
+          "px": [
+            132,
+            184
+          ]
         }
       },
       "palmAnchor": {
@@ -462,7 +608,7 @@
         {
           "part": "hat",
           "file": "watson-hat.png",
-          "bytes": 2047,
+          "bytes": 2455,
           "widthPx": 139,
           "heightPx": 48,
           "rectViewBox": [
@@ -474,71 +620,90 @@
           "rectPx": {
             "x": 55.0,
             "y": -2.0,
-            "width": 139.0,
-            "height": 48.0
+            "width": 139,
+            "height": 48
           }
         },
         {
-          "part": "legs",
-          "file": "watson-legs.png",
-          "bytes": 6069,
+          "part": "leg-a",
+          "file": "watson-leg-a.png",
+          "bytes": 3268,
           "widthPx": 159,
           "heightPx": 108,
           "rectViewBox": [
-            27.0,
-            87.0,
+            27,
+            87,
             106.5,
-            141.0
+            141
           ],
           "rectPx": {
-            "x": 54.0,
-            "y": 174.0,
-            "width": 159.0,
-            "height": 108.0
+            "x": 54,
+            "y": 174,
+            "width": 159,
+            "height": 108
+          }
+        },
+        {
+          "part": "leg-b",
+          "file": "watson-leg-b.png",
+          "bytes": 3879,
+          "widthPx": 159,
+          "heightPx": 108,
+          "rectViewBox": [
+            27,
+            87,
+            106.5,
+            141
+          ],
+          "rectPx": {
+            "x": 54,
+            "y": 174,
+            "width": 159,
+            "height": 108
           }
         },
         {
           "part": "arm-front",
           "file": "watson-arm-front.png",
-          "bytes": 812,
-          "widthPx": 17,
-          "heightPx": 21,
+          "bytes": 2381,
+          "widthPx": 72,
+          "heightPx": 112,
           "rectViewBox": [
-            37.5,
-            46.5,
-            46.0,
-            57.0
+            13,
+            43,
+            49,
+            99
           ],
           "rectPx": {
-            "x": 75.0,
-            "y": 93.0,
-            "width": 17.0,
-            "height": 21.0
+            "x": 26,
+            "y": 86,
+            "width": 72,
+            "height": 112
           }
         },
         {
           "part": "arm-back",
           "file": "watson-arm-back.png",
-          "bytes": 2385,
-          "widthPx": 53,
-          "heightPx": 101,
+          "bytes": 2493,
+          "widthPx": 80,
+          "heightPx": 120,
           "rectViewBox": [
-            74.0,
-            44.0,
-            100.5,
-            94.5
+            70,
+            43,
+            110,
+            103
           ],
           "rectPx": {
-            "x": 148.0,
-            "y": 88.0,
-            "width": 53.0,
-            "height": 101.0
+            "x": 140,
+            "y": 86,
+            "width": 80,
+            "height": 120
           }
         },
         {
           "part": "torso",
           "file": "watson-torso.png",
-          "bytes": 10580,
+          "bytes": 10794,
           "widthPx": 165,
           "heightPx": 170,
           "rectViewBox": [
@@ -550,14 +715,14 @@
           "rectPx": {
             "x": 51.0,
             "y": 64.0,
-            "width": 165.0,
-            "height": 170.0
+            "width": 165,
+            "height": 170
           }
         },
         {
           "part": "head",
           "file": "watson-head.png",
-          "bytes": 5120,
+          "bytes": 5399,
           "widthPx": 161,
           "heightPx": 84,
           "rectViewBox": [
@@ -569,15 +734,34 @@
           "rectPx": {
             "x": 55.0,
             "y": 36.0,
-            "width": 161.0,
-            "height": 84.0
+            "width": 161,
+            "height": 84
+          }
+        },
+        {
+          "part": "halo",
+          "file": "watson-halo.png",
+          "bytes": 3328,
+          "widthPx": 268,
+          "heightPx": 280,
+          "rectViewBox": [
+            0,
+            0,
+            134,
+            140
+          ],
+          "rectPx": {
+            "x": 0,
+            "y": 0,
+            "width": 268,
+            "height": 280
           }
         }
       ],
       "faces": {
         "neutral": {
           "file": "watson-face-neutral.png",
-          "bytes": 5120,
+          "bytes": 5399,
           "faceBox": {
             "x": 55.0,
             "y": 36.0,
@@ -594,7 +778,7 @@
         },
         "focused": {
           "file": "watson-face-focused.png",
-          "bytes": 5058,
+          "bytes": 5350,
           "faceBox": {
             "x": 55.0,
             "y": 35.0,
@@ -611,7 +795,7 @@
         },
         "thinking": {
           "file": "watson-face-thinking.png",
-          "bytes": 5095,
+          "bytes": 5382,
           "faceBox": {
             "x": 55.0,
             "y": 33.0,
@@ -628,7 +812,7 @@
         },
         "attentive": {
           "file": "watson-face-attentive.png",
-          "bytes": 5025,
+          "bytes": 5305,
           "faceBox": {
             "x": 55.0,
             "y": 36.0,
@@ -645,7 +829,7 @@
         },
         "hushed": {
           "file": "watson-face-hushed.png",
-          "bytes": 5063,
+          "bytes": 5352,
           "faceBox": {
             "x": 55.0,
             "y": 36.0,
@@ -662,7 +846,7 @@
         },
         "wonder": {
           "file": "watson-face-wonder.png",
-          "bytes": 5134,
+          "bytes": 5414,
           "faceBox": {
             "x": 55.0,
             "y": 31.0,
@@ -679,7 +863,7 @@
         },
         "reading": {
           "file": "watson-face-reading.png",
-          "bytes": 5100,
+          "bytes": 5380,
           "faceBox": {
             "x": 55.0,
             "y": 36.0,
@@ -696,7 +880,7 @@
         },
         "marking": {
           "file": "watson-face-marking.png",
-          "bytes": 5059,
+          "bytes": 5349,
           "faceBox": {
             "x": 55.0,
             "y": 35.0,
@@ -713,7 +897,7 @@
         },
         "delighted": {
           "file": "watson-face-delighted.png",
-          "bytes": 4980,
+          "bytes": 5246,
           "faceBox": {
             "x": 55.0,
             "y": 36.0,
@@ -730,7 +914,7 @@
         },
         "surprised": {
           "file": "watson-face-surprised.png",
-          "bytes": 5134,
+          "bytes": 5414,
           "faceBox": {
             "x": 55.0,
             "y": 31.0,
@@ -747,7 +931,7 @@
         },
         "pout": {
           "file": "watson-face-pout.png",
-          "bytes": 5078,
+          "bytes": 5222,
           "faceBox": {
             "x": 55.0,
             "y": 35.0,
@@ -844,13 +1028,13 @@
     }
   ],
   "budgets": {
-    "runtime_total_bytes": 147920,
+    "runtime_total_bytes": 168126,
     "runtime_budget_bytes": 500000,
     "runtime_pass": true,
-    "decoded_total_MB": 1.543,
+    "decoded_total_MB": 2.386,
     "decoded_budget_MB": 32,
     "decoded_pass": true,
-    "runtime_file_count": 38,
+    "runtime_file_count": 42,
     "note": "Pose plates + silhouettes are docs/test assets, excluded from the runtime total."
   },
   "scaleLock": {
