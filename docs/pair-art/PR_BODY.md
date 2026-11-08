@@ -154,7 +154,7 @@ spec §14:
   `scripts/kidtest-*`, and `public/assets/detective/pair-art/`
   are PR A’s own harness and assets, in scope per the owner’s
   brief.)
-- Diff stat at vote time: the full PR diff against main `9e49da3`: 78 files changed, 5,997 insertions(+), 137 deletions(-) (recounted at the CI-cure tip `88eae11`) — assets, docs, harness; zero `src/` paths — any `src/` path in
+- Diff stat at vote time: the full PR diff against main `9e49da3`: 78 files changed, 6,034 insertions(+), 137 deletions(-) (measured at the Silo-QA-cured tip `df7adbc`; records-only commits after it change prose counts, never scope) — assets, docs, harness; zero `src/` paths — any `src/` path in
   the final diff fails this PR; `tests/`, `scripts/`, and
   `public/` paths beyond the kidtest spec, the playwright
   project, the kidtest scripts, and the pair-art assets fail
@@ -183,7 +183,7 @@ Flagged in spec §12, not papered over. Headlines:
   never `git add -A`
 - [x] Harness — `node scripts/kidtest-smoke.mjs` + the `pair-art-kidtest` Playwright project, re-run on the final tip `504ddbc`:
   smoke RAN (64 plates, 0 missing; face measure live via the manifest `plates` adapter — Holmes below floor in every cell, Watson 768 by 1 px, both recorded under ruling (f), NOT cured); Playwright 5/5 PASS in 33.6 m (size band + zero clue-text coverage measured on the real built page at 390/768/1280/1920; face floor FAILED for Holmes at every width exactly as the smoke predicted — the harness asserts the shortfall; human trials prepared, never faked: trial manifest + find screens exported, `results: null` throughout). Repo gates on the same tip: tsc clean · `npm test` 3,287 pass / 0 fail · worker suite 145/0 (run for completeness; no `workers/` files touched) · lint-cards GATE PASSED · `build:pages` green (65 pair-art files in dist, inert until PR B imports them).
-- [ ] Silo QA — keyed PR# + head SHA: {{SILO_QA_VERDICT}}
+- [x] Silo QA — **PASS** keyed PR#366 + `df7adbc`: full silo @`96ab16e` passed 7/8 checks with exact matches (scope, lock drift 0/64, manifest adapter, guard 6/6, tsc, lint-cards) and FAILED one records item (1920 face-px prose 42/56 vs the smoke script's measured 43/53); prose-only cure `df7adbc`; **DELTA SILO QA PASS** on the cured tip (cure confined to the 3 records files, corrected numbers verified, smoke regeneration byte-identical, guard still 6/6).
 - [ ] Panel — 13 seats incl. Game player, on the final tip:
   {{PANEL_TALLY}}
 - [ ] DevEx: {{DEVEX_VERDICT}} · Benchmark: {{BENCHMARK_VERDICT}}

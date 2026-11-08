@@ -330,3 +330,18 @@ see:
   one). No art, harness, or code file touched.
 - Delta Silo QA re-key on the cured tip follows; the
   panel votes the cured tip.
+
+## Silo QA PASS — 2026-11-08 (coordinator)
+
+- Full Silo QA @ `96ab16e`: 7/8 PASS exact; FAIL = the
+  1920 face-px prose (42/56 vs script 43/53), cured
+  prose-only in `df7adbc`.
+- **DELTA SILO QA: PASS keyed PR#366 + `df7adbc`** — cure
+  confined to BRANCH_STATUS.md, PR_BODY.md, asset-lock.md;
+  corrected numbers verified in all three records; smoke
+  regeneration byte-identical; guard 6/6; full diff still
+  78 files, zero `src/` paths (6,034 insertions at
+  `df7adbc` — records commits move prose counts only).
+- Next: 13-seat panel by name on the final tip, DevEx,
+  benchmark; CI re-run on the records tip is the last
+  token to fill before the merge call.
