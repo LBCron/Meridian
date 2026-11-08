@@ -36,34 +36,27 @@ merge on round 1.
 **Round 3 — panel re-vote open on this tip:**
 - The round-2 re-vote on `652cf13` returned 8
   APPROVE-WITH-NITS + **5 BLOCKs (NOT READY)**.
-- The consolidated cure round followed: the Watson
-  torso's baked hand + notebook was inpainted out
-  (hand-zone skin scan 222 → 0 px; notebook-brown in
-  the baked zones → 0); `surprised` was redrawn
-  distinct from `wonder` for both characters (all 22
-  faces pairwise distinct, md5 + pixels); `delighted`
-  was exaggerated to the biggest mouth in the set;
-  the high-five plates were repainted as open palms;
-  both celebrate-jump plates now leave the ground.
-  Spec §8.2/§8.3 corrected: 170/130 is the **bench
-  tableau** lock, not in-play; the face floors are
-  **demoted to PENDING THE OWNER'S RULING** (§16.5 —
-  re-proportioning Holmes's head vs amending the
-  floors is the owner's call, deferred, not silently
-  picked); coverage is proven only for static
-  single-figure endpoints — the celebration slot is
-  un-dimensioned and Watson's walk sweep unmeasured
-  (§16.6, PR B/C work). Owner rule 15 added six
-  `neg/*` negative gates **with sabotage controls**
-  (13 tests, see the Negative gates section).
-- Kid-test note (accurate scope): the kid test is the
-  PR D go / no-go gate; human per-cell trials were
-  prepared (96 trials) and never run — the human
-  kid test is NOT part of this PR's vote. What was
-  run here is the automated measure harness: size
-  band, zero clue-text coverage, assembly, palm.
-- **Panel re-vote (round 3): votes are collected
-  against this section as published.**
+- Cured this round (cure commits on this branch):
+  the Watson torso's baked hand + notebook was
+  inpainted out; `surprised` was redrawn distinct
+  from `wonder` for both characters; `delighted`
+  was exaggerated; the high-five plates were
+  repainted as open palms; both celebrate-jump
+  plates now leave the ground. Spec §8.2/§8.3
+  corrected: 170/130 is the **bench tableau** lock,
+  not in-play; the face floors are **demoted to
+  PENDING THE OWNER'S RULING** (§16.5); coverage
+  is scoped to static single-figure endpoints,
+  the celebration slot un-dimensioned and Watson's
+  walk sweep unmeasured (§16.6). Six `neg/*`
+  negative gates **with sabotage controls** were
+  added (owner rule 15; see the Negative gates
+  section).
+- Kid-test scope: the kid test is the PR D
+  go / no-go gate. Human per-cell trials were
+  prepared (96 trials); they were never run, and
+  the human kid test is not part of this PR's
+  vote.
 
 **Owner rulings of record:**
 
