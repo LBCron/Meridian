@@ -158,15 +158,17 @@ PR D blocks on PR C + the kid test (spec §10). The
 pair-behaviour train owns its files on its own branches;
 any merge-up is a faithful union.
 Verification contract: diff audit against the scope list
-(any src/ tests/ scripts/ public/ path fails the PR) →
+(any src/ path fails the PR; tests/ scripts/ public/ paths
+beyond PR A's own harness + assets fail it too — ruling (a)) →
 harness run with exact commands + target revision committed
 → Silo QA keyed PR#+tip → 13-seat panel (personas verbatim
 from ~/.codex/agents, incl. Game player) on the FINAL tip →
 DevEx → benchmark → CI → merge on READY / READY-WITH-NITS
 (ship-when-ready, owner's standing directive 2026-11-04) →
 branch deleted + tip SHA ledgered. Code gates (tsc / unit /
-build) are NOT RUN for the spec/docs portion — no code
-touched — and the PR body states that plainly.
+build) WERE RUN and green on the final art tip (no src/
+code touched; the harness + guard surfaces are code-shaped
+and were gated) — the PR body records the counts.
 Assumptions / risks: sheet source format is the art crew's
 call inside the budgets (harness measures exports). Risk:
 22 faces + 22 composites inside 500 KB is tight — a shortfall
@@ -210,7 +212,8 @@ branch protection untouched.
 - [x] Silhouette gate: grayscale 104 px renders +
   sign-off before colour lock — sibling crew, PASS in
   the asset lock
-- [ ] Silo QA (keyed PR#+tip)
+- [x] Silo QA (keyed PR#+tip) — full @`96ab16e` 7/8 +
+  records FAIL → prose cure → DELTA PASS @`df7adbc`
 - [ ] Panel 13 seats by name + DevEx + benchmark
 - [ ] Merge on verdict + branch deleted + tip SHA ledgered
 
@@ -345,3 +348,65 @@ see:
 - Next: 13-seat panel by name on the final tip, DevEx,
   benchmark; CI re-run on the records tip is the last
   token to fill before the merge call.
+
+## Panel round 1 — NOT READY; records cures applied — 2026-11-08
+
+Panel on tip `c857a71`: **7 APPROVE-WITH-NITS, 6 BLOCK,
+0 plain APPROVE — NOT READY.** By name: APPROVE-WITH-NITS —
+Game designer, Game developer seat's mechanics review is
+under Game developer below, Game audio designer, Game
+economy designer, Game level architect, Senior architect,
+Senior developer. BLOCK — Game developer (parts integrity:
+arms without hands / palm anchors outside the arm crops;
+a hand + magnifier baked into `holmes-legs.png` and torso
+fragments, so the glass hand-off is impossible; legs fused
+into one part where the rig swings two; palm gate has no
+shipped measurer and the harness never assembles the
+parts), Frontend developer (flat keyline bars RGB(32,22,14)
+on interior cut edges of every face/head/torso plate —
+visible chest stripes in assembly; no runtime halo source),
+UX designer + Game narrative designer + Game player (faces:
+floors FAIL per ruling (f); Holmes pout mouth is the same
+upturned arc as delighted — §6.2 requires an inverted arc;
+Watson reaction mouths hidden under the moustache; feelings
+collapse at game scale), UX researcher (protocol B1
+expression leg tests neither the mandated emotions
+(delighted/surprised seeded ×0) nor the mandated size
+("one big face"); B2 sample allocation undefined + learning
+contamination; B3 age pooling can hide a 6–8 failure),
+Office hours (records: face FAIL missable in the PR body;
+scope wording stale in handbook + spec + this file's
+verification contract vs ruling (a)).
+
+Coordinator verification of the two new art claims
+(measured in this worktree, PIL): arm skin px ≈ 0
+(holmes-arm-front 1, holmes-arm-back 0, watson-arm-front 0)
+— CONFIRMED; legs/torso skin px 448 / 1,192 — baked hand
+present, CONFIRMED; seam rows uniform RGB(32,22,14), 1
+unique colour, 92/92 + 134/134 opaque — CONFIRMED;
+`holmes-head.png` byte-identical to `holmes-face-neutral.png`
+and `watson-pose-walk.png` to `watson-pose-station-idle.png`
+— CONFIRMED.
+
+Records cures applied in this commit (Office hours BLOCK 1
++ 2, Senior developer nit 1, Office hours nits 1+3, Senior
+architect nits 2+3): PR body Summary carries the NOT READY
+panel outcome; budget table gains the face-floor FAIL row;
+deliverables boxes ticked; "5/5 PASS" harness wording
+corrected; spec §13 capsule + verification contract,
+handbook addendum, and this file's verification contract
+brought to ruling (a)'s scope wording; spec §12.1 cup
+sentence corrected to ruling (b); smoke script's stale
+"Face HEIGHT is still NOT RUN" sentence made conditional
+(+ regenerated KIDTEST_SMOKE.md, numbers unchanged).
+
+Still open (cure crews dispatched / owner escalation):
+art re-cut (arms with hands, legs split leg-a/leg-b,
+magnifier cleared, seam re-cut, halo underlay, pout redraw,
+Watson mouths) → lock + manifest regenerated → assembly +
+palm measurer added to the harness; protocol cure (B1/B2/B3)
+by the harness crew; §8.2-vs-§8.3 zone ruling + §5.4/§6.4
+mouth-rule clarification in the spec; the face-floor cure
+CHOICE (re-proportion vs floor amendment) is the owner's —
+escalated with the panel's numbers. Panel re-votes the
+cured tip; no merge on round 1.

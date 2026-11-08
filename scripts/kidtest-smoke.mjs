@@ -186,8 +186,10 @@ const facePlateIds = [...byId.keys()].filter((id) => id.startsWith("holmes-face-
 if (facePlateIds.length > 0) {
   lines.push(
     `Face plates present (${facePlateIds.length}): ${facePlateIds.map((id) => id.replace("holmes-face-", "")).join(", ")}. ` +
-      "Face HEIGHT is still NOT RUN below: the plates ship as separate face crops and no faceBox / scale mapping " +
-      "from face plate to figure has been published in a manifest.json yet.",
+      (Object.keys(faceBoxes).length > 0
+        ? "Face HEIGHT is measured below from the manifest faceBox entries (see the per-width table)."
+        : "Face HEIGHT is still NOT RUN below: the plates ship as separate face crops and no faceBox / scale mapping " +
+          "from face plate to figure has been published in a manifest.json yet."),
   );
   lines.push("");
 }

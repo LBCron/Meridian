@@ -75,7 +75,7 @@ Face-box source: manifest.json face boxes for: holmes-pose-dock.png, holmes-face
 | watson-pose-walk | watson-pose-walk.png | PNG | 268×280 | 16651 |
 | watson-torso | watson-torso.png | PNG | 165×170 | 10580 |
 
-Face plates present (11): attentive, delighted, focused, hushed, marking, neutral, pout, reading, surprised, thinking, wonder. Face HEIGHT is still NOT RUN below: the plates ship as separate face crops and no faceBox / scale mapping from face plate to figure has been published in a manifest.json yet.
+Face plates present (11): attentive, delighted, focused, hushed, marking, neutral, pout, reading, surprised, thinking, wonder. Face HEIGHT is measured below from the manifest faceBox entries (see the per-width table).
 
 ## holmes-standing
 

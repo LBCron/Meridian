@@ -789,8 +789,10 @@ for PR A and what the follow-up is.
    pose-spec props. The code disagrees: cups live in the
    host's bench markup, and `DetectivePair.tsx` states
    they never enter the rigs. **Code governs.** §4.2
-   records the cup as bench-only, host-drawn. No cup part
-   is drawn in PR A.
+   records the cup as bench-only, host-drawn. Exactly one
+   shared cup part (`prop-cup.png`) is drawn in PR A for
+   the bench hero tableau — never as a held or worn prop
+   inside either character rig (coordinator ruling (b)).
 2. **Face coverage — spec requirement vs shipped renderers.**
    §6.3: Holmes lacks a distinct `marking` face; Watson
    lacks distinct `focused`, `attentive`, `hushed`, and
@@ -902,8 +904,9 @@ Done condition / scenarios / evidence that will prove it:
     and the PR body draft are consistent with each other
     and with the code they cite (spot-checked against
     DetectivePair.tsx + detective-host-props.ts).
-  - No file under src/, tests/, scripts/, or public/
-    is touched (diff audit in the PR body).
+  - No file under src/ is touched; PR A's own harness,
+    scripts, and assets are in scope per coordinator
+    ruling (a) (diff audit in the PR body).
 
 Files and interfaces in scope:
   - docs/pair-art/MODEL_SHEET_SPEC.md (this file, new)
@@ -926,10 +929,14 @@ Protected files OUT of scope — UNTOUCHED, no exceptions:
       protected by name regardless)
     src/game/loop/detective/watson-walk.ts
   - And, for PR A specifically, everything else under
-    src/, tests/, scripts/, and public/ — including
-    DetectivePair.tsx and detective-host-props.ts
-    themselves. They are read as the contract. They are
-    PR B's scope, behind pairArt, not PR A's.
+    src/ — including DetectivePair.tsx and
+    detective-host-props.ts themselves. They are read as
+    the contract. They are PR B's scope, behind pairArt,
+    not PR A's. (Coordinator ruling (a): PR A's own
+    harness and assets — tests/e2e/pair-art-kidtest.spec.ts,
+    the pair-art-kidtest project in playwright.config.ts,
+    scripts/kidtest-*, and public/assets/detective/pair-art/
+    — are PR A's deliverables, in scope, not protected.)
 
 Dependencies / ordering:
   - Art sheets and harness are sibling crew deliverables;
@@ -944,16 +951,17 @@ Dependencies / ordering:
 
 Verification contract:
   - Diff audit: git diff --stat against the scope list
-    above; any src/ tests/ scripts/ public/ path in the
-    diff fails the PR on sight.
+    above; any src/ path in the diff fails the PR on
+    sight, as does any tests/, scripts/, or public/ path
+    beyond PR A's own harness and assets (ruling (a)).
   - Harness run output committed (not pasted from memory):
     exact commands, target revision, pass/fail per budget.
-  - Docs gates that apply to a docs-only change:
-    brand check + lint where the repo's scripts cover
-    these paths; tsc / unit / build gates are NOT RUN
-    claims for this PR — the PR body states NOT RUN for
-    each, with the reason (no code touched), rather than
-    implying a pass.
+  - Repo gates: tsc / unit / worker / lint-cards / build
+    were RUN and green on the final art tip (the PR body
+    records the counts) — an earlier draft of this capsule
+    said NOT RUN; that text was stale once the harness
+    landed and the gates were executed, and is corrected
+    here.
   - Full pipeline on the final tip: Silo QA (keyed by
     PR# + head SHA) → 13-seat panel incl. the Game player
     seat → DevEx → benchmark → CI. The panel approves

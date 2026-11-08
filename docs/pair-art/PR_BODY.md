@@ -21,6 +21,18 @@ The engine, pose / palm-anchor architecture, props whitelist, and
 answer-blindness are unchanged by the whole programme. Holmes stays
 answer-blind by construction.
 
+**⚠️ Panel outcome — NOT READY (round 1, tip `c857a71`):** the
+13-seat panel returned 7 approve-with-nits and **6 BLOCKs** — the
+face-floor FAIL below (ruling (f)) from the UX designer, narrative,
+and Game player seats; a parts-integrity BLOCK from the Game
+developer (arms without hands, a second magnifier baked into the
+legs slice, fused legs, no shipped palm measurer); a compositing
+BLOCK from the Frontend seat (flat keyline bars on interior cut
+edges + no runtime halo source); and protocol/harness BLOCKs from
+the UX researcher and Office hours. Cures are being applied on
+this branch; the panel re-votes the cured tip. The sheets do NOT
+merge on round 1.
+
 **Owner rulings of record:**
 
 - (1) Cold Trail films are the reference — CONFIRMED, Veeresh,
@@ -53,15 +65,18 @@ Spec / docs (this branch's spec crew):
 
 Art / harness (sibling crews — coordinator fills on landing):
 
-- [ ] Model sheets — Holmes + Watson parts per spec §3
+- [x] Model sheets — Holmes + Watson parts per spec §3
   (hat, head, torso/coat, arm-front, arm-back, legs),
-  22 pose composites, 22 faces, 2 static composites
-- [ ] Silhouette gate — grayscale renders at 104 px committed
+  22 pose composites, 22 faces, 2 static composites —
+  landed `8f0e5fd` + `f2adf71` (parts-integrity cures from
+  the panel round 1 are tracked in the Panel section below)
+- [x] Silhouette gate — grayscale renders at 104 px committed
   with the sheets + crew-internal sign-off before colour lock
-  (spec §11)
-- [ ] Harness report — palm error, asset / decoded budgets,
+  (spec §11) — PASS, recorded in the asset lock
+- [x] Harness report — palm error, asset / decoded budgets,
   scale ratio, zero-live-filter check, with exact commands +
-  target revision (spec §§7, 10)
+  target revision (spec §§7, 10) — landed `1762e3f`, re-run
+  on the final art (see Verification)
 
 ## Budget table
 
@@ -81,6 +96,7 @@ placeholder.
 | Static composite — Watson | ≈20–30 KB | 18.6 KB | PASS |
 | Scale ratio Watson / Holmes (every composite) | 0.73–0.79 (≈0.75 law) | 0.75–0.77 (mean 0.76) | PASS |
 | Silhouette gate (grayscale, 104 px) | Approved before colour lock | Approved — both figures read correctly in grayscale at 104 px before colour lock (Holmes tall/thin + deerstalker, 47 px wide; Watson short/stout + bowler, 63 px wide; locked in ASSET_LOCK.json `silhouette_gate`) | PASS |
+| Face height at max in-band size (§8.3 floors) | Holmes ≥38 / 44 / 48 / 52 px · Watson ≥38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920 | Holmes 31 / 35 / 39 / 43 px · Watson 38 / 43 / 48 / 53 px | **FAIL — ruling (f): recorded, not cured in PR A; the floors bind the PR D flip (owner ruling 4); PR B owns reconciliation; the panel's face BLOCKs escalate the cure choice to the owner** |
 | Harness target revision | — | 1762e3f (the kid-test harness commit); the smoke re-run on the final art tip is recorded in the Harness line below | — |
 
 ## The laws, in summary
@@ -182,7 +198,7 @@ Flagged in spec §12, not papered over. Headlines:
 - [ ] Diff audit — scope list above, staged files named only,
   never `git add -A`
 - [x] Harness — `node scripts/kidtest-smoke.mjs` + the `pair-art-kidtest` Playwright project, re-run on the final tip `504ddbc`:
-  smoke RAN (64 plates, 0 missing; face measure live via the manifest `plates` adapter — Holmes below floor in every cell, Watson 768 by 1 px, both recorded under ruling (f), NOT cured); Playwright 5/5 PASS in 33.6 m (size band + zero clue-text coverage measured on the real built page at 390/768/1280/1920; face floor FAILED for Holmes at every width exactly as the smoke predicted — the harness asserts the shortfall; human trials prepared, never faked: trial manifest + find screens exported, `results: null` throughout). Repo gates on the same tip: tsc clean · `npm test` 3,287 pass / 0 fail · worker suite 145/0 (run for completeness; no `workers/` files touched) · lint-cards GATE PASSED · `build:pages` green (65 pair-art files in dist, inert until PR B imports them).
+  smoke RAN (64 plates, 0 missing; face measure live via the manifest `plates` adapter — Holmes below floor in every cell, Watson 768 by 1 px, both recorded under ruling (f), NOT cured); Playwright: 5 tests executed in 33.6 min — size band + zero clue-text coverage PASS on the real built page at 390/768/1280/1920; face floor FAILED for Holmes at every width exactly as the smoke predicted (the harness hard-asserts the shortfall — see the Panel section: the round-1 panel read the "5/5" phrasing against this FAIL and the wording is corrected here; the run's green was the size/coverage measures completing their contract, never a face pass); human trials prepared, never faked: trial manifest + find screens exported, `results: null` throughout. Repo gates on the same tip: tsc clean · `npm test` 3,287 pass / 0 fail · worker suite 145/0 (run for completeness; no `workers/` files touched) · lint-cards GATE PASSED · `build:pages` green (65 pair-art files in dist, inert until PR B imports them).
 - [x] Silo QA — **PASS** keyed PR#366 + `df7adbc`: full silo @`96ab16e` passed 7/8 checks with exact matches (scope, lock drift 0/64, manifest adapter, guard 6/6, tsc, lint-cards) and FAILED one records item (1920 face-px prose 42/56 vs the smoke script's measured 43/53); prose-only cure `df7adbc`; **DELTA SILO QA PASS** on the cured tip (cure confined to the 3 records files, corrected numbers verified, smoke regeneration byte-identical, guard still 6/6).
 - [ ] Panel — 13 seats incl. Game player, on the final tip:
   {{PANEL_TALLY}}

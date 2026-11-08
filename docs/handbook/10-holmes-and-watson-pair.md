@@ -710,7 +710,8 @@ shipped in PRs #355–#363.*
     go / no-go gate.
 - **Programme shape (4 PRs):** **A** — model sheets + binding
   spec + measurement harness (sheets/spec/harness only; no
-  `src/`, `tests/`, `scripts/`, or `public/` changes) →
+  `src/` changes — PR A's own harness, scripts, and assets
+  are in scope, per coordinator ruling (a)) →
   **B** — engine re-skin behind the new flag `pairArt`
   (the flag does not exist yet; PR B creates it, default
   off) → **C** — hero moments (bench + celebration,
@@ -779,7 +780,9 @@ shipped in PRs #355–#363.*
   the study's scale lock exceeds the shipped
   `DETECTIVE_RIG_HEIGHT_PX = 104` (PR B owns the
   reconciliation).
-- **Protected surfaces:** PR A touches no code. The
+- **Protected surfaces:** PR A touches no `src/` code
+  (its own kid-test harness + scripts are its deliverables).
+  The
   pair-behaviour train — `DetectiveHost.tsx`,
   `detective-state.ts`, `companion.ts`, `follow.ts`,
   `watson-walk.ts` — is untouched by the whole re-skin
