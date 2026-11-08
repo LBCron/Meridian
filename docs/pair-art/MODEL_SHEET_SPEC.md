@@ -1212,3 +1212,31 @@ also noted inline at §5.2, §6.4, §8.2, and §8.3.
   breaches of a binding one. Earlier text that said the
   floors "bind the PR D flip" is superseded by this
   demotion until the owner rules.
+
+### 16.6 Coverage scope — what the proof does and does not cover (panel re-vote cure, 2026-11-08)
+
+Why this section exists: a coverage PASS is easy to read
+as wider than it is. The record must say plainly where
+the proof stops, so a later PR does not claim a bar it
+has not measured.
+
+- **Proven, and only this:** zero clue-text coverage is
+  proven for **static single-figure endpoints** — a
+  figure standing at a measured place, at the §8.3 band
+  maximum (128 px at 390, and the other cells' maxima).
+  Nothing beyond those endpoints is proven by that PASS.
+- **(i) The celebration slot is UN-DIMENSIONED.** No
+  width, height, or figure size for the celebration slot
+  (§9.2) is dimensioned in this spec or measured on
+  record. **PR C must dimension the celebration slot and
+  prove zero clue-text coverage inside it before
+  claiming §9.2** for the celebration. Until then, any
+  §9.2 celebration claim is UNVERIFIED.
+- **(ii) Watson's swept walk path is UNMEASURED.** The
+  walk moves Watson through the gutter; the area his
+  figure sweeps while moving has not been measured
+  against clue text. **PR B must measure the sweep at the
+  band maximum before claiming §10 coverage for walk or
+  celebration.** Until then, §10 coverage for the walk
+  is UNVERIFIED — the endpoint PASS does not cover the
+  path between endpoints.
