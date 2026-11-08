@@ -6,6 +6,8 @@ Painted-parts paper-doll for Holmes & Watson, cut from the owner-approved mockup
 
 Pose plates and silhouettes are docs/test assets and are excluded from the runtime total.
 
+**Manifest alignment:** `public/assets/detective/pair-art/manifest.json` exports this lock's geometry (per-character natural size, per-face-kind `faceBox`, per-part placement/pivot/palm data) in harness/engine shape — one source, two readers: this lock is the audit record, `manifest.json` is the harness/engine contract. Face-floor measure (≥38/44/48/52 px) reads `faceBox` from the manifest.
+
 ## Runtime files (lazy-loaded by PR B)
 
 | File | Bytes | WxH px | Decoded MB | Placement rect (viewBox x0,y0,x1,y1) |
@@ -93,6 +95,13 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 ## Scale lock
 
 - Watson ≈ 0.76 × Holmes in every frame (MOCKUP-NOTES staging law): 390 px → Holmes 170 / Watson 130; 1280 px → Holmes 150 / Watson 115.
+
+## Identity distractors (TEST assets — excluded from the runtime total)
+
+| File | Bytes | WxH px | Subject |
+|---|---:|---|---|
+| tracker-standing.png | 15,949 | 173x338 | Cold Trail tracker child (cut from the shipped Cold Trail film) |
+| jolly-standing.png | 22,945 | 261x338 | Jolly, cream plush (cut from the shipped Cold Trail film) |
 
 ## Notes
 

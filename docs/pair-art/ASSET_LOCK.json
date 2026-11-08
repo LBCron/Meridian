@@ -1623,6 +1623,381 @@
   "The painted magnifier was cleared from Holmes's arm/torso layers (gold-pixel mask) so prop-glass.png is the single glass source \u2014 celebrate/high-five/clap (glass handed to Watson) stay contract-true.",
   "Watson's painted notebook remains in his torso/arm region where the source art places it; prop-notebook-pencil.png is also provided for the engine.",
   "High-five raised arms are drawn explicitly to the anchor (same technique as the SVG rig), sleeve in coat plaid, palm disc centred on HIGH_FIVE_CONTACT; error measured from the assembled plates' skin-cluster centroid.",
-  "Halo: plates render the baked cream halo + dark keyline pass; part files carry a dark keyline edge. No live filters."
+  "Halo: plates render the baked cream halo + dark keyline pass; part files carry a dark keyline edge. No live filters.",
+  "Identity distractors (tracker-standing.png, jolly-standing.png) are TEST assets for the identity trial: listed separately, EXCLUDED from the runtime 500 KB total.",
+  "manifest.json (beside the assets) is the harness/engine-shaped export of this lock's geometry \u2014 see manifest_alignment."
+ ],
+ "manifest_alignment": "public/assets/detective/pair-art/manifest.json carries the identical geometry (natural sizes, per-face-kind faceBox, per-part placement rects, pivots, palm anchors + measurements) in harness/engine shape. ASSET_LOCK.json remains the audit record; manifest.json is the runtime-shaped contract. Numbers are generated from the same build data \u2014 they cannot drift without a rebuild.",
+ "face_geometry": {
+  "holmes": {
+   "naturalSizePx": [
+    240,
+    356
+   ],
+   "faces": {
+    "neutral": {
+     "file": "holmes-face-neutral.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 42.0,
+      "width": 102.0,
+      "height": 86.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 21.0,
+      "width": 51.0,
+      "height": 43.0
+     }
+    },
+    "focused": {
+     "file": "holmes-face-focused.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 41.0,
+      "width": 102.0,
+      "height": 87.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 20.5,
+      "width": 51.0,
+      "height": 43.5
+     }
+    },
+    "thinking": {
+     "file": "holmes-face-thinking.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 39.0,
+      "width": 102.0,
+      "height": 89.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 19.5,
+      "width": 51.0,
+      "height": 44.5
+     }
+    },
+    "attentive": {
+     "file": "holmes-face-attentive.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 42.0,
+      "width": 102.0,
+      "height": 86.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 21.0,
+      "width": 51.0,
+      "height": 43.0
+     }
+    },
+    "hushed": {
+     "file": "holmes-face-hushed.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 42.0,
+      "width": 102.0,
+      "height": 86.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 21.0,
+      "width": 51.0,
+      "height": 43.0
+     }
+    },
+    "wonder": {
+     "file": "holmes-face-wonder.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 37.0,
+      "width": 102.0,
+      "height": 91.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 18.5,
+      "width": 51.0,
+      "height": 45.5
+     }
+    },
+    "reading": {
+     "file": "holmes-face-reading.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 42.0,
+      "width": 102.0,
+      "height": 86.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 21.0,
+      "width": 51.0,
+      "height": 43.0
+     }
+    },
+    "marking": {
+     "file": "holmes-face-marking.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 41.0,
+      "width": 102.0,
+      "height": 87.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 20.5,
+      "width": 51.0,
+      "height": 43.5
+     }
+    },
+    "delighted": {
+     "file": "holmes-face-delighted.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 42.0,
+      "width": 102.0,
+      "height": 86.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 21.0,
+      "width": 51.0,
+      "height": 43.0
+     }
+    },
+    "surprised": {
+     "file": "holmes-face-surprised.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 37.0,
+      "width": 102.0,
+      "height": 91.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 18.5,
+      "width": 51.0,
+      "height": 45.5
+     }
+    },
+    "pout": {
+     "file": "holmes-face-pout.png",
+     "faceBoxPx": {
+      "x": 65.0,
+      "y": 41.0,
+      "width": 102.0,
+      "height": 87.0
+     },
+     "faceBoxViewBox": {
+      "x": 32.5,
+      "y": 20.5,
+      "width": 51.0,
+      "height": 43.5
+     }
+    }
+   }
+  },
+  "watson": {
+   "naturalSizePx": [
+    268,
+    280
+   ],
+   "faces": {
+    "neutral": {
+     "file": "watson-face-neutral.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 36.0,
+      "width": 161.0,
+      "height": 84.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 18.0,
+      "width": 80.5,
+      "height": 42.0
+     }
+    },
+    "focused": {
+     "file": "watson-face-focused.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 35.0,
+      "width": 161.0,
+      "height": 85.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 17.5,
+      "width": 80.5,
+      "height": 42.5
+     }
+    },
+    "thinking": {
+     "file": "watson-face-thinking.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 33.0,
+      "width": 161.0,
+      "height": 87.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 16.5,
+      "width": 80.5,
+      "height": 43.5
+     }
+    },
+    "attentive": {
+     "file": "watson-face-attentive.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 36.0,
+      "width": 161.0,
+      "height": 84.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 18.0,
+      "width": 80.5,
+      "height": 42.0
+     }
+    },
+    "hushed": {
+     "file": "watson-face-hushed.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 36.0,
+      "width": 161.0,
+      "height": 84.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 18.0,
+      "width": 80.5,
+      "height": 42.0
+     }
+    },
+    "wonder": {
+     "file": "watson-face-wonder.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 31.0,
+      "width": 161.0,
+      "height": 89.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 15.5,
+      "width": 80.5,
+      "height": 44.5
+     }
+    },
+    "reading": {
+     "file": "watson-face-reading.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 36.0,
+      "width": 161.0,
+      "height": 84.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 18.0,
+      "width": 80.5,
+      "height": 42.0
+     }
+    },
+    "marking": {
+     "file": "watson-face-marking.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 35.0,
+      "width": 161.0,
+      "height": 85.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 17.5,
+      "width": 80.5,
+      "height": 42.5
+     }
+    },
+    "delighted": {
+     "file": "watson-face-delighted.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 36.0,
+      "width": 161.0,
+      "height": 84.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 18.0,
+      "width": 80.5,
+      "height": 42.0
+     }
+    },
+    "surprised": {
+     "file": "watson-face-surprised.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 31.0,
+      "width": 161.0,
+      "height": 89.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 15.5,
+      "width": 80.5,
+      "height": 44.5
+     }
+    },
+    "pout": {
+     "file": "watson-face-pout.png",
+     "faceBoxPx": {
+      "x": 55.0,
+      "y": 35.0,
+      "width": 161.0,
+      "height": 85.0
+     },
+     "faceBoxViewBox": {
+      "x": 27.5,
+      "y": 17.5,
+      "width": 80.5,
+      "height": 42.5
+     }
+    }
+   }
+  }
+ },
+ "test_assets_distractors": [
+  {
+   "file": "tracker-standing.png",
+   "subject": "Cold Trail tracker child",
+   "bytes": 15949,
+   "widthPx": 173,
+   "heightPx": 338,
+   "kind": "test-asset-identity-distractor",
+   "inRuntimeTotal": false,
+   "cornersTransparent": true,
+   "source": "Cut from the shipped Cold Trail card films (src/assets/home-v5) \u2014 same painted register"
+  },
+  {
+   "file": "jolly-standing.png",
+   "subject": "Jolly, cream plush",
+   "bytes": 22945,
+   "widthPx": 261,
+   "heightPx": 338,
+   "kind": "test-asset-identity-distractor",
+   "inRuntimeTotal": false,
+   "cornersTransparent": true,
+   "source": "Cut from the shipped Cold Trail card films (src/assets/home-v5) \u2014 same painted register"
+  }
  ]
 }
