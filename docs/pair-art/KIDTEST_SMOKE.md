@@ -12,6 +12,7 @@ Face-box source: manifest.json face boxes for: holmes-pose-dock.png, holmes-face
 | --- | --- | --- | --- | --- |
 | holmes-arm-back | holmes-arm-back.png | PNG | 60×120 | 2656 |
 | holmes-arm-front | holmes-arm-front.png | PNG | 64×92 | 2335 |
+| holmes-arm-raised | holmes-arm-raised.png | PNG | 70×92 | 2219 |
 | holmes-face-attentive | holmes-face-attentive.png | PNG | 102×86 | 3897 |
 | holmes-face-delighted | holmes-face-delighted.png | PNG | 102×86 | 3795 |
 | holmes-face-focused | holmes-face-focused.png | PNG | 102×87 | 3912 |
@@ -51,6 +52,7 @@ Face-box source: manifest.json face boxes for: holmes-pose-dock.png, holmes-face
 | tracker-standing | tracker-standing.png | PNG | 173×338 | 15949 |
 | watson-arm-back | watson-arm-back.png | PNG | 80×120 | 2493 |
 | watson-arm-front | watson-arm-front.png | PNG | 72×112 | 2381 |
+| watson-arm-raised | watson-arm-raised.png | PNG | 66×92 | 2086 |
 | watson-face-attentive | watson-face-attentive.png | PNG | 161×84 | 5305 |
 | watson-face-delighted | watson-face-delighted.png | PNG | 161×84 | 5246 |
 | watson-face-focused | watson-face-focused.png | PNG | 161×85 | 5350 |

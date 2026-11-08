@@ -195,6 +195,28 @@
           }
         },
         {
+          "part": "arm-raised",
+          "file": "holmes-arm-raised.png",
+          "bytes": 2219,
+          "widthPx": 70,
+          "heightPx": 92,
+          "rectViewBox": [
+            70.0,
+            20.5,
+            105.0,
+            66.5
+          ],
+          "rectPx": {
+            "x": 140.0,
+            "y": 41.0,
+            "width": 70,
+            "height": 92
+          },
+          "pose": "high-five",
+          "drawnExplicitly": true,
+          "note": "Dedicated raised-arm part for pose 'high-five' ONLY. Rig contract (DetectivePair.tsx @ main 9e49da3, high-five branch): the rig does NOT rotate the base arm for high-five \u2014 it draws a dedicated raised arm explicitly (Holmes stroke M78,58 L97,27 + hand circle at HIGH_FIVE_CONTACT (99,25) r=4.6; Watson M36,54 L17,23 + hand circle at (15,21) r=4.6) so the anchor never drifts with a rotation guess. The base arm-front part's palm radius cannot reach the anchor radius by any rotation, so this part is drawn at its manifest rect with NO rotation and replaces arm-front in the high-five assembly (the kid-test measurer detects it by the part id 'arm-raised', matching /raised/ on the part field). Painted by isolating the raised arm of the regenerated high-five pose plate \u2014 same arm, same register, same skin tones."
+        },
+        {
           "part": "torso",
           "file": "holmes-torso.png",
           "bytes": 8289,
@@ -507,7 +529,35 @@
           ],
           "pivot_alpha": 235
         },
-        "note": "Before the cure: holmes-arm-front/holmes-arm-back/watson-arm-front carried 0 narrow-band skin px and their palms lay outside the crops. After: every arm contains its hand, the palm point is skin (3x3 neighbourhood 8-9/9 skin px), the skin centroid sits within 0.6 vb of the rig hand point, and the shoulder pivot is inside painted pixels (alpha 235-250)."
+        "note": "Before the cure: holmes-arm-front/holmes-arm-back/watson-arm-front carried 0 narrow-band skin px and their palms lay outside the crops. After: every arm contains its hand, the palm point is skin (3x3 neighbourhood 8-9/9 skin px), the skin centroid sits within 0.6 vb of the rig hand point, and the shoulder pivot is inside painted pixels (alpha 235-250).",
+        "holmes-arm-raised.png": {
+          "skin_px": 278,
+          "hand_cluster_px": 244,
+          "palm_vb": [
+            99,
+            25
+          ],
+          "skin_centroid_vb": [
+            98.77,
+            25.5
+          ],
+          "drawn": "explicit at rect, no rotation (dedicated raised-arm part)",
+          "note": "Hand cluster = largest narrow-band skin cluster in the part placed at its rect; centroid within 0.6 vb of HIGH_FIVE_CONTACT."
+        },
+        "watson-arm-raised.png": {
+          "skin_px": 264,
+          "hand_cluster_px": 235,
+          "palm_vb": [
+            15,
+            21
+          ],
+          "skin_centroid_vb": [
+            15.5,
+            20.96
+          ],
+          "drawn": "explicit at rect, no rotation (dedicated raised-arm part)",
+          "note": "Hand cluster = largest narrow-band skin cluster in the part placed at its rect; centroid within 0.6 vb of HIGH_FIVE_CONTACT."
+        }
       }
     },
     "watson": {
@@ -680,6 +730,28 @@
             "width": 72,
             "height": 112
           }
+        },
+        {
+          "part": "arm-raised",
+          "file": "watson-arm-raised.png",
+          "bytes": 2086,
+          "widthPx": 66,
+          "heightPx": 92,
+          "rectViewBox": [
+            8.5,
+            16.0,
+            41.5,
+            62.0
+          ],
+          "rectPx": {
+            "x": 17.0,
+            "y": 32.0,
+            "width": 66,
+            "height": 92
+          },
+          "pose": "high-five",
+          "drawnExplicitly": true,
+          "note": "Dedicated raised-arm part for pose 'high-five' ONLY. Rig contract (DetectivePair.tsx @ main 9e49da3, high-five branch): the rig does NOT rotate the base arm for high-five \u2014 it draws a dedicated raised arm explicitly (Holmes stroke M78,58 L97,27 + hand circle at HIGH_FIVE_CONTACT (99,25) r=4.6; Watson M36,54 L17,23 + hand circle at (15,21) r=4.6) so the anchor never drifts with a rotation guess. The base arm-front part's palm radius cannot reach the anchor radius by any rotation, so this part is drawn at its manifest rect with NO rotation and replaces arm-front in the high-five assembly (the kid-test measurer detects it by the part id 'arm-raised', matching /raised/ on the part field). Painted by isolating the raised arm of the regenerated high-five pose plate \u2014 same arm, same register, same skin tones."
         },
         {
           "part": "arm-back",
@@ -1028,13 +1100,13 @@
     }
   ],
   "budgets": {
-    "runtime_total_bytes": 168126,
+    "runtime_total_bytes": 172431,
     "runtime_budget_bytes": 500000,
     "runtime_pass": true,
-    "decoded_total_MB": 2.386,
+    "decoded_total_MB": 2.436,
     "decoded_budget_MB": 32,
     "decoded_pass": true,
-    "runtime_file_count": 42,
+    "runtime_file_count": 44,
     "note": "Pose plates + silhouettes are docs/test assets, excluded from the runtime total."
   },
   "scaleLock": {

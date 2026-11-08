@@ -2,7 +2,7 @@
 
 Painted-parts paper-doll for Holmes & Watson, cut from the owner-approved mockup art (keeper: bench still, Cold Trail film register). Engine contract: `DetectivePair.tsx` @ main `9e49da3` — Holmes viewBox 120×178, Watson 134×140, parts rendered at 2 px per viewBox unit.
 
-**Runtime total: 168,126 bytes / 500,000 budget — PASS** · **Decoded: 2.386 MB / 32 MB — PASS** · Palm error: Holmes 0.35 px, Watson 0.35 px / ≤3 px — PASS
+**Runtime total: 172,431 bytes / 500,000 budget — PASS** · **Decoded: 2.436 MB / 32 MB — PASS** · Palm error: Holmes 0.35 px, Watson 0.35 px / ≤3 px — PASS
 
 Pose plates and silhouettes are docs/test assets and are excluded from the runtime total.
 
@@ -17,11 +17,13 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 | holmes-leg-b.png | 3,173 | 99x140 | 0.0554 | [35.5, 109, 85, 179] |
 | holmes-arm-back.png | 2,656 | 60x120 | 0.0288 | [28, 47, 58, 107] |
 | holmes-arm-front.png | 2,335 | 64x92 | 0.0236 | [66, 47, 98, 93] |
+| holmes-arm-raised.png | 2,219 | 70x92 | 0.0258 | [70.0, 20.5, 105.0, 66.5] |
 | holmes-torso.png | 8,289 | 112x194 | 0.0869 | [32.0, 42.0, 88.0, 139.0] |
 | watson-hat.png | 2,455 | 139x48 | 0.0267 | [27.5, -1.0, 97.0, 23.0] |
 | watson-leg-a.png | 3,268 | 159x108 | 0.0687 | [27, 87, 106.5, 141] |
 | watson-leg-b.png | 3,879 | 159x108 | 0.0687 | [27, 87, 106.5, 141] |
 | watson-arm-front.png | 2,381 | 72x112 | 0.0323 | [13, 43, 49, 99] |
+| watson-arm-raised.png | 2,086 | 66x92 | 0.0243 | [8.5, 16.0, 41.5, 62.0] |
 | watson-arm-back.png | 2,493 | 80x120 | 0.0384 | [70, 43, 110, 103] |
 | watson-torso.png | 10,794 | 165x170 | 0.1122 | [25.5, 32.0, 108.0, 117.0] |
 | holmes-face-neutral.png | 3,946 | 102x86 | 0.0351 | [32.5, 21.0, 83.5, 64.0] |
@@ -123,4 +125,5 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 - Watson's painted notebook remains in his torso/arm region where the source art places it; prop-notebook-pencil.png is also provided for the engine.
 - High-five raised arms are drawn explicitly to the anchor (same technique as the SVG rig), sleeve in coat plaid, palm disc centred on HIGH_FIVE_CONTACT; error measured from the assembled plates' skin-cluster centroid.
 - Identity distractors (tracker-standing.png, jolly-standing.png) are TEST assets for the identity trial: listed separately, EXCLUDED from the runtime 500 KB total.
+- FOLLOW-UP CURE 2026-11-08 (raised-arm parts): holmes-arm-raised.png / watson-arm-raised.png are new runtime parts — the dedicated raised arm the rig draws explicitly for pose 'high-five' ONLY (DetectivePair.tsx @ 9e49da3, Holmes lines 347/425–433, Watson 511/598–606: Holmes stroke M78,58 L97,27 + hand circle at HIGH_FIVE_CONTACT (99,25) r=4.6; Watson M36,54 L17,23 + hand circle at (15,21) r=4.6 — drawn explicitly so the anchor never drifts with a rotation guess). The base arm-front palm radius (26.6 vb Holmes) cannot reach the anchor radius (39.1 vb) by any rotation, so a rotation assembly reads ~7.3 rig px short through no plate defect; these parts close that structural gap. Each part is the raised arm of the regenerated high-five pose plate, isolated in the same register (palette-lossless), placed at its rect with NO rotation; in the high-five assembly it replaces arm-front — the kid-test measurer (tests/e2e/pair-art-kidtest.spec.ts) detects it by part id `arm-raised` (matches /raised/ on the part field), excludes arm-front, and draws it at its rectPx unrotated. Narrow-band self-check, part at rect: Holmes hand cluster 244 px, centroid (98.77, 25.50) vb — 0.56 vb from (99,25); Watson 235 px, centroid (15.50, 20.96) vb — 0.50 vb from (15,21). Assembled in harness draw order, the wide-band palm measurement reproduces the plates' own numbers exactly (Holmes 229 px @ (98.89,25.36), 0.22 rig px; Watson 224 px @ (15.44,20.91), 0.33 rig px; gate ≤3 rig px), and assembly-vs-plate differing fraction is 0.563 / 0.520 (gate 0.60). Full record: `ASSET_LOCK.json` → `raised_arm_parts_cure`.
 - manifest.json (beside the assets) is the harness/engine-shaped export of this lock's geometry — see manifest_alignment.
