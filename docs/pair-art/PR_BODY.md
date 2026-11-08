@@ -154,7 +154,7 @@ spec §14:
   `scripts/kidtest-*`, and `public/assets/detective/pair-art/`
   are PR A’s own harness and assets, in scope per the owner’s
   brief.)
-- Diff stat at vote time: the full PR diff against main `9e49da3`: 77 files changed, 5,706 insertions(+), 133 deletions(-) — assets, docs, harness; zero `src/` paths — any `src/` path in
+- Diff stat at vote time: the full PR diff against main `9e49da3`: 77 files changed, 5,962 insertions(+), 137 deletions(-) — assets, docs, harness; zero `src/` paths — any `src/` path in
   the final diff fails this PR; `tests/`, `scripts/`, and
   `public/` paths beyond the kidtest spec, the playwright
   project, the kidtest scripts, and the pair-art assets fail
