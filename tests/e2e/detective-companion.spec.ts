@@ -8,6 +8,7 @@ import {
   entryByName,
   fulfillFlagsOn,
   guessByEntryId,
+  holmesRect,
   installDetectiveRecorder,
   openSeamCase,
   waitForSearchIdle,
@@ -697,30 +698,57 @@ test("K3 planted — a pan does NOT cancel a berth (PB-1)", async ({ page, conte
   );
 });
 
+/**
+ * K3 tap — premise, stated honestly (cure round 2): the setup may
+ * settle BERTHED or DOCKED. The case-open dwell can solve a berth
+ * before the tap (batch-1 measured placement "berth" at the old
+ * test's premise), so "he starts at dock" is not a state this
+ * setup can promise — round 1's assertion of "dock" immediately
+ * before the tap failed AT THE PREMISE. The pin is narrower and
+ * is the boundary that matters: a tap (<250 ms) is not a
+ * summons/pause — the press must not MOVE him and must not create
+ * a berth AT THE TAP POINT. Whatever state he settled in, the
+ * tap changes nothing.
+ */
 test("K3 — a tap (<250 ms) never summons Holmes", async ({ page, context }) => {
   await fulfillFlagsOn(context);
   await openSeamCase(page, 137);
-  // Cure E (1) — proven un-berthed premise. The cured
-  // waitForSearchIdle may lawfully settle "berthed" (the setup
-  // dwell), so it cannot prove this test's pre-stimulus state:
-  // use a phase-only poll for SEARCH_IDLE, then assert the
-  // placement is "dock" immediately before the stimulus. The
-  // assertion is the pin — if a solve races in ahead of it, the
-  // test fails AT THE PREMISE rather than weakening it.
-  await expect
-    .poll(() => currentPhase(page), { timeout: 120_000 })
-    .toBe("SEARCH_IDLE");
-  const box = await mapBox(page);
+  await waitForSearchIdle(page);
+  // Settled state, recorded — not assumed. Holmes is on the map
+  // in this spec's flow (companion specs do not stage the bench:
+  // fulfillFlagsOn carries no hostsStaging, so the wrapper is
+  // mounted), so the settled rect must exist.
+  const settledPlacement = await currentPlacement(page);
+  const settledRect = await holmesRect(page);
   expect(
-    await currentPlacement(page),
-    "Cure E premise: Holmes must be un-berthed (dock) immediately before the tap",
-  ).toBe("dock");
-  // Cure E (3) — record TRANSITIONS, not state. The old sampler
-  // observed childList over the whole document and pushed the
-  // CURRENT placement on any DOM mutation, so a latch state set
-  // at any earlier time was logged as an in-window event. This
-  // observer is seeded with the placement at arm time and pushes
-  // only when data-holmes-placement actually changes.
+    settledRect,
+    "K3 tap premise: Holmes must be mounted on the map after the idle wait",
+  ).not.toBeNull();
+  const settledCentre = {
+    x: settledRect!.x + settledRect!.w / 2,
+    y: settledRect!.y + settledRect!.h / 2,
+  };
+  const box = await mapBox(page);
+  // Tap at whichever candidate point is FARTHER from where he
+  // settled — a tap that "summoned" him would have the longest,
+  // most visible travel to make, and neither candidate can be
+  // confused with the berth he may already be sitting in.
+  const candidates = [
+    { x: box.x + box.width * 0.38, y: box.y + box.height * 0.68 },
+    { x: box.x + box.width * 0.72, y: box.y + box.height * 0.3 },
+  ];
+  const point = candidates.reduce((farther, c) =>
+    Math.hypot(c.x - settledCentre.x, c.y - settledCentre.y) >
+    Math.hypot(farther.x - settledCentre.x, farther.y - settledCentre.y)
+      ? c
+      : farther,
+  );
+  // Record TRANSITIONS, not state (round 1's fix, kept). The old
+  // sampler observed childList over the whole document and pushed
+  // the CURRENT placement on any DOM mutation, so a latch state
+  // set at any earlier time was logged as an in-window event.
+  // This observer is seeded with the placement at arm time and
+  // pushes only when data-holmes-placement actually changes.
   await page.evaluate(() => {
     const w = window as unknown as { __tapPlacements: string[] };
     w.__tapPlacements = [];
@@ -745,19 +773,18 @@ test("K3 — a tap (<250 ms) never summons Holmes", async ({ page, context }) =>
       attributeFilter: ["data-holmes-placement"],
     });
   });
-  const point = { x: box.x + box.width * 0.38, y: box.y + box.height * 0.68 };
   await page.mouse.move(point.x, point.y);
   await page.mouse.down();
   await page.mouse.up(); // a tap: well under 250 ms, no travel
-  // Cure E (2) — remove the rest channel. The old test left the
-  // mouse RESTING on the tap point for the whole sample window:
-  // that sustained dwell (460 ms pause-confirm + ≥350 ms
-  // stillness), not the press, is what berthed him — the press
-  // itself is invisible to the pause detector. Move far away
-  // immediately, so the pointer does not dwell at the tap point
-  // during the window. (The positive control stands elsewhere in
-  // this spec: berthAtDockNearPoint in the pinch/pan tests proves
-  // a genuine pause at this same point DOES berth.)
+  // Remove the rest channel (round 1's fix, kept). Leaving the
+  // mouse RESTING on the tap point for the whole sample window
+  // would make the sustained dwell (460 ms pause-confirm + ≥350 ms
+  // stillness), not the press, what berths him — the press itself
+  // is invisible to the pause detector. Move far away immediately,
+  // so the pointer does not dwell at the tap point during the
+  // window. (The positive control stands elsewhere in this file:
+  // berthAtDockNearPoint, used by the pinch/pan tests above,
+  // proves a genuine pause at a point DOES berth.)
   await page.mouse.move(0, 0);
   // Sample the recorded transitions over the following ~1.2 s
   // (the measurement window — a berth would need only ~460 ms
@@ -766,10 +793,34 @@ test("K3 — a tap (<250 ms) never summons Holmes", async ({ page, context }) =>
   const placements = await page.evaluate(
     () => (window as unknown as { __tapPlacements: string[] }).__tapPlacements,
   );
-  console.log(`[K3 tap] placement transitions during tap window: ${JSON.stringify(placements)}`);
-  expect(placements).not.toContain("berth");
-  const now = await currentPlacement(page);
-  expect(now === "dock" || now === null).toBe(true);
+  console.log(
+    `[K3 tap] settled=${settledPlacement} at (${Math.round(settledCentre.x)},${Math.round(settledCentre.y)}), tap at (${Math.round(point.x)},${Math.round(point.y)}), placement transitions during tap window: ${JSON.stringify(placements)}`,
+  );
+  // (a) The tap changed no state: no placement transition at all
+  // occurs in the window.
+  expect(
+    placements,
+    "K3 tap: a tap must not cause any placement transition",
+  ).toHaveLength(0);
+  // (b) And he did not travel to the tap point: his centre at the
+  // window's end is within 8 px of the settled centre.
+  const endRect = await holmesRect(page);
+  expect(endRect, "K3 tap: Holmes must stay mounted").not.toBeNull();
+  const endCentre = {
+    x: endRect!.x + endRect!.w / 2,
+    y: endRect!.y + endRect!.h / 2,
+  };
+  expect(
+    Math.hypot(endCentre.x - settledCentre.x, endCentre.y - settledCentre.y),
+    "K3 tap: Holmes must not move toward the tap point",
+  ).toBeLessThanOrEqual(8);
+  // (c) The original assertion, preserved for the state it was
+  // written for: if he settled DOCKED, the tap must never have
+  // berthed him during the window.
+  if (settledPlacement === "dock") {
+    expect(placements).not.toContain("berth");
+    expect(await currentPlacement(page)).not.toBe("berth");
+  }
   // Dismiss the confirm sheet the tap opened, if it opened.
   const dialog = page.getByRole("dialog");
   if (await dialog.isVisible().catch(() => false)) {
