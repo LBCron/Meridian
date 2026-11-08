@@ -48,7 +48,11 @@ merge on round 1.
   PENDING THE OWNER'S RULING** (§16.5); coverage
   is scoped to static single-figure endpoints,
   the celebration slot un-dimensioned and Watson's
-  walk sweep unmeasured (§16.6). Six `neg/*`
+  walk sweep unmeasured (§16.6, incl. (iii):
+  §6.4 mouth travel for `delighted` / `pout` NOT
+  MEASURED on record — only `surprised`↔`wonder`
+  stands measured — so no §6.4 pass is claimed
+  for those faces). Six `neg/*`
   negative gates **with sabotage controls** were
   added (owner rule 15; see the Negative gates
   section).
