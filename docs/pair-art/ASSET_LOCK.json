@@ -1,0 +1,1628 @@
+{
+ "lock_version": 1,
+ "pr": "A \u2014 pair-art model sheets",
+ "base_contract": "src/game/loop/detective/DetectivePair.tsx @ main 9e49da3",
+ "viewBoxes": {
+  "holmes": [
+   120,
+   178
+  ],
+  "watson": [
+   134,
+   140
+  ]
+ },
+ "render_px_per_viewBox_unit": 2,
+ "high_five_contact_vb": {
+  "holmes": [
+   99,
+   25
+  ],
+  "watson": [
+   15,
+   21
+  ]
+ },
+ "pivots_vb": {
+  "holmes": {
+   "frontArm": [
+    78,
+    58
+   ],
+   "swingArm": [
+    44,
+    58
+   ],
+   "head": [
+    62,
+    54
+   ],
+   "torso": [
+    60,
+    132
+   ]
+  },
+  "watson": {
+   "frontArm": [
+    36,
+    54
+   ],
+   "noteArm": [
+    82,
+    54
+   ],
+   "head": [
+    60,
+    50
+   ],
+   "torso": [
+    60,
+    110
+   ]
+  }
+ },
+ "palm_anchor_error_measured": {
+  "holmes": {
+   "measured_vb": [
+    98.75,
+    24.75
+   ],
+   "contact_vb": [
+    99,
+    25
+   ],
+   "error_px": 0.35,
+   "skin_px": 208
+  },
+  "watson": {
+   "measured_vb": [
+    14.75,
+    20.75
+   ],
+   "contact_vb": [
+    15,
+    21
+   ],
+   "error_px": 0.35,
+   "skin_px": 208
+  }
+ },
+ "palm_gate_px": 3,
+ "palm_pass": true,
+ "budgets": {
+  "runtime_total_bytes": 147920,
+  "runtime_budget_bytes": 500000,
+  "runtime_pass": true,
+  "decoded_total_MB": 1.543,
+  "decoded_budget_MB": 32,
+  "decoded_pass": true,
+  "runtime_file_count": 38,
+  "note": "Pose plates + silhouettes are docs/test assets, excluded from the runtime total."
+ },
+ "scale_lock": {
+  "source": "MOCKUP-NOTES.md staging law",
+  "ratio_watson_per_holmes": 0.76,
+  "in_play_heights_px": {
+   "390": [
+    170,
+    130
+   ],
+   "1280": [
+    150,
+    115
+   ]
+  },
+  "silhouette_widths_at_104px_height": {
+   "holmes": 43,
+   "watson": 63
+  }
+ },
+ "silhouette_gate": {
+  "holmes": "PASS \u2014 tall/thin (47px wide at 104px high), deerstalker crown + brim reads",
+  "watson": "PASS \u2014 short/stout (63px wide at 104px high), bowler dome + flat brim reads",
+  "distinguishable": "PASS \u2014 width ratio 47:63 plus hat profiles differ at a glance"
+ },
+ "transparency_checks": {
+  "holmes-arm-back.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-arm-front.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-attentive.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-delighted.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-focused.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-hushed.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-marking.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-neutral.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-pout.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-reading.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-surprised.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-thinking.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-face-wonder.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-hat.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-head.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-legs.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-ack.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-announce.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-berth-think.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-card-look.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-celebrate-jump.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-clap.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-dock.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-gaze-up.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-high-five.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-pout.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-search.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-pose-walk.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "holmes-torso.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "prop-card.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "prop-cup.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "prop-glass.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "prop-notebook-pencil.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "silhouette-holmes-104.png": {
+   "mode": "RGBA",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "silhouette-watson-104.png": {
+   "mode": "RGBA",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-arm-back.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-arm-front.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-attentive.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-delighted.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-focused.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-hushed.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-marking.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-neutral.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-pout.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-reading.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-surprised.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-thinking.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-face-wonder.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-hat.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-head.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-legs.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-celebrate-jump.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-clap.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-gasp.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-high-five.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-notebook-mark.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-pout.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-read.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-station-idle.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-think.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-pose-walk.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  },
+  "watson-torso.png": {
+   "mode": "P",
+   "alpha_channel": true,
+   "corners_alpha": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "corners_transparent": true
+  }
+ },
+ "transparency_all_pass": true,
+ "runtime_files": [
+  {
+   "file": "holmes-hat.png",
+   "bytes": 2091,
+   "width": 73,
+   "height": 54,
+   "decodedMB": 0.0158,
+   "rect_vb": [
+    37.5,
+    -1.0,
+    74.0,
+    26.0
+   ],
+   "character": "holmes",
+   "part": "hat"
+  },
+  {
+   "file": "holmes-legs.png",
+   "bytes": 4758,
+   "width": 99,
+   "height": 140,
+   "decodedMB": 0.0554,
+   "rect_vb": [
+    35.5,
+    109.0,
+    85.0,
+    179.0
+   ],
+   "character": "holmes",
+   "part": "legs"
+  },
+  {
+   "file": "holmes-arm-back.png",
+   "bytes": 1723,
+   "width": 38,
+   "height": 97,
+   "decodedMB": 0.0147,
+   "rect_vb": [
+    33.5,
+    48.0,
+    52.5,
+    96.5
+   ],
+   "character": "holmes",
+   "part": "arm-back"
+  },
+  {
+   "file": "holmes-arm-front.png",
+   "bytes": 1367,
+   "width": 33,
+   "height": 62,
+   "decodedMB": 0.0082,
+   "rect_vb": [
+    70.0,
+    48.0,
+    86.5,
+    79.0
+   ],
+   "character": "holmes",
+   "part": "arm-front"
+  },
+  {
+   "file": "holmes-torso.png",
+   "bytes": 8818,
+   "width": 112,
+   "height": 194,
+   "decodedMB": 0.0869,
+   "rect_vb": [
+    32.0,
+    42.0,
+    88.0,
+    139.0
+   ],
+   "character": "holmes",
+   "part": "torso"
+  },
+  {
+   "file": "watson-hat.png",
+   "bytes": 2047,
+   "width": 139,
+   "height": 48,
+   "decodedMB": 0.0267,
+   "rect_vb": [
+    27.5,
+    -1.0,
+    97.0,
+    23.0
+   ],
+   "character": "watson",
+   "part": "hat"
+  },
+  {
+   "file": "watson-legs.png",
+   "bytes": 6069,
+   "width": 159,
+   "height": 108,
+   "decodedMB": 0.0687,
+   "rect_vb": [
+    27.0,
+    87.0,
+    106.5,
+    141.0
+   ],
+   "character": "watson",
+   "part": "legs"
+  },
+  {
+   "file": "watson-arm-front.png",
+   "bytes": 812,
+   "width": 17,
+   "height": 21,
+   "decodedMB": 0.0014,
+   "rect_vb": [
+    37.5,
+    46.5,
+    46.0,
+    57.0
+   ],
+   "character": "watson",
+   "part": "arm-front"
+  },
+  {
+   "file": "watson-arm-back.png",
+   "bytes": 2385,
+   "width": 53,
+   "height": 101,
+   "decodedMB": 0.0214,
+   "rect_vb": [
+    74.0,
+    44.0,
+    100.5,
+    94.5
+   ],
+   "character": "watson",
+   "part": "arm-back"
+  },
+  {
+   "file": "watson-torso.png",
+   "bytes": 10580,
+   "width": 165,
+   "height": 170,
+   "decodedMB": 0.1122,
+   "rect_vb": [
+    25.5,
+    32.0,
+    108.0,
+    117.0
+   ],
+   "character": "watson",
+   "part": "torso"
+  },
+  {
+   "file": "holmes-face-neutral.png",
+   "bytes": 3621,
+   "width": 102,
+   "height": 86,
+   "decodedMB": 0.0351,
+   "rect_vb": [
+    32.5,
+    21.0,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-neutral"
+  },
+  {
+   "file": "watson-face-neutral.png",
+   "bytes": 5120,
+   "width": 161,
+   "height": 84,
+   "decodedMB": 0.0541,
+   "rect_vb": [
+    27.5,
+    18.0,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-neutral"
+  },
+  {
+   "file": "holmes-face-focused.png",
+   "bytes": 3581,
+   "width": 102,
+   "height": 87,
+   "decodedMB": 0.0355,
+   "rect_vb": [
+    32.5,
+    20.5,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-focused"
+  },
+  {
+   "file": "watson-face-focused.png",
+   "bytes": 5058,
+   "width": 161,
+   "height": 85,
+   "decodedMB": 0.0547,
+   "rect_vb": [
+    27.5,
+    17.5,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-focused"
+  },
+  {
+   "file": "holmes-face-thinking.png",
+   "bytes": 3605,
+   "width": 102,
+   "height": 89,
+   "decodedMB": 0.0363,
+   "rect_vb": [
+    32.5,
+    19.5,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-thinking"
+  },
+  {
+   "file": "watson-face-thinking.png",
+   "bytes": 5095,
+   "width": 161,
+   "height": 87,
+   "decodedMB": 0.056,
+   "rect_vb": [
+    27.5,
+    16.5,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-thinking"
+  },
+  {
+   "file": "holmes-face-attentive.png",
+   "bytes": 3567,
+   "width": 102,
+   "height": 86,
+   "decodedMB": 0.0351,
+   "rect_vb": [
+    32.5,
+    21.0,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-attentive"
+  },
+  {
+   "file": "watson-face-attentive.png",
+   "bytes": 5025,
+   "width": 161,
+   "height": 84,
+   "decodedMB": 0.0541,
+   "rect_vb": [
+    27.5,
+    18.0,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-attentive"
+  },
+  {
+   "file": "holmes-face-hushed.png",
+   "bytes": 3592,
+   "width": 102,
+   "height": 86,
+   "decodedMB": 0.0351,
+   "rect_vb": [
+    32.5,
+    21.0,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-hushed"
+  },
+  {
+   "file": "watson-face-hushed.png",
+   "bytes": 5063,
+   "width": 161,
+   "height": 84,
+   "decodedMB": 0.0541,
+   "rect_vb": [
+    27.5,
+    18.0,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-hushed"
+  },
+  {
+   "file": "holmes-face-wonder.png",
+   "bytes": 3609,
+   "width": 102,
+   "height": 91,
+   "decodedMB": 0.0371,
+   "rect_vb": [
+    32.5,
+    18.5,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-wonder"
+  },
+  {
+   "file": "watson-face-wonder.png",
+   "bytes": 5134,
+   "width": 161,
+   "height": 89,
+   "decodedMB": 0.0573,
+   "rect_vb": [
+    27.5,
+    15.5,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-wonder"
+  },
+  {
+   "file": "holmes-face-reading.png",
+   "bytes": 3565,
+   "width": 102,
+   "height": 86,
+   "decodedMB": 0.0351,
+   "rect_vb": [
+    32.5,
+    21.0,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-reading"
+  },
+  {
+   "file": "watson-face-reading.png",
+   "bytes": 5100,
+   "width": 161,
+   "height": 84,
+   "decodedMB": 0.0541,
+   "rect_vb": [
+    27.5,
+    18.0,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-reading"
+  },
+  {
+   "file": "holmes-face-marking.png",
+   "bytes": 3529,
+   "width": 102,
+   "height": 87,
+   "decodedMB": 0.0355,
+   "rect_vb": [
+    32.5,
+    20.5,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-marking"
+  },
+  {
+   "file": "watson-face-marking.png",
+   "bytes": 5059,
+   "width": 161,
+   "height": 85,
+   "decodedMB": 0.0547,
+   "rect_vb": [
+    27.5,
+    17.5,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-marking"
+  },
+  {
+   "file": "holmes-face-delighted.png",
+   "bytes": 3468,
+   "width": 102,
+   "height": 86,
+   "decodedMB": 0.0351,
+   "rect_vb": [
+    32.5,
+    21.0,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-delighted"
+  },
+  {
+   "file": "watson-face-delighted.png",
+   "bytes": 4980,
+   "width": 161,
+   "height": 84,
+   "decodedMB": 0.0541,
+   "rect_vb": [
+    27.5,
+    18.0,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-delighted"
+  },
+  {
+   "file": "holmes-face-surprised.png",
+   "bytes": 3609,
+   "width": 102,
+   "height": 91,
+   "decodedMB": 0.0371,
+   "rect_vb": [
+    32.5,
+    18.5,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-surprised"
+  },
+  {
+   "file": "watson-face-surprised.png",
+   "bytes": 5134,
+   "width": 161,
+   "height": 89,
+   "decodedMB": 0.0573,
+   "rect_vb": [
+    27.5,
+    15.5,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-surprised"
+  },
+  {
+   "file": "holmes-face-pout.png",
+   "bytes": 3591,
+   "width": 102,
+   "height": 87,
+   "decodedMB": 0.0355,
+   "rect_vb": [
+    32.5,
+    20.5,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "face-pout"
+  },
+  {
+   "file": "watson-face-pout.png",
+   "bytes": 5078,
+   "width": 161,
+   "height": 85,
+   "decodedMB": 0.0547,
+   "rect_vb": [
+    27.5,
+    17.5,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "face-pout"
+  },
+  {
+   "file": "holmes-head.png",
+   "bytes": 3621,
+   "width": 102,
+   "height": 86,
+   "decodedMB": 0.0351,
+   "rect_vb": [
+    32.5,
+    21.0,
+    83.5,
+    64.0
+   ],
+   "character": "holmes",
+   "part": "head"
+  },
+  {
+   "file": "watson-head.png",
+   "bytes": 5120,
+   "width": 161,
+   "height": 84,
+   "decodedMB": 0.0541,
+   "rect_vb": [
+    27.5,
+    18.0,
+    108.0,
+    60.0
+   ],
+   "character": "watson",
+   "part": "head"
+  },
+  {
+   "file": "prop-glass.png",
+   "bytes": 878,
+   "width": 55,
+   "height": 55,
+   "decodedMB": 0.0121,
+   "rect_vb": [
+    2.0,
+    1.0,
+    29.5,
+    28.5
+   ],
+   "character": "prop",
+   "part": "glass"
+  },
+  {
+   "file": "prop-card.png",
+   "bytes": 807,
+   "width": 53,
+   "height": 65,
+   "decodedMB": 0.0138,
+   "rect_vb": [
+    0.0,
+    0.0,
+    26.5,
+    32.5
+   ],
+   "character": "prop",
+   "part": "card"
+  },
+  {
+   "file": "prop-notebook-pencil.png",
+   "bytes": 856,
+   "width": 60,
+   "height": 65,
+   "decodedMB": 0.0156,
+   "rect_vb": [
+    1.0,
+    2.0,
+    31.0,
+    34.5
+   ],
+   "character": "prop",
+   "part": "notebook-pencil"
+  },
+  {
+   "file": "prop-cup.png",
+   "bytes": 805,
+   "width": 34,
+   "height": 23,
+   "decodedMB": 0.0031,
+   "rect_vb": [
+    0.0,
+    2.0,
+    17.0,
+    13.5
+   ],
+   "character": "prop",
+   "part": "cup"
+  }
+ ],
+ "docs_files": [
+  {
+   "file": "holmes-pose-dock.png",
+   "bytes": 15748,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "dock"
+  },
+  {
+   "file": "holmes-pose-walk.png",
+   "bytes": 15703,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "walk"
+  },
+  {
+   "file": "holmes-pose-search.png",
+   "bytes": 16906,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "search"
+  },
+  {
+   "file": "holmes-pose-berth-think.png",
+   "bytes": 16639,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "berth-think"
+  },
+  {
+   "file": "holmes-pose-ack.png",
+   "bytes": 16303,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "ack"
+  },
+  {
+   "file": "holmes-pose-announce.png",
+   "bytes": 17910,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "announce"
+  },
+  {
+   "file": "holmes-pose-gaze-up.png",
+   "bytes": 16631,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "gaze-up"
+  },
+  {
+   "file": "holmes-pose-card-look.png",
+   "bytes": 16231,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "card-look"
+  },
+  {
+   "file": "holmes-pose-celebrate-jump.png",
+   "bytes": 16404,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "celebrate-jump"
+  },
+  {
+   "file": "holmes-pose-high-five.png",
+   "bytes": 16477,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "high-five"
+  },
+  {
+   "file": "holmes-pose-clap.png",
+   "bytes": 15570,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "clap"
+  },
+  {
+   "file": "holmes-pose-pout.png",
+   "bytes": 16453,
+   "width": 240,
+   "height": 356,
+   "decodedMB": 0.3418,
+   "kind": "pose-plate",
+   "character": "holmes",
+   "pose": "pout"
+  },
+  {
+   "file": "watson-pose-walk.png",
+   "bytes": 16651,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "walk"
+  },
+  {
+   "file": "watson-pose-read.png",
+   "bytes": 17574,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "read"
+  },
+  {
+   "file": "watson-pose-think.png",
+   "bytes": 17901,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "think"
+  },
+  {
+   "file": "watson-pose-station-idle.png",
+   "bytes": 16651,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "station-idle"
+  },
+  {
+   "file": "watson-pose-notebook-mark.png",
+   "bytes": 17784,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "notebook-mark"
+  },
+  {
+   "file": "watson-pose-gasp.png",
+   "bytes": 18606,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "gasp"
+  },
+  {
+   "file": "watson-pose-celebrate-jump.png",
+   "bytes": 18114,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "celebrate-jump"
+  },
+  {
+   "file": "watson-pose-high-five.png",
+   "bytes": 17392,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "high-five"
+  },
+  {
+   "file": "watson-pose-clap.png",
+   "bytes": 17493,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "clap"
+  },
+  {
+   "file": "watson-pose-pout.png",
+   "bytes": 17544,
+   "width": 268,
+   "height": 280,
+   "decodedMB": 0.3002,
+   "kind": "pose-plate",
+   "character": "watson",
+   "pose": "pout"
+  },
+  {
+   "file": "silhouette-holmes-104.png",
+   "kind": "silhouette",
+   "bytes": 2450,
+   "width": 43,
+   "height": 104,
+   "decodedMB": 0.0179
+  },
+  {
+   "file": "silhouette-watson-104.png",
+   "kind": "silhouette",
+   "bytes": 2647,
+   "width": 63,
+   "height": 104,
+   "decodedMB": 0.0262
+  }
+ ],
+ "notes": [
+  "Parts are cropped to their alpha bbox; rect_vb gives each part's placement rect in rig viewBox units (x0,y0,x1,y1). Assemble in order: legs, arm-back/note, torso, arm-front, face, hat.",
+  "Faces: holmes-face-<kind>.png / watson-face-<kind>.png are full head parts with the expression drawn in the character's own features; holmes-head.png / watson-head.png are the neutral bases.",
+  "The painted magnifier was cleared from Holmes's arm/torso layers (gold-pixel mask) so prop-glass.png is the single glass source \u2014 celebrate/high-five/clap (glass handed to Watson) stay contract-true.",
+  "Watson's painted notebook remains in his torso/arm region where the source art places it; prop-notebook-pencil.png is also provided for the engine.",
+  "High-five raised arms are drawn explicitly to the anchor (same technique as the SVG rig), sleeve in coat plaid, palm disc centred on HIGH_FIVE_CONTACT; error measured from the assembled plates' skin-cluster centroid.",
+  "Halo: plates render the baked cream halo + dark keyline pass; part files carry a dark keyline edge. No live filters."
+ ]
+}
