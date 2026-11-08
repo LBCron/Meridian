@@ -636,3 +636,25 @@ the tip):
 - Next: width-test re-run numbers → Silo QA re-key on
   the final tip → panel re-vote (round 3), clean-context
   briefs per the owner's retro law.
+
+## Round-3 lane state — 2026-11-08 (coordinator)
+
+- **Branch history rewritten:** the cure branch was
+  rebased onto current main (`9e49da3`, PR #365) — a
+  clean replay, no conflicts, no substance change (the
+  diff is assets/spec/harness/records only; nothing in
+  the End-game merge touches them), so no panel re-vote
+  is triggered by the rebase itself. Force-pushed with
+  lease.
+- **Full gates re-run on the rebased tip:** unit
+  suite (guard included) — see the Silo QA re-key
+  record for the keyed numbers.
+- **Round-3 PR body badge** carries facts only (what
+  was cured, the §16.5 demotion, §16.6 scope, the
+  `neg/*` gates, kid-test scope as fact); it carries
+  no coordinator recommendation and no vote request —
+  the tally goes in the body after the re-vote.
+- **Widow leg open:** the kidtest width-test re-run
+  (coverage + Watson legs under the soft asserts) was
+  still running when this section was written; its
+  numbers land here when the runner reports.
