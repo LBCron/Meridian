@@ -246,9 +246,9 @@ see:
    The per-character data stays the source of truth.
 2. **Measured, honestly recorded:** with the adapter in
    place the smoke measures face height at max in-band size:
-   Holmes 31 / 35 / 39 / 42 px at 390 / 768 / 1280 / 1920 —
+   Holmes 31 / 35 / 39 / 43 px at 390 / 768 / 1280 / 1920 —
    BELOW the §8.3 floors (38 / 44 / 48 / 52) in every cell.
-   Watson 38 / 43 / 48 / 56 px — passes 390 + 1280, misses
+   Watson 38 / 43 / 48 / 53 px — passes 390 + 1280, misses
    768 by 1 px, passes 1920. Full table:
    `docs/pair-art/KIDTEST_SMOKE.md` (regenerated).
 3. **What the published box is:** the whole head crop
@@ -310,3 +310,23 @@ see:
   stays the known no-focus-trap nit from the #365 panel
   record. No baseline rerun needed — the pass/fail pair
   on near-identical tips is the A/B proof.
+
+## Silo QA FAIL → prose cure — 2026-11-08 (coordinator)
+
+- Silo QA on `96ab16e`: FAIL, sole defect = records
+  accuracy. 7 of 8 checks passed with exact matches
+  (scope 78 files / 5,997 / 137, zero `src/`; lock drift 0
+  over 64 entries; manifest adapter exact; guard 6/6;
+  tsc clean; lint-cards GATE PASSED). The smoke script
+  measures the 1920 face cell as Holmes 43 / Watson 53 px;
+  three prose records said 42 / 56. First three cells
+  matched everywhere; the ruling-(f) outcome is unchanged.
+- Cure (this commit): the three prose records corrected
+  to the script's numbers — BRANCH_STATUS ruling (f),
+  PR_BODY face paragraph, asset-lock.md manifest note.
+  `docs/pair-art/KIDTEST_SMOKE.md` already carried the
+  script's numbers (the silo re-ran the smoke; the
+  regenerated file was byte-identical to the committed
+  one). No art, harness, or code file touched.
+- Delta Silo QA re-key on the cured tip follows; the
+  panel votes the cured tip.

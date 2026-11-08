@@ -95,8 +95,8 @@ Full text: `docs/pair-art/MODEL_SHEET_SPEC.md` §§8–10.
   floors 38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920.
   **Measured on the delivered sheets (smoke re-run, final
   tip): the face measure now RUNS — Holmes 31 / 35 / 39 /
-  42 px, below the floor in every cell; Watson 38 / 43 /
-  48 / 56 px, missing only the 768 floor by 1 px.** The
+  43 px, below the floor in every cell; Watson 38 / 43 /
+  48 / 53 px, missing only the 768 floor by 1 px.** The
   published face box is the whole head crop (hat brim →
   chin), exactly §8.3's definition, so the shortfall is
   real: the head is ~24% of Holmes's figure height in the
