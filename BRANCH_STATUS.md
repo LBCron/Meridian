@@ -410,3 +410,57 @@ mouth-rule clarification in the spec; the face-floor cure
 CHOICE (re-proportion vs floor amendment) is the owner's —
 escalated with the panel's numbers. Panel re-votes the
 cured tip; no merge on round 1.
+
+## Panel round-1 cures complete — 2026-11-08 (coordinator)
+
+Cure commits on top of `c857a71`: records `9cdd7d1` →
+harness/protocol `36c792b` → art re-cut `e0e03e0` → plates
+`7ed1f6d` → raised-arm parts `008c9fb`. Every BLOCK's cure:
+
+- **Game developer F1–F4:** arms repainted with hands
+  (skin 229–272 px/part, palms on the rig hand points,
+  centroids ≤0.6 vb); legs split leg-a/leg-b with pivots
+  recorded; assembly + palm measurer shipped in the
+  kidtest spec and RUNNING — palm error Holmes 0.22 /
+  Watson 0.33 rig px (gate ≤3) via new dedicated
+  `arm-raised` parts, matching the rig's own high-five
+  branch (DetectivePair.tsx draws the raised arm
+  explicitly; the base arm's 26.6 vb palm radius cannot
+  reach the 39.1 vb anchor by rotation). Assembly-vs-plate
+  diff 0.563 / 0.520 (gate ≤0.60).
+- **Frontend:** seam bars re-cut (0 flat rows remain;
+  assembly scan: no keyline run ≥8 px at any junction);
+  halo underlay parts shipped (`holmes-halo.png` /
+  `watson-halo.png`); budgets re-measured: runtime
+  172,431 B, decoded 2.44 MB — PASS.
+- **Glass contract:** baked hand + magnifier inpainted
+  out of torso/legs/all Holmes plates; dock-family plates
+  carry exactly one glass (the prop); celebrate/high-five/
+  clap carry zero.
+- **Faces (plate level):** Holmes + Watson pout redrawn
+  to §6.2 (inverted mouth arc, measured); Watson delighted
+  strengthened (mouth-band dark px 91 → 177); pose-pout
+  slump added. The face-FLOOR numbers are unchanged
+  (heads not re-proportioned) — ruling (f) stands and the
+  cure CHOICE (re-proportion vs floor amendment) is the
+  owner's, escalated with the round-1 numbers.
+- **UX researcher B1–B3:** expression leg rebuilt —
+  96 trials (expression 72 = 12 cells × 2 characters ×
+  delighted/surprised/pout, rendered on-figure at floor
+  scale, counterbalanced); allocation explicit (30
+  independent children/cell, total N = 360, first-exposure
+  by construction); per-band floor ≥9/10 written pre-run,
+  band-stratified verdicts in the results template.
+- **Office hours:** both BLOCKs cured in `9cdd7d1`
+  (face FAIL headlined in Summary + budget-table row;
+  scope wording aligned to ruling (a) in spec, handbook,
+  and this file).
+- Gates on cured tip `008c9fb`: tsc clean · unit suites
+  3,287/0 (npm test aggregate) · guard 6/6 · lint-cards
+  GATE PASSED · build green (71 pair-art files in dist) ·
+  CI ALL GREEN (run 42457851211: build + e2e +
+  GitGuardian) · zero `src/` paths (84 files).
+- Next: panel re-vote on the cured tip (clean-context
+  briefs per the owner's retro law, 2026-11-08), then
+  DevEx + benchmark, then the merge call. The face-floor
+  owner question rides with the re-vote report either way.

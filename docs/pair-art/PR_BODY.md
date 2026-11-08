@@ -87,10 +87,10 @@ placeholder.
 
 | Budget | Hard limit | Measured | Verdict |
 | :--- | :--- | :--- | :--- |
-| Total runtime pair assets (lazy-loaded) | ≤500 KB | 147.9 KB | PASS |
-| Decoded memory | ≤32 MB | 1.54 MB | PASS |
-| Palm-anchor error — Holmes `(99, 25)` | ≤3 px at rig scale | 0.35 px | PASS |
-| Palm-anchor error — Watson `(15, 21)` | ≤3 px at rig scale | 0.35 px | PASS |
+| Total runtime pair assets (lazy-loaded) | ≤500 KB | 172.4 KB (172,431 B — panel-cure parts added: split legs, halos, raised arms) | PASS |
+| Decoded memory | ≤32 MB | 2.44 MB | PASS |
+| Palm-anchor error — Holmes `(99, 25)` | ≤3 px at rig scale | 0.22 rig px — measured by the shipped assembly measurer on the cured parts (dedicated raised-arm part, drawn explicitly per the rig contract) | PASS |
+| Palm-anchor error — Watson `(15, 21)` | ≤3 px at rig scale | 0.33 rig px — measured by the shipped assembly measurer on the cured parts (dedicated raised-arm part) | PASS |
 | Live per-frame SVG filters | 0 | 0 | PASS |
 | Static composite — Holmes | ≈20–30 KB | 15.7 KB | PASS |
 | Static composite — Watson | ≈20–30 KB | 18.6 KB | PASS |
@@ -170,7 +170,7 @@ spec §14:
   `scripts/kidtest-*`, and `public/assets/detective/pair-art/`
   are PR A’s own harness and assets, in scope per the owner’s
   brief.)
-- Diff stat at vote time: the full PR diff against main `9e49da3`: 78 files changed, 6,034 insertions(+), 137 deletions(-) (measured at the Silo-QA-cured tip `df7adbc`; records-only commits after it change prose counts, never scope) — assets, docs, harness; zero `src/` paths — any `src/` path in
+- Diff stat at vote time: the full PR diff against main `9e49da3`: 84 files changed, 7,741 insertions(+), 138 deletions(-) (measured at the panel-cured tip `008c9fb`; records-only commits after it change prose counts, never scope) — assets, docs, harness; zero `src/` paths — any `src/` path in
   the final diff fails this PR; `tests/`, `scripts/`, and
   `public/` paths beyond the kidtest spec, the playwright
   project, the kidtest scripts, and the pair-art assets fail
@@ -198,7 +198,7 @@ Flagged in spec §12, not papered over. Headlines:
 - [ ] Diff audit — scope list above, staged files named only,
   never `git add -A`
 - [x] Harness — `node scripts/kidtest-smoke.mjs` + the `pair-art-kidtest` Playwright project, re-run on the final tip `504ddbc`:
-  smoke RAN (64 plates, 0 missing; face measure live via the manifest `plates` adapter — Holmes below floor in every cell, Watson 768 by 1 px, both recorded under ruling (f), NOT cured); Playwright: 5 tests executed in 33.6 min — size band + zero clue-text coverage PASS on the real built page at 390/768/1280/1920; face floor FAILED for Holmes at every width exactly as the smoke predicted (the harness hard-asserts the shortfall — see the Panel section: the round-1 panel read the "5/5" phrasing against this FAIL and the wording is corrected here; the run's green was the size/coverage measures completing their contract, never a face pass); human trials prepared, never faked: trial manifest + find screens exported, `results: null` throughout. Repo gates on the same tip: tsc clean · `npm test` 3,287 pass / 0 fail · worker suite 145/0 (run for completeness; no `workers/` files touched) · lint-cards GATE PASSED · `build:pages` green (65 pair-art files in dist, inert until PR B imports them).
+  smoke RAN (70 plates, 0 missing; face measure live via the manifest `plates` adapter — Holmes below floor in every cell, Watson 768 by 1 px, both recorded under ruling (f), NOT cured); Playwright: 5 tests executed in 33.6 min — size band + zero clue-text coverage PASS on the real built page at 390/768/1280/1920; face floor FAILED for Holmes at every width exactly as the smoke predicted (the harness hard-asserts the shortfall — see the Panel section: the round-1 panel read the "5/5" phrasing against this FAIL and the wording is corrected here; the run's green was the size/coverage measures completing their contract, never a face pass); human trials prepared, never faked: trial manifest + find screens exported, `results: null` throughout. Repo gates on the same tip: tsc clean · `npm test` 3,287 pass / 0 fail · worker suite 145/0 (run for completeness; no `workers/` files touched) · lint-cards GATE PASSED · `build:pages` green (71 pair-art files in dist on the cured tip, inert until PR B imports them). On the cured tip the kidtest project runs 6 tests: the 4 width measures (size + coverage PASS, face floor FAIL per ruling (f) — by design, the harness hard-asserts the floors), the trial preparation (96 trials, results null), and the assembly + palm measurement — **PASS** (Holmes 0.22 / Watson 0.33 rig px vs ≤3 gate, assembly-vs-plate diff 0.563 / 0.520 vs ≤0.60).
 - [x] Silo QA — **PASS** keyed PR#366 + `df7adbc`: full silo @`96ab16e` passed 7/8 checks with exact matches (scope, lock drift 0/64, manifest adapter, guard 6/6, tsc, lint-cards) and FAILED one records item (1920 face-px prose 42/56 vs the smoke script's measured 43/53); prose-only cure `df7adbc`; **DELTA SILO QA PASS** on the cured tip (cure confined to the 3 records files, corrected numbers verified, smoke regeneration byte-identical, guard still 6/6).
 - [ ] Panel — 13 seats incl. Game player, on the final tip:
   {{PANEL_TALLY}}
