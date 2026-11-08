@@ -2,7 +2,7 @@
 
 Painted-parts paper-doll for Holmes & Watson, cut from the owner-approved mockup art (keeper: bench still, Cold Trail film register). Engine contract: `DetectivePair.tsx` @ main `9e49da3` — Holmes viewBox 120×178, Watson 134×140, parts rendered at 2 px per viewBox unit.
 
-**Runtime total: 172,431 bytes / 500,000 budget — PASS** · **Decoded: 2.436 MB / 32 MB — PASS** · Palm error: Holmes 0.35 px, Watson 0.35 px / ≤3 px — PASS
+**Runtime total: 171,918 bytes / 500,000 budget — PASS** · **Decoded: 2.436 MB / 32 MB — PASS** · Palm error (assembled parts, harness): Holmes 0.22 rig px, Watson 0.33 rig px / ≤3 rig px — PASS · Plates after the open-palm repaint (PIL, cluster-nearest-anchor): Holmes 0.72 / Watson 0.71 rig px — PASS
 
 Pose plates and silhouettes are docs/test assets and are excluded from the runtime total.
 
@@ -17,20 +17,20 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 | holmes-leg-b.png | 3,173 | 99x140 | 0.0554 | [35.5, 109, 85, 179] |
 | holmes-arm-back.png | 2,656 | 60x120 | 0.0288 | [28, 47, 58, 107] |
 | holmes-arm-front.png | 2,335 | 64x92 | 0.0236 | [66, 47, 98, 93] |
-| holmes-arm-raised.png | 2,219 | 70x92 | 0.0258 | [70.0, 20.5, 105.0, 66.5] |
+| holmes-arm-raised.png | 2,314 | 70x92 | 0.0258 | [70.0, 20.5, 105.0, 66.5] |
 | holmes-torso.png | 8,289 | 112x194 | 0.0869 | [32.0, 42.0, 88.0, 139.0] |
 | watson-hat.png | 2,455 | 139x48 | 0.0267 | [27.5, -1.0, 97.0, 23.0] |
 | watson-leg-a.png | 3,268 | 159x108 | 0.0687 | [27, 87, 106.5, 141] |
 | watson-leg-b.png | 3,879 | 159x108 | 0.0687 | [27, 87, 106.5, 141] |
 | watson-arm-front.png | 2,381 | 72x112 | 0.0323 | [13, 43, 49, 99] |
-| watson-arm-raised.png | 2,086 | 66x92 | 0.0243 | [8.5, 16.0, 41.5, 62.0] |
+| watson-arm-raised.png | 2,159 | 66x92 | 0.0243 | [8.5, 16.0, 41.5, 62.0] |
 | watson-arm-back.png | 2,493 | 80x120 | 0.0384 | [70, 43, 110, 103] |
-| watson-torso.png | 10,794 | 165x170 | 0.1122 | [25.5, 32.0, 108.0, 117.0] |
+| watson-torso.png | 9,834 | 165x170 | 0.1122 | [25.5, 32.0, 108.0, 117.0] |
 | holmes-face-neutral.png | 3,946 | 102x86 | 0.0351 | [32.5, 21.0, 83.5, 64.0] |
 | watson-face-neutral.png | 5,399 | 161x84 | 0.0541 | [27.5, 18.0, 108.0, 60.0] |
 | holmes-face-focused.png | 3,912 | 102x87 | 0.0355 | [32.5, 20.5, 83.5, 64.0] |
 | watson-face-focused.png | 5,350 | 161x85 | 0.0547 | [27.5, 17.5, 108.0, 60.0] |
-| holmes-face-thinking.png | 3,943 | 102x89 | 0.0363 | [32.5, 19.5, 83.5, 64.0] |
+| holmes-face-thinking.png | 3,976 | 102x89 | 0.0363 | [32.5, 19.5, 83.5, 64.0] |
 | watson-face-thinking.png | 5,382 | 161x87 | 0.056 | [27.5, 16.5, 108.0, 60.0] |
 | holmes-face-attentive.png | 3,897 | 102x86 | 0.0351 | [32.5, 21.0, 83.5, 64.0] |
 | watson-face-attentive.png | 5,305 | 161x84 | 0.0541 | [27.5, 18.0, 108.0, 60.0] |
@@ -42,10 +42,10 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 | watson-face-reading.png | 5,380 | 161x84 | 0.0541 | [27.5, 18.0, 108.0, 60.0] |
 | holmes-face-marking.png | 3,869 | 102x87 | 0.0355 | [32.5, 20.5, 83.5, 64.0] |
 | watson-face-marking.png | 5,349 | 161x85 | 0.0547 | [27.5, 17.5, 108.0, 60.0] |
-| holmes-face-delighted.png | 3,795 | 102x86 | 0.0351 | [32.5, 21.0, 83.5, 64.0] |
+| holmes-face-delighted.png | 3,822 | 102x86 | 0.0351 | [32.5, 21.0, 83.5, 64.0] |
 | watson-face-delighted.png | 5,246 | 161x84 | 0.0541 | [27.5, 18.0, 108.0, 60.0] |
-| holmes-face-surprised.png | 3,932 | 102x91 | 0.0371 | [32.5, 18.5, 83.5, 64.0] |
-| watson-face-surprised.png | 5,414 | 161x89 | 0.0573 | [27.5, 15.5, 108.0, 60.0] |
+| holmes-face-surprised.png | 4,046 | 102x91 | 0.0371 | [32.5, 18.5, 83.5, 64.0] |
+| watson-face-surprised.png | 5,519 | 161x89 | 0.0573 | [27.5, 15.5, 108.0, 60.0] |
 | holmes-face-pout.png | 3,972 | 102x87 | 0.0355 | [32.5, 20.5, 83.5, 64.0] |
 | watson-face-pout.png | 5,222 | 161x85 | 0.0547 | [27.5, 17.5, 108.0, 60.0] |
 | holmes-head.png | 3,946 | 102x86 | 0.0351 | [32.5, 21.0, 83.5, 64.0] |
@@ -64,23 +64,23 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 | holmes-pose-dock.png | 14,690 | 240x356 |
 | holmes-pose-walk.png | 14,699 | 240x356 |
 | holmes-pose-search.png | 15,609 | 240x356 |
-| holmes-pose-berth-think.png | 15,626 | 240x356 |
+| holmes-pose-berth-think.png | 15,611 | 240x356 |
 | holmes-pose-ack.png | 15,243 | 240x356 |
 | holmes-pose-announce.png | 16,568 | 240x356 |
 | holmes-pose-gaze-up.png | 15,552 | 240x356 |
 | holmes-pose-card-look.png | 15,076 | 240x356 |
-| holmes-pose-celebrate-jump.png | 16,275 | 240x356 |
-| holmes-pose-high-five.png | 16,341 | 240x356 |
-| holmes-pose-clap.png | 14,605 | 240x356 |
+| holmes-pose-celebrate-jump.png | 16,467 | 240x356 |
+| holmes-pose-high-five.png | 16,526 | 240x356 |
+| holmes-pose-clap.png | 14,665 | 240x356 |
 | holmes-pose-pout.png | 18,688 | 240x356 |
 | watson-pose-walk.png | 16,491 | 268x280 |
-| watson-pose-read.png | 17,574 | 268x280 |
-| watson-pose-think.png | 17,901 | 268x280 |
+| watson-pose-read.png | 16,595 | 268x280 |
+| watson-pose-think.png | 16,929 | 268x280 |
 | watson-pose-station-idle.png | 16,651 | 268x280 |
 | watson-pose-notebook-mark.png | 17,784 | 268x280 |
-| watson-pose-gasp.png | 18,606 | 268x280 |
-| watson-pose-celebrate-jump.png | 17,360 | 268x280 |
-| watson-pose-high-five.png | 18,478 | 268x280 |
+| watson-pose-gasp.png | 18,829 | 268x280 |
+| watson-pose-celebrate-jump.png | 15,954 | 268x280 |
+| watson-pose-high-five.png | 18,640 | 268x280 |
 | watson-pose-clap.png | 16,064 | 268x280 |
 | watson-pose-pout.png | 16,834 | 268x280 |
 | silhouette-holmes-104.png | 2,450 | 43x104 |
