@@ -59,8 +59,8 @@ handling, sessionStorage run restore.
 
 - [x] Source fix (game-app boot state, flag read/write removal, Cold Trail peek + Home resume label)
 - [x] Unit tests re-pinned / added (lazy-boundary pins, coldtrail peek tests, loop peek flag-alone test)
-- [ ] E2E specs re-pinned (geodetective, geodetective-hint, scout-toggle BLOCK-4, reset-history, chunk-boundary-copy)
-- [ ] NEW E2E: entry-routing spec at 390 + 768 + 1280 with render-level screenshots
-- [ ] Docs: README, docs/geodetective.md, handbook ch.02 decision record
+- [x] E2E specs re-pinned (geodetective, geodetective-hint, scout-toggle BLOCK-4, reset-history, chunk-boundary-copy)
+- [x] NEW E2E written: entry-routing spec at 390 + 768 + 1280 with render-level screenshots (run pending gates below)
+- [x] Docs: README, docs/geodetective.md, handbook ch.02 decision record ("Entry always lands on Home")
 - [ ] Gates: tsc · npm test · test:worker · lint-cards · build:pages · E2E (sequential, flock)
 - [ ] PR opened
