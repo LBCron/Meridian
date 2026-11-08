@@ -154,7 +154,7 @@ spec §14:
   `scripts/kidtest-*`, and `public/assets/detective/pair-art/`
   are PR A’s own harness and assets, in scope per the owner’s
   brief.)
-- Diff stat at vote time: the full PR diff against main `9e49da3`: 77 files changed, 5,962 insertions(+), 137 deletions(-) — assets, docs, harness; zero `src/` paths — any `src/` path in
+- Diff stat at vote time: the full PR diff against main `9e49da3`: 78 files changed, 5,994 insertions(+), 137 deletions(-) (recounted at the CI-cure tip `91c4318`) — assets, docs, harness; zero `src/` paths — any `src/` path in
   the final diff fails this PR; `tests/`, `scripts/`, and
   `public/` paths beyond the kidtest spec, the playwright
   project, the kidtest scripts, and the pair-art assets fail
@@ -188,6 +188,9 @@ Flagged in spec §12, not papered over. Headlines:
   {{PANEL_TALLY}}
 - [ ] DevEx: {{DEVEX_VERDICT}} · Benchmark: {{BENCHMARK_VERDICT}}
   · CI: {{CI_VERDICT}}
-- [ ] Code gates (tsc / unit / build): **NOT RUN** — docs +
-  assets only, no code touched; stated plainly rather than
-  implied green.
+- [x] Code gates (tsc / unit / build): **RUN and green** on
+  the final art tip — tsc clean · `npm test` 3,287 pass /
+  0 fail · worker suite 145/0 · lint-cards GATE PASSED ·
+  `build:pages` green (see the Harness line above; the one
+  scripts-suite test this PR's cure touched,
+  `e2e-telemetry-guard`, re-verified 6/6 at the cure tip).
