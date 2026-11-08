@@ -541,25 +541,47 @@ export async function holmesRect(page: Page): Promise<HolmesRect | null> {
  * Wait until the guessing phase is live and Holmes is SETTLED.
  *
  * What this proves (and only this): at the moment it returns, the
- * phase is SEARCH_IDLE, Holmes's placement is a settled placement
- * ("dock" or "berth" — under the owner's STAYS model a solved
- * berth never returns to "dock", so requiring "dock" alone is
- * unreachable once the specs' own unlock dwell has berthed him),
- * his wrapper is visible (non-zero rect, computed visibility not
- * "hidden" and display not "none" — viewport intersection is NOT
- * required: several callers call this before showMap() scrolls,
- * and the follow overlay is position:fixed), and he is STABLE:
- * placement identical and centre moved ≤2 px per axis versus
- * the previous sample, for 3 consecutive ~250 ms samples (~750 ms
- * — the solve→travel gap of 120 ms telegraph + ≤800 ms
- * travel reads as continuously-moving samples, so the streak
- * cannot complete mid-travel). In other words: settled + visible
- * + stable, with placement unchanged across the settle window —
- * a bounded no-drift/no-return proof over that window, not a
- * "stays forever" guarantee. The caller's timeout budget is
- * unchanged (120 s default); the stability window is spent
- * INSIDE it. On timeout the failure carries the same
- * speech-queue dump as before.
+ * phase is SEARCH_IDLE and Holmes's placement is a settled
+ * placement ("dock" or "berth" — under the owner's STAYS model a
+ * solved berth never returns to "dock", so requiring "dock" alone
+ * is unreachable once the specs' own unlock dwell has berthed
+ * him), held across 3 consecutive ~250 ms samples (~750 ms — the
+ * solve→travel gap of 120 ms telegraph + ≤800 ms travel reads as
+ * continuously-moving samples, so the streak cannot complete
+ * mid-travel). In other words: settled + stable, with placement
+ * unchanged across the settle window — a bounded
+ * no-drift/no-return proof over that window, not a "stays
+ * forever" guarantee. The caller's timeout budget is unchanged
+ * (120 s default); the stability window is spent INSIDE it. On
+ * timeout the failure carries the same speech-queue dump as
+ * before.
+ *
+ * TWO SETTLE TIERS, by whether Holmes's map figure exists:
+ *
+ * - Wrapper PRESENT ([data-testid="detective-holmes-wrapper"] in
+ *   the DOM — he has entered the map): the STRICT tier. His
+ *   wrapper must also be visible (non-zero rect, computed
+ *   visibility not "hidden" and display not "none" — viewport
+ *   intersection is NOT required: several callers call this
+ *   before showMap() scrolls, and the follow overlay is
+ *   position:fixed) and STABLE: centre moved ≤2 px per axis
+ *   versus the previous sample across the streak.
+ * - Wrapper ABSENT: he is legitimately still STANDING at the
+ *   bench/station slot. Entry is interaction-driven when follow
+ *   is OFF (#361 design), so a caller whose first map interaction
+ *   has not happened yet can sit at SEARCH_IDLE with the bench
+ *   still mounted and no wrapper in the DOM at all — the strict
+ *   tier timed those callers out on rect=null. There is no map
+ *   figure to drift in this state, so placement CONSTANCY across
+ *   the same 3-sample streak is the stability proof (this is
+ *   also exactly the pre-PB-1 helper's contract, which returned
+ *   in this state). The placement attribute is read from a
+ *   rendered root: if nothing is rendered it reads null and the
+ *   streak cannot complete.
+ * - A sample where the wrapper APPEARS mid-streak (he entered
+ *   during the wait) switches that caller to the strict tier for
+ *   the remaining streak: any presence change resets the streak,
+ *   exactly like a placement change.
  */
 export async function waitForSearchIdle(
   page: Page,
@@ -568,7 +590,12 @@ export async function waitForSearchIdle(
   try {
     const deadline = Date.now() + timeout;
     let lastState = "never sampled";
-    let prev: { placement: string; cx: number; cy: number } | null = null;
+    let prev: {
+      placement: string;
+      present: boolean;
+      cx: number;
+      cy: number;
+    } | null = null;
     let streak = 0;
     while (Date.now() < deadline) {
       // ONE evaluate per sample: phase + placement (the same
@@ -586,6 +613,7 @@ export async function waitForSearchIdle(
             return {
               phase: host?.getAttribute("data-phase") ?? null,
               placement: host?.getAttribute("data-holmes-placement") ?? null,
+              present: false,
               rect: null,
               visibility: null as string | null,
               display: null as string | null,
@@ -596,6 +624,7 @@ export async function waitForSearchIdle(
           return {
             phase: host?.getAttribute("data-phase") ?? null,
             placement: host?.getAttribute("data-holmes-placement") ?? null,
+            present: true,
             rect: { x: r.left, y: r.top, w: r.width, h: r.height },
             visibility: cs.visibility as string | null,
             display: cs.display as string | null,
@@ -603,20 +632,30 @@ export async function waitForSearchIdle(
         })
         .catch(() => null);
       if (s) {
-        lastState = `${s.phase}/${s.placement} rect=${JSON.stringify(s.rect)} streak=${streak}`;
-        const candidate =
+        lastState = `${s.phase}/${s.placement} wrapper=${s.present ? "present" : "absent"} rect=${JSON.stringify(s.rect)} streak=${streak}`;
+        const settledPlacement =
           s.phase === "SEARCH_IDLE" &&
-          (s.placement === "dock" || s.placement === "berth") &&
-          s.rect !== null &&
-          s.rect.w > 0 &&
-          s.rect.h > 0 &&
-          s.visibility !== "hidden" &&
-          s.display !== "none";
-        if (candidate && s.rect) {
-          const cx = s.rect.x + s.rect.w / 2;
-          const cy = s.rect.y + s.rect.h / 2;
+          (s.placement === "dock" || s.placement === "berth");
+        // Strict tier (wrapper present): visible + centre-stable.
+        // Standing tier (wrapper absent): placement constancy is
+        // the stability proof — see the doc comment above.
+        const candidate =
+          settledPlacement &&
+          (!s.present ||
+            (s.rect !== null &&
+              s.rect.w > 0 &&
+              s.rect.h > 0 &&
+              s.visibility !== "hidden" &&
+              s.display !== "none"));
+        if (candidate) {
+          // No centre exists in the standing tier; 0 is a sentinel
+          // that is only ever compared against another standing
+          // sample (a presence change resets the streak first).
+          const cx = s.rect ? s.rect.x + s.rect.w / 2 : 0;
+          const cy = s.rect ? s.rect.y + s.rect.h / 2 : 0;
           if (
             prev !== null &&
+            prev.present === s.present &&
             prev.placement === s.placement &&
             Math.abs(cx - prev.cx) <= 2 &&
             Math.abs(cy - prev.cy) <= 2
@@ -625,7 +664,7 @@ export async function waitForSearchIdle(
           } else {
             streak = 1;
           }
-          prev = { placement: s.placement!, cx, cy };
+          prev = { placement: s.placement!, present: s.present, cx, cy };
           if (streak >= 3) return;
         } else {
           streak = 0;
