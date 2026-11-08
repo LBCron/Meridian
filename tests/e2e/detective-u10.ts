@@ -521,24 +521,122 @@ export async function openSeamCase(page: Page, index: number): Promise<void> {
   throw new Error("speech never unlocked after 8 verified gesture taps");
 }
 
-/** Wait until the guessing phase is live and Holmes sits at the dock. */
+/** Holmes's wrapper rect (viewport px), or null when unmounted.
+ * Promoted to the shared harness: identical local helpers already
+ * exist in detective-follow.spec.ts and detective-berth.spec.ts. */
+export type HolmesRect = { x: number; y: number; w: number; h: number };
+
+export async function holmesRect(page: Page): Promise<HolmesRect | null> {
+  return page.evaluate(() => {
+    const el = document.querySelector(
+      '[data-testid="detective-holmes-wrapper"]',
+    );
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  });
+}
+
+/**
+ * Wait until the guessing phase is live and Holmes is SETTLED.
+ *
+ * What this proves (and only this): at the moment it returns, the
+ * phase is SEARCH_IDLE, Holmes's placement is a settled placement
+ * ("dock" or "berth" — under the owner's STAYS model a solved
+ * berth never returns to "dock", so requiring "dock" alone is
+ * unreachable once the specs' own unlock dwell has berthed him),
+ * his wrapper is visible (non-zero rect, computed visibility not
+ * "hidden" and display not "none" — viewport intersection is NOT
+ * required: several callers call this before showMap() scrolls,
+ * and the follow overlay is position:fixed), and he is STABLE:
+ * placement identical and centre moved ≤2 px per axis versus
+ * the previous sample, for 3 consecutive ~250 ms samples (~750 ms
+ * — the solve→travel gap of 120 ms telegraph + ≤800 ms
+ * travel reads as continuously-moving samples, so the streak
+ * cannot complete mid-travel). In other words: settled + visible
+ * + stable, with placement unchanged across the settle window —
+ * a bounded no-drift/no-return proof over that window, not a
+ * "stays forever" guarantee. The caller's timeout budget is
+ * unchanged (120 s default); the stability window is spent
+ * INSIDE it. On timeout the failure carries the same
+ * speech-queue dump as before.
+ */
 export async function waitForSearchIdle(
   page: Page,
   timeout = 120_000,
 ): Promise<void> {
   try {
-    await expect
-      .poll(
-        async () => {
-          const phase = await currentPhase(page);
-          const placement = await currentPlacement(page);
-          return phase === "SEARCH_IDLE" && placement === "dock"
-            ? "ready"
-            : `${phase}/${placement}`;
-        },
-        { timeout },
-      )
-      .toBe("ready");
+    const deadline = Date.now() + timeout;
+    let lastState = "never sampled";
+    let prev: { placement: string; cx: number; cy: number } | null = null;
+    let streak = 0;
+    while (Date.now() < deadline) {
+      // ONE evaluate per sample: phase + placement (the same
+      // selectors currentPhase/currentPlacement use) plus the
+      // wrapper's rect and computed visibility.
+      const s = await page
+        .evaluate(() => {
+          const host =
+            document.querySelector('[data-testid="detective-host"]') ??
+            document.querySelector('[data-testid="detective-station"]');
+          const wrapper = document.querySelector(
+            '[data-testid="detective-holmes-wrapper"]',
+          );
+          if (!wrapper) {
+            return {
+              phase: host?.getAttribute("data-phase") ?? null,
+              placement: host?.getAttribute("data-holmes-placement") ?? null,
+              rect: null,
+              visibility: null as string | null,
+              display: null as string | null,
+            };
+          }
+          const r = wrapper.getBoundingClientRect();
+          const cs = getComputedStyle(wrapper);
+          return {
+            phase: host?.getAttribute("data-phase") ?? null,
+            placement: host?.getAttribute("data-holmes-placement") ?? null,
+            rect: { x: r.left, y: r.top, w: r.width, h: r.height },
+            visibility: cs.visibility as string | null,
+            display: cs.display as string | null,
+          };
+        })
+        .catch(() => null);
+      if (s) {
+        lastState = `${s.phase}/${s.placement} rect=${JSON.stringify(s.rect)} streak=${streak}`;
+        const candidate =
+          s.phase === "SEARCH_IDLE" &&
+          (s.placement === "dock" || s.placement === "berth") &&
+          s.rect !== null &&
+          s.rect.w > 0 &&
+          s.rect.h > 0 &&
+          s.visibility !== "hidden" &&
+          s.display !== "none";
+        if (candidate && s.rect) {
+          const cx = s.rect.x + s.rect.w / 2;
+          const cy = s.rect.y + s.rect.h / 2;
+          if (
+            prev !== null &&
+            prev.placement === s.placement &&
+            Math.abs(cx - prev.cx) <= 2 &&
+            Math.abs(cy - prev.cy) <= 2
+          ) {
+            streak += 1;
+          } else {
+            streak = 1;
+          }
+          prev = { placement: s.placement!, cx, cy };
+          if (streak >= 3) return;
+        } else {
+          streak = 0;
+          prev = null;
+        }
+      }
+      await page.waitForTimeout(250);
+    }
+    throw new Error(
+      `waitForSearchIdle: Holmes never settled within ${timeout} ms (last sample: ${lastState})`,
+    );
   } catch (e) {
     // Self-diagnosing failure: dump the speech queue's state (what
     // played, what the tracked audio elements are doing) so a stall
@@ -568,6 +666,52 @@ export async function waitForSearchIdle(
       .catch(() => null);
     console.log(`[waitForSearchIdle] TIMEOUT dump: ${JSON.stringify(dump)}`);
     throw e;
+  }
+}
+
+
+/**
+ * Stays-settled window: sample Holmes's rect + placement every
+ * ~250 ms for `ms` and require that he does not move or change
+ * placement — placement constant and in the settled set
+ * {"dock", "berth"}, centre within 8 px per axis of the first
+ * sample (the house slack, matching detective-follow.spec.ts's
+ * assertPlanted). A bounded window proof like waitForSearchIdle's:
+ * he stayed settled FOR THIS WINDOW.
+ */
+export async function assertHolmesStaysSettled(
+  page: Page,
+  ms = 3_000,
+): Promise<void> {
+  const deadline = Date.now() + ms;
+  let first: { placement: string; cx: number; cy: number } | null = null;
+  for (;;) {
+    const placement = await currentPlacement(page);
+    const rect = await holmesRect(page);
+    expect(rect, "stays-settled: Holmes must stay mounted").not.toBeNull();
+    expect(
+      placement === "dock" || placement === "berth",
+      `stays-settled: placement ${placement} is not a settled placement`,
+    ).toBe(true);
+    const cx = rect!.x + rect!.w / 2;
+    const cy = rect!.y + rect!.h / 2;
+    if (first === null) {
+      first = { placement: placement!, cx, cy };
+    }
+    expect(
+      placement,
+      "stays-settled: placement changed during the window",
+    ).toBe(first.placement);
+    expect(
+      Math.abs(cx - first.cx),
+      "stays-settled: centre drifted on x",
+    ).toBeLessThanOrEqual(8);
+    expect(
+      Math.abs(cy - first.cy),
+      "stays-settled: centre drifted on y",
+    ).toBeLessThanOrEqual(8);
+    if (Date.now() >= deadline) return;
+    await page.waitForTimeout(250);
   }
 }
 
