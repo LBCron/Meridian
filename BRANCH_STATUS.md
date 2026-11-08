@@ -511,3 +511,50 @@ art, no `src/`, no flags:
   briefed: PR-body diff stat, asset-lock palm headline,
   composite byte sizes (art crew regeneration changes
   them).
+
+## Panel re-vote on `652cf13` — NOT READY; cure round 2 converged — 2026-11-08
+
+Re-vote on `652cf13`: **8 APPROVE-WITH-NITS, 5 BLOCK —
+NOT READY.** The round-2 cures are now converged on this
+branch (art `cure/366-art` + spec/records `cure/366-spec`
+merged; coordinator verification + convergence records at
+the tip):
+
+- **Watson torso:** baked hand + notebook inpainted out
+  (hand-zone skin 222 → 0 px, harness band); notebook-
+  brown in the baked zone of the read / think /
+  celebrate-jump plates 709 / 709 / 675 → 0. The 25-px
+  cluster at vb (89.7, 61.4) is a cream-shirt lapel
+  shading stripe, not a fragment — left in place.
+- **Faces:** `surprised` redrawn distinct from `wonder`
+  for both characters (clear O mouth — Watson's parts
+  the moustache; large round eyes; high angled brows);
+  11/11 faces distinct per character; §6.4 mouth travel
+  surprised↔wonder 3.56 / 3.93 rig px (≥3). Holmes
+  `delighted` is now the biggest mouth in his set
+  (mouth-box dark px 156 vs ≤80 for every other face);
+  Holmes `thinking` differentiated by side gaze + brow +
+  flat mouth.
+- **Pose plates:** high-five plates repainted with OPEN
+  palms (plates agree with the assembled-parts gate:
+  plate palms 0.72 / 0.71 rig px by cluster measure, PIL,
+  vs the parts gate 0.22 / 0.33, both ≤3); Watson
+  celebrate-jump airborne with arms up + delighted face
+  (glass held high, not at the face); Holmes
+  celebrate-jump airborne.
+- **Spec/records:** §8.2 bench-tableau wording; §8.3
+  face floors DEMOTED to pending the owner's ruling
+  (§16.5 — the re-proportion-vs-amend choice is his);
+  §16.6 coverage scope (celebration slot un-dimensioned,
+  Watson walk sweep unmeasured); §10 expression row now
+  reads at the cell's in-band size.
+- **Convergence records (coordinator):** asset-lock
+  per-file bytes + runtime total updated to the cured
+  art (171,918 B); palm headline 0.22 / 0.33 rig px
+  (assembled) with plate values alongside; composites
+  14,690 / 16,651 B; PR-body diff stat recounted at
+  `b925386` (84 files, 7,944 insertions, 138 deletions).
+- Next: coordinator kidtest + repo gates on the
+  converged tip → Silo QA re-key (the `df7adbc` key is
+  void) → panel re-vote (round 3) on the converged tip,
+  clean-context briefs per the owner's retro law.

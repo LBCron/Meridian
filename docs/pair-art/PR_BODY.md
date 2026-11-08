@@ -87,7 +87,7 @@ placeholder.
 
 | Budget | Hard limit | Measured | Verdict |
 | :--- | :--- | :--- | :--- |
-| Total runtime pair assets (lazy-loaded) | ≤500 KB | 172.4 KB (172,431 B — panel-cure parts added: split legs, halos, raised arms) | PASS |
+| Total runtime pair assets (lazy-loaded) | ≤500 KB | 171.9 KB (171,918 B at the converged cure tip — panel-cure parts: split legs, halos, raised arms) | PASS |
 | Decoded memory | ≤32 MB | 2.44 MB | PASS |
 | Palm-anchor error — Holmes `(99, 25)` | ≤3 px at rig scale | 0.22 rig px — measured by the shipped assembly measurer on the cured parts (dedicated raised-arm part, drawn explicitly per the rig contract) | PASS |
 | Palm-anchor error — Watson `(15, 21)` | ≤3 px at rig scale | 0.33 rig px — measured by the shipped assembly measurer on the cured parts (dedicated raised-arm part) | PASS |
