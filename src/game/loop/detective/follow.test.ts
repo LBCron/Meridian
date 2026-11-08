@@ -41,22 +41,37 @@ describe("solveFollow", () => {
     assert.equal(r.kind, "ring");
   });
 
+  // K2 cure (PR #364): clearance is judged on the ROUNDED solver
+  // output (r.x/r.y are the whole-px box the host renders) against
+  // a FRACTIONAL pointer — the exact stack that shaved a lawful
+  // 56.000 solve down to a rendered ~55.3-55.9 px edge in the K2
+  // mouse grid. The rendered edge must clear the law EXACTLY
+  // (>= law, no epsilon): RENDER_MARGIN_PX in legal() is what
+  // buys the headroom for the rounding + anchor delta.
   it("honours the desktop clearance bubble (>= 56 px edge distance)", () => {
-    const r = solveFollow(input())!;
+    const pointer = { x: 640.4, y: 400.6 };
+    const r = solveFollow(input({ pointer }))!;
     const cx = r.x + BOX.w / 2;
     const cy = r.y + BOX.h / 2;
-    const dx = Math.max(Math.abs(640 - cx) - BOX.w / 2, 0);
-    const dy = Math.max(Math.abs(400 - cy) - BOX.h / 2, 0);
-    assert.ok(Math.hypot(dx, dy) >= CLEARANCE_DESKTOP_PX - 0.01);
+    const dx = Math.max(Math.abs(pointer.x - cx) - BOX.w / 2, 0);
+    const dy = Math.max(Math.abs(pointer.y - cy) - BOX.h / 2, 0);
+    assert.ok(
+      Math.hypot(dx, dy) >= CLEARANCE_DESKTOP_PX,
+      `rendered edge ${Math.hypot(dx, dy)} < law ${CLEARANCE_DESKTOP_PX}`,
+    );
   });
 
   it("honours the touch clearance bubble (>= 64 px edge distance)", () => {
-    const r = solveFollow(input({ pointerType: "touch" }))!;
+    const pointer = { x: 640.4, y: 400.6 };
+    const r = solveFollow(input({ pointer, pointerType: "touch" }))!;
     const cx = r.x + BOX.w / 2;
     const cy = r.y + BOX.h / 2;
-    const dx = Math.max(Math.abs(640 - cx) - BOX.w / 2, 0);
-    const dy = Math.max(Math.abs(400 - cy) - BOX.h / 2, 0);
-    assert.ok(Math.hypot(dx, dy) >= CLEARANCE_TOUCH_PX - 0.01);
+    const dx = Math.max(Math.abs(pointer.x - cx) - BOX.w / 2, 0);
+    const dy = Math.max(Math.abs(pointer.y - cy) - BOX.h / 2, 0);
+    assert.ok(
+      Math.hypot(dx, dy) >= CLEARANCE_TOUCH_PX,
+      `rendered edge ${Math.hypot(dx, dy)} < law ${CLEARANCE_TOUCH_PX}`,
+    );
   });
 
   it("never intersects a forbidden rect", () => {
