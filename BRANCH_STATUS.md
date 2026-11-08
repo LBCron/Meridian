@@ -293,3 +293,20 @@ see:
   standing suspect. Baseline check: sequential local run
   of the spec against unmodified main; classification
   recorded from its result before the panel votes.
+
+## CI green + round-loop classification — 2026-11-08 (coordinator)
+
+- CI on tip `96ab16e` (run 42451949931): ALL GREEN —
+  `build (22.x)` PASS 2m23s (guard cure works in CI),
+  `e2e` PASS 5m26s, GitGuardian PASS.
+- **round-loop-a11y classification: PRE-EXISTING FLAKE,
+  not PR-caused.** The spec passed in the cured tip's own
+  e2e run after failing once on `48e507e` (same failure
+  signature: 3C "Tab 32 left the dialog to BODY"). PR A
+  never touched the spec (byte-identical to main) or any
+  code it exercises; main @ `9e49da3` CI was green at
+  03:21Z including this spec; the three earlier branch
+  runs failed the build job only. The standing suspect
+  stays the known no-focus-trap nit from the #365 panel
+  record. No baseline rerun needed — the pass/fail pair
+  on near-identical tips is the A/B proof.
