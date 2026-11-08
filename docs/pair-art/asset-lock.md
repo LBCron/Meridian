@@ -95,7 +95,7 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 
 ## Silhouette gate (104 px, grayscale)
 
-- Holmes: PASS — tall/thin, deerstalker reads (47 px wide at 104 px high)
+- Holmes: PASS — tall/thin, deerstalker reads (43 px wide at 104 px high)
 - Watson: PASS — short/stout, bowler reads (63 px wide at 104 px high)
 - Distinguishable at a glance: PASS
 

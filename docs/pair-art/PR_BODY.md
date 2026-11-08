@@ -95,7 +95,7 @@ placeholder.
 | Static composite — Holmes | ≈20–30 KB | 15.7 KB | PASS |
 | Static composite — Watson | ≈20–30 KB | 18.6 KB | PASS |
 | Scale ratio Watson / Holmes (every composite) | 0.73–0.79 (≈0.75 law) | 0.75–0.77 (mean 0.76) | PASS |
-| Silhouette gate (grayscale, 104 px) | Approved before colour lock | Approved — both figures read correctly in grayscale at 104 px before colour lock (Holmes tall/thin + deerstalker, 47 px wide; Watson short/stout + bowler, 63 px wide; locked in ASSET_LOCK.json `silhouette_gate`) | PASS |
+| Silhouette gate (grayscale, 104 px) | Approved before colour lock | Approved — both figures read correctly in grayscale at 104 px before colour lock (Holmes tall/thin + deerstalker, 43 px wide; Watson short/stout + bowler, 63 px wide; locked in ASSET_LOCK.json `silhouette_gate`) | PASS |
 | Face height at max in-band size (§8.3 floors) | Holmes ≥38 / 44 / 48 / 52 px · Watson ≥38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920 | Holmes 31 / 35 / 39 / 43 px · Watson 38 / 43 / 48 / 53 px | **MEASURED BELOW THE FLOORS — floors DEMOTED to PENDING THE OWNER'S RULING (spec §16.5): they are NOT binding law until the owner rules, so this is a recorded shortfall, not a breach of a binding floor; the §8.3 size band stands; the choice — re-proportion Holmes's head vs amend the floors — is the owner's and is deferred** |
 | Harness target revision | — | 1762e3f (the kid-test harness commit); the smoke re-run on the final art tip is recorded in the Harness line below | — |
 
@@ -159,7 +159,7 @@ spec §14:
 | Surface | Could duplicate | Verdict |
 | :--- | :--- | :--- |
 | PR A harness (palm / budgets / ratio / silhouette) | Detective E2E suite (`tests/e2e/detective-*.spec.ts`) | **Complements, does not duplicate** — E2E tests the wired game in a browser; the harness tests loose sheets before wiring exists. Neither can do the other's job. |
-| Painted sheets (`docs/pair-art/`) | Inline SVG art in `DetectivePair.tsx` | **Complements, does not duplicate** — the inline art stays the shipping fallback (Save-Data rung + flag-off path) until PR D retires it after the flip. Bounded, named, with a deletion PR. |
+| Painted sheets (`public/assets/detective/pair-art/`) | Inline SVG art in `DetectivePair.tsx` | **Complements, does not duplicate** — the inline art stays the shipping fallback (Save-Data rung + flag-off path) until PR D retires it after the flip. Bounded, named, with a deletion PR. |
 | Model sheet spec | Handbook ch.10 | **Different jobs** — handbook = decision record; spec = executable build contract. The addendum summarises and points; it does not copy tables. |
 | This PR body | `BRANCH_STATUS.md` | **Different moments** — branch status is the living capsule; the PR body is the one-time merge record the panel votes on. Repo convention. |
 

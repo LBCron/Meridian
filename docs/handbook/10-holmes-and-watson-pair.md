@@ -766,7 +766,8 @@ shipped in PRs #355–#363.*
     travel ≥3 px at rig scale from neutral.
   - **Silhouette gate (PR A, crew-internal):** grayscale
     renders at 104 px approved before colour lock; the
-    renders live with the sheets in `docs/pair-art/`.
+    renders live with the sheets in
+    `public/assets/detective/pair-art/`.
   - **Kid test (PR D go / no-go):** per width × background
     cell — find-Holmes ≥27/30 in ≤2 s in every cell
     including the static fallback (≤25 = kill), identity

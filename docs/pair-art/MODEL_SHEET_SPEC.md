@@ -820,7 +820,10 @@ by outline first — hat, height, width, stance.
    if the gate fails — that is the point of the order.
 
 The grayscale renders **live with the sheets** in the
-repo (committed alongside them under `docs/pair-art/`),
+repo (committed alongside them under
+`public/assets/detective/pair-art/` — the renders are
+asset files, not docs; `docs/pair-art/` holds only this
+spec, the PR body, and the locks),
 so the panel can re-check the gate from the PR alone,
 without regenerating anything.
 
@@ -959,9 +962,11 @@ Done condition / scenarios / evidence that will prove it:
 Files and interfaces in scope:
   - docs/pair-art/MODEL_SHEET_SPEC.md (this file, new)
   - docs/pair-art/PR_BODY.md (new)
-  - docs/pair-art/ (sheet assets + grayscale renders +
-    harness output, as delivered by the art + harness
-    crews — paths named in the PR body when they land)
+  - public/assets/detective/pair-art/ (sheet assets +
+    grayscale renders, as delivered by the art crew)
+  - docs/pair-art/ (spec, PR body, locks + harness
+    output, as delivered by the harness crew — paths
+    named in the PR body when they land)
   - docs/handbook/10-holmes-and-watson-pair.md
     (additive PR A addendum ONLY — no rewrite of any
     existing section)
@@ -1075,7 +1080,7 @@ context. PR A's audit:
 | Surface PR A adds | Existing surface it could be confused with | Verdict | Reason |
 | :--- | :--- | :--- | :--- |
 | PR A measurement harness (palm error, budgets, scale ratio, silhouette renders) | The detective E2E suite (`tests/e2e/detective-*.spec.ts`: visibility, staging, stations, watson-walk, swap, berth, closed-state, sound, …) | **Keep — complements, does not duplicate** | The E2E suite tests the **wired game in a browser**: placement, occlusion, speech timing, answer-blindness in play. The harness tests **loose sheet files before any wiring exists**: palm pixels, file budgets, height ratios, grayscale legibility. Neither can do the other's job — E2E cannot measure an unwired sheet, and the harness cannot prove in-play occlusion. When PR B wires the sheets, PR B re-runs the E2E suite on the flag-on tip; the harness is not re-purposed as an E2E substitute. |
-| Painted model sheets under `docs/pair-art/` | The inline SVG art inside `DetectivePair.tsx` | **Keep — complements, does not duplicate** | Two art paths exist **on purpose, for a bounded time**: the inline art is the shipping fallback (Save-Data rung 3, §7, and the flag-off path for PRs B–C); the sheets are the source PR B wires behind `pairArt`. The duplication is retired in exactly one place — PR D deletes the flat path after the flip. Until then, neither path is edited to mimic the other. |
+| Painted model sheets under `public/assets/detective/pair-art/` | The inline SVG art inside `DetectivePair.tsx` | **Keep — complements, does not duplicate** | Two art paths exist **on purpose, for a bounded time**: the inline art is the shipping fallback (Save-Data rung 3, §7, and the flag-off path for PRs B–C); the sheets are the source PR B wires behind `pairArt`. The duplication is retired in exactly one place — PR D deletes the flat path after the flip. Until then, neither path is edited to mimic the other. |
 | This spec (`docs/pair-art/MODEL_SHEET_SPEC.md`) | Handbook ch.10 (`docs/handbook/10-holmes-and-watson-pair.md`) | **Keep — different jobs** | The handbook is the decision record: what was ruled, when, by whom. This spec is the build contract: pivots, numbers, gates an artist and a harness can execute. The handbook addendum (§15 pointer) summarises and points here; it does not copy the tables. |
 | `docs/pair-art/PR_BODY.md` | `BRANCH_STATUS.md` | **Keep — different readers** | BRANCH_STATUS is the branch's living capsule + checklist, updated as work lands. The PR body is the one-time merge record the panel votes on. Same facts, two moments in the lifecycle — the repo's standing convention for every branch. |
 
