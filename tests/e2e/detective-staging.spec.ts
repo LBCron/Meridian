@@ -1,6 +1,7 @@
 import { test, expect, type BrowserContext, type Page } from "playwright/test";
 import { serveBuiltArtifact } from "./helpers";
 import {
+  assertHolmesStaysSettled,
   AuditTrail,
   collectAuditWindow,
   companionMode,
@@ -799,6 +800,10 @@ test("staging PB-1: remote-first-entry berths Holmes AT THE PAUSE, not the dock 
       .toBeLessThanOrEqual(230);
     const landed = await holmesWrapperPos(page);
     expect(landed).not.toBeNull();
+    // Cure A3: the arrival is not a pass-through — he STAYS settled
+    // at the pause (default 3 s window) before the not-at-dock
+    // check below.
+    await assertHolmesStaysSettled(page);
     expect(
       Math.hypot(
         landed!.x - (mapBox!.x + dockRel.x),

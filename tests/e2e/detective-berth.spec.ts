@@ -140,8 +140,13 @@ test("pause-berth tier: a FAR pause berths in its neighbourhood and holds (1280,
     await waitForSearchIdle(page);
     await showMap(page);
     expect(await followTier(page)).toBe("PAUSE_BERTH");
-    const startPos = await holmesWrapperPos(page);
-    expect(startPos).not.toBeNull();
+    // Cure A4: the SETTLED position after the cured idle wait —
+    // it may be a dwell berth, not the dock. checkLanded's >40 px
+    // displacement-from-start still works from a settled berth:
+    // this test's pause point is far (>320 px) from wherever he
+    // settled.
+    const settledPos = await holmesWrapperPos(page);
+    expect(settledPos).not.toBeNull();
     const mb = await page.getByTestId("loop-map").boundingBox();
     expect(mb).not.toBeNull();
     // Far corner of the map — well beyond the deleted 320 px remote
@@ -149,15 +154,15 @@ test("pause-berth tier: a FAR pause berths in its neighbourhood and holds (1280,
     // rule (strictly above the point) is gone too.
     const point = { x: mb!.x + mb!.width * 0.82, y: mb!.y + mb!.height * 0.78 };
     expect(
-      Math.hypot(point.x - startPos!.x, point.y - startPos!.y),
+      Math.hypot(point.x - settledPos!.x, point.y - settledPos!.y),
     ).toBeGreaterThan(320);
-    const landed = await berthAtMouse(page, point, startPos!);
+    const landed = await berthAtMouse(page, point, settledPos!);
     console.log(
       `[berth-tier 1280] far point=(${Math.round(point.x)},${Math.round(point.y)}) landed=(${landed.x},${landed.y})`,
     );
     // Holds: no drift home over 3 s.
     await page.waitForTimeout(3_000);
-    const held = await checkLanded(page, point, startPos!);
+    const held = await checkLanded(page, point, settledPos!);
     expect(held, "the berth must hold, not drift home").not.toBeNull();
   } finally {
     await context.close();
@@ -181,8 +186,9 @@ test("pause-berth tier: touch pause berths near the finger (390, follow OFF)", a
     await waitForSearchIdle(page);
     await showMap(page);
     expect(await followTier(page)).toBe("PAUSE_BERTH");
-    const startPos = await holmesWrapperPos(page);
-    expect(startPos).not.toBeNull();
+    // Cure A4: settled position, as in the FAR test above.
+    const settledPos = await holmesWrapperPos(page);
+    expect(settledPos).not.toBeNull();
     const mb = await page.getByTestId("loop-map").boundingBox();
     expect(mb).not.toBeNull();
     const point = { x: mb!.x + mb!.width * 0.7, y: mb!.y + mb!.height * 0.32 };
@@ -207,7 +213,7 @@ test("pause-berth tier: touch pause berths near the finger (390, follow OFF)", a
             touchPoints: [{ x: point.x + jx, y: point.y + jy, id: 1 }],
           });
           await page.waitForTimeout(350);
-          landed = await checkLanded(page, point, startPos!);
+          landed = await checkLanded(page, point, settledPos!);
           if (landed) break;
         }
       }

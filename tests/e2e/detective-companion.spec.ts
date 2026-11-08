@@ -1,6 +1,7 @@
 import { test, expect, type Browser, type Page } from "playwright/test";
 import { serveBuiltArtifact } from "./helpers";
 import {
+  assertHolmesStaysSettled,
   companionMode,
   currentPhase,
   currentPlacement,
@@ -665,6 +666,10 @@ test("K3 planted — a pinch does NOT cancel a berth (PB-1)", async ({ page, con
     await currentPlacement(page),
     "PB-1: a pinch must not cancel the berth back to a dock",
   ).toBe("berth");
+  // Cure A3: the instant assertion becomes a stays-settled window
+  // (1.5 s, matching the wait above) — placement constant and
+  // centre planted while the pinch still holds.
+  await assertHolmesStaysSettled(page, 1_500);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   console.log(
     `[K3 pinch PB-1] berth held through pinch; companion mode = ${await companionMode(page)}; watchdogSeeks=${await watchdogSeeks(page)}`,
@@ -685,6 +690,8 @@ test("K3 planted — a pan does NOT cancel a berth (PB-1)", async ({ page, conte
     await currentPlacement(page),
     "PB-1: a pan must not cancel the berth back to a dock — he stays",
   ).toBe("berth");
+  // Cure A3: stays-settled window (1.5 s, matching the wait above).
+  await assertHolmesStaysSettled(page, 1_500);
   console.log(
     `[K3 pan PB-1] berth held through pan; watchdogSeeks=${await watchdogSeeks(page)}`,
   );
