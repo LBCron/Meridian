@@ -636,6 +636,17 @@ the tip):
 - Next: width-test re-run numbers → Silo QA re-key on
   the final tip → panel re-vote (round 3), clean-context
   briefs per the owner's retro law.
+- **§6.4 note (coordinator measurement, 2026-11-08):**
+  a mouth-centroid probe over the face boxes does NOT
+  reproduce a travel number for `delighted` / `pout`
+  (the face-box dark mass is dominated by eyes, brows,
+  and Watson's moustache; the probe was recorded as
+  non-probative for those faces, not as a finding).
+  Spec §16.6(iii) now records §6.4 travel for
+  `delighted` and `pout` as NOT MEASURED on record —
+  only `surprised`↔`wonder` (3.56 / 3.93 rig px)
+  stands measured — so no seat or record claims a
+  §6.4 pass for those faces from this PR.
 
 ## Round-3 lane state — 2026-11-08 (coordinator)
 
