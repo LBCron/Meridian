@@ -216,3 +216,49 @@ branch protection untouched.
   mouth-height reading, coverage-against-real-page reading.
 - Next: push, open the PR, run the repo gates, Silo QA keyed
   to the final tip, 13-seat panel by name.
+
+## Face-floor finding — coordinator ruling (f), 2026-11-08
+
+The final-art smoke re-run surfaced a harness↔art break,
+fixed in this commit, plus an open measure the panel must
+see:
+
+1. **Adapter gap (fixed):** manifest.json carried face
+   geometry only in per-character shape
+   (`characters.<c>.faces.<kind>.faceBox`, natural px); the
+   harness readers (kid-test spec + smoke script) read a
+   top-level `plates` map keyed by plate filename with
+   `{faceBox}` fractions. Neither side was wrong — the
+   adapter between them was never written. `plates` is now
+   derived from the per-character data (figure plates from
+   the neutral faceBox ÷ figure natural size; a face plate's
+   box is its full frame — the crop IS the face region).
+   The per-character data stays the source of truth.
+2. **Measured, honestly recorded:** with the adapter in
+   place the smoke measures face height at max in-band size:
+   Holmes 31 / 35 / 39 / 42 px at 390 / 768 / 1280 / 1920 —
+   BELOW the §8.3 floors (38 / 44 / 48 / 52) in every cell.
+   Watson 38 / 43 / 48 / 56 px — passes 390 + 1280, misses
+   768 by 1 px, passes 1920. Full table:
+   `docs/pair-art/KIDTEST_SMOKE.md` (regenerated).
+3. **What the published box is:** the whole head crop
+   (hat brim → chin, hair and ears included) — exactly the
+   altitude §8.3 defines ("smallest rendered face height,
+   hat brim to chin"). The number is not a definitional
+   artefact; the head genuinely is ~24% of Holmes's figure
+   height in the delivered register, and the floors assume
+   ~30%.
+4. **Ruling:** the FAIL is RECORDED, not cured, in PR A.
+   Rationale: (a) the floors bind the FLIP (PR D go/no-go,
+   owner ruling 4), not PR A's sheets; (b) both candidate
+   cures change things PR A may not change alone — re-proportioning
+   the head departs from the reference register the owner
+   approved (❤️ "Love this version", 2026-11-07), and
+   shrinking the floors amends a study law; (c) PR A is
+   assets + spec + harness only. PR B owns the reconciliation,
+   and its options are now explicit: render sizes per cell,
+   head share at assembly, or a floor amendment carried to
+   the owner with this measurement attached. The 13-seat
+   panel votes with this finding on the table; a panel BLOCK
+   on it is a legitimate outcome and escalates to the owner
+   with the same numbers.

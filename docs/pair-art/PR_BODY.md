@@ -93,6 +93,20 @@ Full text: `docs/pair-art/MODEL_SHEET_SPEC.md` §§8–10.
   Hero moments carry the ratio inside the artwork. Kid-test
   bands 112–128 / 128–144 / 144–160 / 160–176 px with face
   floors 38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920.
+  **Measured on the delivered sheets (smoke re-run, final
+  tip): the face measure now RUNS — Holmes 31 / 35 / 39 /
+  42 px, below the floor in every cell; Watson 38 / 43 /
+  48 / 56 px, missing only the 768 floor by 1 px.** The
+  published face box is the whole head crop (hat brim →
+  chin), exactly §8.3's definition, so the shortfall is
+  real: the head is ~24% of Holmes's figure height in the
+  approved register, the floors assume ~30%. Recorded as
+  coordinator ruling (f) in `BRANCH_STATUS.md`: the floors
+  bind the PR D flip, not PR A's sheets; both cures
+  (re-proportion the head away from the owner-approved
+  register, or amend the study floors) are owner-level
+  calls, so PR B owns the reconciliation and the panel
+  votes with this finding on the table.
 - **Staging law:** figures live in page space (the gutter) —
   never on map tiles, the map frame, attribution, buttons, or
   any UI chrome. Zero clue-text coverage. No bench furniture

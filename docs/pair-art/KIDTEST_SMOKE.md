@@ -4,63 +4,65 @@ Run: 2026-11-08 · Script: `scripts/kidtest-smoke.mjs` · Plates: `public/assets
 
 This is the smoke run: automatic measures only, on whatever plates exist today. The human trials (find / identity / expression with 30 kids per cell) run at PR D per `scripts/kidtest-protocol.md`. NOT RUN means the measure could not be taken — never a pass, never a fail, and never a made-up number.
 
-Face-box source: no manifest.json in the plate dir — face boxes unavailable.
+Face-box source: manifest.json face boxes for: holmes-pose-dock.png, holmes-face-neutral.png, holmes-face-focused.png, holmes-face-thinking.png, holmes-face-attentive.png, holmes-face-hushed.png, holmes-face-wonder.png, holmes-face-reading.png, holmes-face-marking.png, holmes-face-delighted.png, holmes-face-surprised.png, holmes-face-pout.png, watson-pose-station-idle.png, watson-face-neutral.png, watson-face-focused.png, watson-face-thinking.png, watson-face-attentive.png, watson-face-hushed.png, watson-face-wonder.png, watson-face-reading.png, watson-face-marking.png, watson-face-delighted.png, watson-face-surprised.png, watson-face-pout.png.
 
 ## Plate inventory
 
 | Plate | File | Format | Natural size | Bytes |
 | --- | --- | --- | --- | --- |
-| holmes-arm-back | holmes-arm-back.png | PNG | 34×79 | 1459 |
-| holmes-arm-front | holmes-arm-front.png | PNG | 29×58 | 1345 |
-| holmes-face-attentive | holmes-face-attentive.png | PNG | 98×82 | 3550 |
-| holmes-face-delighted | holmes-face-delighted.png | PNG | 98×82 | 3456 |
-| holmes-face-focused | holmes-face-focused.png | PNG | 98×83 | 3564 |
-| holmes-face-hushed | holmes-face-hushed.png | PNG | 98×82 | 3574 |
-| holmes-face-marking | holmes-face-marking.png | PNG | 98×83 | 3517 |
-| holmes-face-neutral | holmes-face-neutral.png | PNG | 98×82 | 3604 |
-| holmes-face-pout | holmes-face-pout.png | PNG | 98×83 | 3581 |
-| holmes-face-reading | holmes-face-reading.png | PNG | 98×82 | 3550 |
-| holmes-face-surprised | holmes-face-surprised.png | PNG | 98×87 | 3594 |
-| holmes-face-thinking | holmes-face-thinking.png | PNG | 98×85 | 3592 |
-| holmes-face-wonder | holmes-face-wonder.png | PNG | 98×87 | 3594 |
-| holmes-hat | holmes-hat.png | PNG | 69×50 | 2083 |
-| holmes-head | holmes-head.png | PNG | 98×82 | 3604 |
-| holmes-legs | holmes-legs.png | PNG | 59×75 | 2074 |
-| holmes-pose-ack | holmes-pose-ack.png | PNG | 240×356 | 10742 |
-| holmes-pose-announce | holmes-pose-announce.png | PNG | 240×356 | 11736 |
-| holmes-pose-berth-think | holmes-pose-berth-think.png | PNG | 240×356 | 11050 |
-| holmes-pose-card-look | holmes-pose-card-look.png | PNG | 240×356 | 11079 |
-| holmes-pose-celebrate-jump | holmes-pose-celebrate-jump.png | PNG | 240×356 | 10485 |
-| holmes-pose-clap | holmes-pose-clap.png | PNG | 240×356 | 10249 |
-| holmes-pose-dock | holmes-pose-dock.png | PNG | 240×356 | 10301 |
-| holmes-pose-gaze-up | holmes-pose-gaze-up.png | PNG | 240×356 | 10989 |
-| holmes-pose-high-five | holmes-pose-high-five.png | PNG | 240×356 | 10854 |
-| holmes-pose-pout | holmes-pose-pout.png | PNG | 240×356 | 11003 |
-| holmes-pose-search | holmes-pose-search.png | PNG | 240×356 | 11182 |
-| holmes-pose-walk | holmes-pose-walk.png | PNG | 240×356 | 10265 |
-| holmes-torso | holmes-torso.png | PNG | 108×94 | 3766 |
-| prop-card | prop-card.png | PNG | 49×61 | 798 |
-| prop-cup | prop-cup.png | PNG | 30×19 | 802 |
-| prop-glass | prop-glass.png | PNG | 51×51 | 875 |
-| prop-notebook-pencil | prop-notebook-pencil.png | PNG | 56×61 | 851 |
-| silhouette-holmes-104 | silhouette-holmes-104.png | PNG | 47×104 | 2162 |
+| holmes-arm-back | holmes-arm-back.png | PNG | 38×97 | 1723 |
+| holmes-arm-front | holmes-arm-front.png | PNG | 33×62 | 1367 |
+| holmes-face-attentive | holmes-face-attentive.png | PNG | 102×86 | 3567 |
+| holmes-face-delighted | holmes-face-delighted.png | PNG | 102×86 | 3468 |
+| holmes-face-focused | holmes-face-focused.png | PNG | 102×87 | 3581 |
+| holmes-face-hushed | holmes-face-hushed.png | PNG | 102×86 | 3592 |
+| holmes-face-marking | holmes-face-marking.png | PNG | 102×87 | 3529 |
+| holmes-face-neutral | holmes-face-neutral.png | PNG | 102×86 | 3621 |
+| holmes-face-pout | holmes-face-pout.png | PNG | 102×87 | 3591 |
+| holmes-face-reading | holmes-face-reading.png | PNG | 102×86 | 3565 |
+| holmes-face-surprised | holmes-face-surprised.png | PNG | 102×91 | 3609 |
+| holmes-face-thinking | holmes-face-thinking.png | PNG | 102×89 | 3605 |
+| holmes-face-wonder | holmes-face-wonder.png | PNG | 102×91 | 3609 |
+| holmes-hat | holmes-hat.png | PNG | 73×54 | 2091 |
+| holmes-head | holmes-head.png | PNG | 102×86 | 3621 |
+| holmes-legs | holmes-legs.png | PNG | 99×140 | 4758 |
+| holmes-pose-ack | holmes-pose-ack.png | PNG | 240×356 | 16303 |
+| holmes-pose-announce | holmes-pose-announce.png | PNG | 240×356 | 17910 |
+| holmes-pose-berth-think | holmes-pose-berth-think.png | PNG | 240×356 | 16639 |
+| holmes-pose-card-look | holmes-pose-card-look.png | PNG | 240×356 | 16231 |
+| holmes-pose-celebrate-jump | holmes-pose-celebrate-jump.png | PNG | 240×356 | 16404 |
+| holmes-pose-clap | holmes-pose-clap.png | PNG | 240×356 | 15570 |
+| holmes-pose-dock | holmes-pose-dock.png | PNG | 240×356 | 15748 |
+| holmes-pose-gaze-up | holmes-pose-gaze-up.png | PNG | 240×356 | 16631 |
+| holmes-pose-high-five | holmes-pose-high-five.png | PNG | 240×356 | 16477 |
+| holmes-pose-pout | holmes-pose-pout.png | PNG | 240×356 | 16453 |
+| holmes-pose-search | holmes-pose-search.png | PNG | 240×356 | 16906 |
+| holmes-pose-walk | holmes-pose-walk.png | PNG | 240×356 | 15703 |
+| holmes-torso | holmes-torso.png | PNG | 112×194 | 8818 |
+| jolly-standing | jolly-standing.png | PNG | 261×338 | 22945 |
+| prop-card | prop-card.png | PNG | 53×65 | 807 |
+| prop-cup | prop-cup.png | PNG | 34×23 | 805 |
+| prop-glass | prop-glass.png | PNG | 55×55 | 878 |
+| prop-notebook-pencil | prop-notebook-pencil.png | PNG | 60×65 | 856 |
+| silhouette-holmes-104 | silhouette-holmes-104.png | PNG | 43×104 | 2450 |
 | silhouette-watson-104 | silhouette-watson-104.png | PNG | 63×104 | 2647 |
-| watson-arm-back | watson-arm-back.png | PNG | 49×97 | 2359 |
-| watson-arm-front | watson-arm-front.png | PNG | 13×17 | 808 |
-| watson-face-attentive | watson-face-attentive.png | PNG | 157×80 | 5013 |
-| watson-face-delighted | watson-face-delighted.png | PNG | 157×80 | 4968 |
-| watson-face-focused | watson-face-focused.png | PNG | 157×81 | 5048 |
-| watson-face-hushed | watson-face-hushed.png | PNG | 157×80 | 5051 |
-| watson-face-marking | watson-face-marking.png | PNG | 157×81 | 5046 |
-| watson-face-neutral | watson-face-neutral.png | PNG | 157×80 | 5108 |
-| watson-face-pout | watson-face-pout.png | PNG | 157×81 | 5068 |
-| watson-face-reading | watson-face-reading.png | PNG | 157×80 | 5088 |
-| watson-face-surprised | watson-face-surprised.png | PNG | 157×85 | 5124 |
-| watson-face-thinking | watson-face-thinking.png | PNG | 157×83 | 5085 |
-| watson-face-wonder | watson-face-wonder.png | PNG | 157×85 | 5124 |
-| watson-hat | watson-hat.png | PNG | 135×44 | 2044 |
-| watson-head | watson-head.png | PNG | 157×80 | 5108 |
-| watson-legs | watson-legs.png | PNG | 155×104 | 6040 |
+| tracker-standing | tracker-standing.png | PNG | 173×338 | 15949 |
+| watson-arm-back | watson-arm-back.png | PNG | 53×101 | 2385 |
+| watson-arm-front | watson-arm-front.png | PNG | 17×21 | 812 |
+| watson-face-attentive | watson-face-attentive.png | PNG | 161×84 | 5025 |
+| watson-face-delighted | watson-face-delighted.png | PNG | 161×84 | 4980 |
+| watson-face-focused | watson-face-focused.png | PNG | 161×85 | 5058 |
+| watson-face-hushed | watson-face-hushed.png | PNG | 161×84 | 5063 |
+| watson-face-marking | watson-face-marking.png | PNG | 161×85 | 5059 |
+| watson-face-neutral | watson-face-neutral.png | PNG | 161×84 | 5120 |
+| watson-face-pout | watson-face-pout.png | PNG | 161×85 | 5078 |
+| watson-face-reading | watson-face-reading.png | PNG | 161×84 | 5100 |
+| watson-face-surprised | watson-face-surprised.png | PNG | 161×89 | 5134 |
+| watson-face-thinking | watson-face-thinking.png | PNG | 161×87 | 5095 |
+| watson-face-wonder | watson-face-wonder.png | PNG | 161×89 | 5134 |
+| watson-hat | watson-hat.png | PNG | 139×48 | 2047 |
+| watson-head | watson-head.png | PNG | 161×84 | 5120 |
+| watson-legs | watson-legs.png | PNG | 159×108 | 6069 |
 | watson-pose-celebrate-jump | watson-pose-celebrate-jump.png | PNG | 268×280 | 18114 |
 | watson-pose-clap | watson-pose-clap.png | PNG | 268×280 | 17493 |
 | watson-pose-gasp | watson-pose-gasp.png | PNG | 268×280 | 18606 |
@@ -71,14 +73,9 @@ Face-box source: no manifest.json in the plate dir — face boxes unavailable.
 | watson-pose-station-idle | watson-pose-station-idle.png | PNG | 268×280 | 16651 |
 | watson-pose-think | watson-pose-think.png | PNG | 268×280 | 17901 |
 | watson-pose-walk | watson-pose-walk.png | PNG | 268×280 | 16651 |
-| watson-torso | watson-torso.png | PNG | 161×166 | 10543 |
+| watson-torso | watson-torso.png | PNG | 165×170 | 10580 |
 
 Face plates present (11): attentive, delighted, focused, hushed, marking, neutral, pout, reading, surprised, thinking, wonder. Face HEIGHT is still NOT RUN below: the plates ship as separate face crops and no faceBox / scale mapping from face plate to figure has been published in a manifest.json yet.
-
-Missing expected plates (each is NOT RUN below, with this reason):
-
-- `tracker-standing` — no tracker-standing.(png|webp|jpg) in public/assets/detective/pair-art
-- `jolly-standing` — no jolly-standing.(png|webp|jpg) in public/assets/detective/pair-art
 
 ## holmes-standing
 
@@ -86,10 +83,10 @@ Figure of record: `holmes-pose-dock.png` (pose plate — no dedicated holmes-sta
 
 | Width | Figure px | Face px | Coverage px² | Verdict per measure |
 | --- | --- | --- | --- | --- |
-| 390 | 128 render target (band 112–128); 240×356 natural | NOT RUN | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: NOT RUN (no faceBox) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
-| 768 | 144 render target (band 128–144); 240×356 natural | NOT RUN | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: NOT RUN (no faceBox) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
-| 1280 | 160 render target (band 144–160); 240×356 natural | NOT RUN | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: NOT RUN (no faceBox) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
-| 1920 | 176 render target (band 160–176); 240×356 natural | NOT RUN | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: NOT RUN (no faceBox) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
+| 390 | 128 render target (band 112–128); 240×356 natural | 31 (faceBox h 0.2416 × 128) | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: FAIL (< 38 floor) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
+| 768 | 144 render target (band 128–144); 240×356 natural | 35 (faceBox h 0.2416 × 144) | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: FAIL (< 44 floor) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
+| 1280 | 160 render target (band 144–160); 240×356 natural | 39 (faceBox h 0.2416 × 160) | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: FAIL (< 48 floor) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
+| 1920 | 176 render target (band 160–176); 240×356 natural | 43 (faceBox h 0.2416 × 176) | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: FAIL (< 52 floor) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
 
 ## watson-standing
 
@@ -97,10 +94,10 @@ Figure of record: `watson-pose-station-idle.png` (pose plate — no dedicated wa
 
 | Width | Figure px | Face px | Coverage px² | Verdict per measure |
 | --- | --- | --- | --- | --- |
-| 390 | 128 render target (band 112–128); 268×280 natural | NOT RUN | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: NOT RUN (no faceBox) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
-| 768 | 144 render target (band 128–144); 268×280 natural | NOT RUN | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: NOT RUN (no faceBox) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
-| 1280 | 160 render target (band 144–160); 268×280 natural | NOT RUN | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: NOT RUN (no faceBox) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
-| 1920 | 176 render target (band 160–176); 268×280 natural | NOT RUN | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: NOT RUN (no faceBox) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
+| 390 | 128 render target (band 112–128); 268×280 natural | 38 (faceBox h 0.3 × 128) | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: PASS · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
+| 768 | 144 render target (band 128–144); 268×280 natural | 43 (faceBox h 0.3 × 144) | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: FAIL (< 44 floor) · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
+| 1280 | 160 render target (band 144–160); 268×280 natural | 48 (faceBox h 0.3 × 160) | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: PASS · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
+| 1920 | 176 render target (band 160–176); 268×280 natural | 53 (faceBox h 0.3 × 176) | NOT RUN (spec-only measure) | size: READY (rendered rect measured by the spec) · face: PASS · coverage: NOT RUN — owned by tests/e2e/pair-art-kidtest.spec.ts |
 
 ## What this smoke run does NOT cover
 
