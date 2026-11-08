@@ -2,10 +2,10 @@
 
 **Branch:** `feat/journal-movies` · **Base:** `origin/main` @ `9e49da3e` (#365)
 **Owner order:** 2026-11-07 — "Build all journals" (Old Faithful pilot approved)
-**Status:** BUILDING — 105/106 clips VERIFIED + LIVE (incl. pilot). Batches 01,
-02, 03, 04, 05, 07, 08, 09, 10, 11, 12 complete; batch 06 is 8/9 with the
-archway mix-only follow-up running. 1 clip left: archway (hold overturned
-— see below; mix in flight, no video call needed).
+**Status:** COMPLETE — 106/106 clips VERIFIED + LIVE (incl. pilot). All 12
+batches 9/9 (batch 08 is 8/8 new + pilot). Nothing held, nothing unbuilt.
+Next: repo gates on this branch, then the PR — only on the owner's separate
+authorization. Never merge without his word, per PR, per head.
 
 ## Done
 - [x] 2026-11-08 — Branch created from origin/main 9e49da3e; worktree
@@ -164,6 +164,16 @@ archway mix-only follow-up running. 1 clip left: archway (hold overturned
       still+narration FALLBACK (haymarket precedent, no 3rd regen): source
       still held 10 s with existing Casper narration + v1 audio bed at 0.30,
       peak −1.01 dB, no text possible. Batch 03 now 9/9.
+- [x] 2026-11-08 — **Archway mix-only follow-up DONE: batch 06 now 9/9,
+      build 106/106 COMPLETE.** The regen raw was mixed with existing
+      vdc_2561 TTS (no re-render, no video call), verified, and swapped in
+      as `archway.mp4` (md5 `0f12426222d1226eecd11a909523c415`, 7,043,093 B).
+      Coordinator re-verified independently: 10.000 s / 1152×768 / 24 fps /
+      h264+AAC, decode exit 0, peak −1.0 dB, mean −18.7 dB, bed −10.5 dB in
+      the voice-free gap; 6 s + 9.5 s frames viewed — bridge hero + highway
+      + cars in frame throughout, both wagons in place. The held v1 is
+      preserved at `work/held-original-archway.mp4`. Bed-30% per worker
+      measurement. Not verified by ear.
 
 ## Video cap (discovered 2026-11-08, affects every batch)
 The media pipeline allows at most **6 successful videos per agent
@@ -175,17 +185,9 @@ instead of 12. Follow-up spawns are new messages, so each gets a fresh
 in one run — all 9 generations succeeded, cap did not block.** The cap
 is enforced per run, not per batch; do not assume it.
 
-## Held clips (gate failures — do not ship as-is)
-- archway (batch 06): the regen was NOT swapped by the follow-up worker
-  because its 9.5 s frame shows TWO wagons and the replace gate demanded
-  exactly one. **Coordinator overturn (2026-11-08): the hold was a misread.**
-  The calm keyframe itself contains two wagons — a white-covered wagon on
-  the left and an open wagon centre-right — and the regen shows the SAME two
-  wagons in the same positions, with the bridge + highway + cars in frame
-  (v1's interior dive fixed). The two wagons are the source art's own
-  exhibits, not a model duplication. Mix-only follow-up spawned (no video
-  call): mix the existing regen raw with existing TTS, verify, swap in.
-  The held v1 stays at `work/held-original-archway.mp4` until the swap.
+## Held clips — none. (Resolved holds kept below for the record.)
+- archway (batch 06): hold OVERTURNED 2026-11-08 (see Resolved holds) and
+  the regen is now live. Nothing is held.
 - haymarket (batch 01) ships as a flagged still+narration FALLBACK
   (AI video failed the no-text gate TWICE); a 3rd attempt would need a
   different approach (no clock tower in frame).
@@ -193,6 +195,12 @@ is enforced per run, not per batch; do not assume it.
   (v1 + v2 both failed the no-text gate); see Done above.
 
 ## Resolved holds (were held, now live — record kept here)
+- archway (batch 06): the regen was first refused for showing TWO wagons
+  against an "exactly one wagon" gate. Coordinator overturn: the calm
+  keyframe itself contains two wagons (white-covered left, open wagon
+  centre-right) and the regen shows the same two in the same positions —
+  the source art's own exhibits, not a duplication. Mixed with existing
+  TTS, verified, swapped in 2026-11-08. Batch 06 now 9/9.
 - havelock, southpointe (batch 03): v2 regens passed, live.
 - neuschwanstein (batch 11): v2 regen passed, live.
 - holmes-lake, wyuka, gateway (batch 02): v2 AI regens with real bed, live.
