@@ -23,3 +23,9 @@
 - HARD STOP at the owner's merge word — this branch is NOT merged.
 - No branch-protection changes. No token/repo-scope changes.
 - PB-2 (session/moments) and PB-3 (mute-by-character) are separate PRs, untouched here.
+
+## Cure round (PR #364, 2026-11-07) — host fixes in DetectiveHost.tsx only
+- **Cure B (flag-OFF data-companion integrity):** a legacy mirror state ("full"|"dock"|"killed") engaged only when holmesFollow is OFF, updated at the base/degradation effect, the case-change latch reset, and the auto-kill judge — the rendered data-companion is flag-branched at the single derivation point, so flag-OFF never reads "berth" again; tier machine + data-follow-tier untouched.
+- **Cure D (bench "standing" collapse):** enterMap takes an onMap flag and records bench entry intent only for map-originated interactions (onDown containment, drag attributed by its down point, window wheel + off-map pinch pass false); onPauseConfirmed and the C2/C3 effects keep the unconditional default — heading clicks during the bench no longer arm intent, page-wide follow unchanged.
+- **Cure C (zero-overlap, PRODUCT LAW):** every non-solver placement writer (first placement, enterMap, DOCK_ONLY perch) rebuilds forbidden rects fresh and tests Holmes's box before landing (perch scans the other viewport corners, bottom-left kept whenever legal; entry dock measured from the live map element); current-position eviction at the forbidden-rebuild effect and the scroll-end timer re-solves at the last pointer, re-perches in DOCK_ONLY, or burst-hides him (`.detective-host-holmes-hidden`) while a suspension holds — never painted over clue text, never travelling mid-speech. follow.ts untouched.
+- **Gates on the cured tip:** tsc clean; npm test src 2262 pass / scripts suite pass (npm test exit 0); worker 145 pass; lint-cards GATE PASSED; build:pages exit 0.
