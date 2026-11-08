@@ -1519,11 +1519,12 @@ export function GameApp() {
     setAutoScoutNote(false);
     applySessionMapMode("full");
   }, [applySessionMapMode]);
-  // Entry rule (owner, 2026-11-08): a bare visit always lands on Home
-  // first — never straight into a game. GeoDetective and Cold Trail
-  // mount their own screens outside the endless-run state machine, and
-  // both screens start closed on every boot, no matter what an older
-  // version of the game left saved. A case that was left mid-play is
+  // GeoDetective mounts its own screen outside the endless-run state
+  // machine (Cold Trail mounts its own the same way). Entry rule
+  // (owner, 2026-11-08): a bare visit always lands on Home first —
+  // never straight into a game. Both screens start closed on every
+  // boot, no matter what an older version of the game left saved.
+  // A case that was left mid-play is
   // not lost: its progress stays in its store (meridian.loop.v2 /
   // meridian.coldtrail.v2) and Home offers it back with a Resume
   // button, so returning to a case is always one clear tap the player
