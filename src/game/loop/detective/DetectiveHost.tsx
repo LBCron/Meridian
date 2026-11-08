@@ -1081,10 +1081,22 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
    * the map to his first placement. After that the follow engine
    * owns his position; a berth confirmed during the entry supersedes
    * the entry target (entryPendingRef) — he simply walks on. */
-  const enterMap = () => {
+  /* Cure D (PR #364 cure round): main bound the pointer listeners to
+   * the MAP ELEMENT ONLY, so entry intent could only ever come from
+   * the map. The follow wiring is window-level now (page-wide follow
+   * stays), and an unconditional enterMap on every pointerdown armed
+   * entryIntentRef for clicks ANYWHERE — e.g. the staging tests'
+   * unlockSpeech clicks on the "GeoDetective" heading — so the C2
+   * effect fired the instant the duet ended and the "standing" stage
+   * was never observable. Callers now pass onMap: entry intent is
+   * recorded ONLY for map-originated interactions. The default stays
+   * true so the unconditional callers keep main's entry semantics:
+   * onPauseConfirmed (a genuine page-wide pause still enters +
+   * berths him — PB-1) and the internal C2/C3 effects. */
+  const enterMap = (onMap = true) => {
     if (!stagingOn) return;
     if (stagingStageRef.current === "bench") {
-      entryIntentRef.current = true;
+      if (onMap) entryIntentRef.current = true;
       return;
     }
     if (
@@ -1428,9 +1440,9 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
       pauseTimerRef.current = setTimeout(() => attemptConfirm(12), delayMs);
     };
 
-    const startGesture = () => {
+    const startGesture = (onMap = true) => {
       followRef.current.lastMapActivityT = performance.now();
-      enterMapRef.current();
+      enterMapRef.current(onMap);
       if (!gestureActive) {
         gestureActive = true;
         detector.notifyGestureStart();
@@ -1524,7 +1536,11 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
     };
 
     const onDown = (e: PointerEvent) => {
-      enterMapRef.current();
+      // Cure D: a pointerdown off the map (e.g. on the heading) must
+      // not arm bench entry intent; a map pointerdown still does.
+      enterMapRef.current(
+        mapElRef.current?.contains(e.target as Node) ?? false,
+      );
       const now = performance.now();
       followRef.current.lastMapActivityT = now;
       cache.set(e.pointerId, {
@@ -1540,7 +1556,10 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
         y: e.clientY,
         pointerType: e.pointerType,
       };
-      if (cache.size >= 2) startGesture(); // pinch: he plants, centroid never targets
+      // Cure D: the pinch branch threads the same containment as the
+      // pointerdown itself, so an off-map pinch cannot re-arm intent.
+      if (cache.size >= 2)
+        startGesture(mapElRef.current?.contains(e.target as Node) ?? false);
       // A tap (<250 ms, <10 px) must NOT summon or move Holmes:
       // nothing happens on pointerdown.
     };
@@ -1552,13 +1571,27 @@ export default function DetectiveHost(props: DetectiveHostProps): ReactElement |
       if (rec) {
         const travel = Math.hypot(e.clientX - rec.downX, e.clientY - rec.downY);
         const isTap = performance.now() - rec.downT < 250 && travel < 10;
-        if (!isTap && travel > GESTURE_CANCEL_PX) startGesture();
+        if (!isTap && travel > GESTURE_CANCEL_PX) {
+          // Cure D: cache stores no target, so attribute the drag by
+          // its DOWN point — the map rect is position:fixed geometry
+          // in viewport coords, the same space as downX/downY.
+          const mr = mapRectRef.current;
+          const downOnMap =
+            mr !== null &&
+            rec.downX >= mr.left &&
+            rec.downX <= mr.left + mr.width &&
+            rec.downY >= mr.top &&
+            rec.downY <= mr.top + mr.height;
+          startGesture(downOnMap);
+        }
       }
       if (cache.size === 0) endGesture();
     };
 
     const onWheel = () => {
-      startGesture();
+      // Cure D: the window wheel listener cannot attribute the gesture
+      // to the map, so it must not arm bench entry intent either.
+      startGesture(false);
       endGesture(); // wheel is momentary: camera-idle runs from now
     };
 
