@@ -191,13 +191,18 @@ test("follow (a)+(b): mouse travel, planted park, no dock return (1280)", async 
     await waitForSearchIdle(page);
     await showMap(page);
     expect(await followTier(page)).toBe("PAGE_FOLLOW");
-    const dock = await holmesRect(page);
-    expect(dock).not.toBeNull();
+    // Cure A4: this is the SETTLED rect, not necessarily the dock —
+    // after the cured idle wait Holmes may already be berthed where
+    // the unlock dwell left him. It is still a valid no-return
+    // reference for assertPlanted's >30 px guard: he must never
+    // drift back toward the spot he was settled at before travelling.
+    const settled = await holmesRect(page);
+    expect(settled).not.toBeNull();
 
     const p1 = await mapPoint(page, 0.66, 0.3);
     await page.mouse.move(p1.x, p1.y, { steps: 10 });
     const landed1 = await waitArrived(page, p1);
-    await assertPlanted(page, landed1, 5_000, dock!);
+    await assertPlanted(page, landed1, 5_000, settled!);
 
     // Travel to a second point: he must go THERE, not via the dock.
     const p2 = await mapPoint(page, 0.4, 0.62);
@@ -208,8 +213,8 @@ test("follow (a)+(b): mouse travel, planted park, no dock return (1280)", async 
       const r = await holmesRect(page);
       if (r) {
         expect(
-          Math.hypot(r.x - dock!.x, r.y - dock!.y),
-          "travel passed through the dock corner",
+          Math.hypot(r.x - settled!.x, r.y - settled!.y),
+          "travel passed through the settled corner",
         ).toBeGreaterThan(30);
         expect(await clueOverlap(page)).toBe(0);
         const c = centre(r);
@@ -223,7 +228,7 @@ test("follow (a)+(b): mouse travel, planted park, no dock return (1280)", async 
       await page.waitForTimeout(200);
     }
     expect(landed2, "Holmes never arrived at the second point").not.toBeNull();
-    await assertPlanted(page, landed2!, 3_000, dock!);
+    await assertPlanted(page, landed2!, 3_000, settled!);
   } finally {
     await context.close();
   }
@@ -242,11 +247,11 @@ test("follow (a): mouse travel at tablet width (768)", async ({ browser }) => {
     await waitForSearchIdle(page);
     await showMap(page);
     expect(await followTier(page)).toBe("PAGE_FOLLOW");
-    const dock = await holmesRect(page);
+    const settled = await holmesRect(page); // settled rect (Cure A4) — may be a berth, not the dock
     const p1 = await mapPoint(page, 0.6, 0.32);
     await page.mouse.move(p1.x, p1.y, { steps: 10 });
     const landed = await waitArrived(page, p1);
-    await assertPlanted(page, landed, 3_000, dock!);
+    await assertPlanted(page, landed, 3_000, settled!);
   } finally {
     await context.close();
   }
@@ -269,7 +274,7 @@ test("follow (a): touch travel + planted after finger lifts (390)", async ({
     await waitForSearchIdle(page);
     await showMap(page);
     expect(await followTier(page)).toBe("PAGE_FOLLOW");
-    const dock = await holmesRect(page);
+    const settled = await holmesRect(page); // settled rect (Cure A4) — may be a berth, not the dock
     const p1 = await mapPoint(page, 0.62, 0.3);
     const cdp = await context.newCDPSession(page);
     await cdp.send("Input.dispatchTouchEvent", {
@@ -297,7 +302,7 @@ test("follow (a): touch travel + planted after finger lifts (390)", async ({
         touchPoints: [],
       });
       // Finger gone: he STAYS (the owner's core complaint).
-      await assertPlanted(page, landed, 3_000, dock!);
+      await assertPlanted(page, landed, 3_000, settled!);
     } finally {
       await cdp
         .send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
@@ -463,8 +468,12 @@ test("follow OFF (f): PAUSE_BERTH tier — sweeps ignored, pause berths + holds 
     await waitForSearchIdle(page);
     await showMap(page);
     expect(await followTier(page)).toBe("PAUSE_BERTH");
-    const start = await holmesRect(page);
-    expect(start).not.toBeNull();
+    // Cure A4: the SETTLED rect after the cured idle wait — it may
+    // be a dwell berth, not the dock. The sweep comparison below is
+    // a no-move check against wherever he was settled, which is
+    // exactly what it proves either way.
+    const settled = await holmesRect(page);
+    expect(settled).not.toBeNull();
 
     // Fast sweep across the map: no chase in the berth tier.
     const a = await mapPoint(page, 0.15, 0.3);
@@ -474,8 +483,8 @@ test("follow OFF (f): PAUSE_BERTH tier — sweeps ignored, pause berths + holds 
     await page.mouse.move(a.x, a.y + 60, { steps: 4 });
     await page.waitForTimeout(600);
     const afterSweep = await holmesRect(page);
-    expect(Math.abs(afterSweep!.x - start!.x)).toBeLessThanOrEqual(8);
-    expect(Math.abs(afterSweep!.y - start!.y)).toBeLessThanOrEqual(8);
+    expect(Math.abs(afterSweep!.x - settled!.x)).toBeLessThanOrEqual(8);
+    expect(Math.abs(afterSweep!.y - settled!.y)).toBeLessThanOrEqual(8);
 
     // A real hover-pause berths him near the pause, and he holds.
     const p1 = await mapPoint(page, 0.58, 0.34);
