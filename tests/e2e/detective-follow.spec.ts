@@ -113,12 +113,15 @@ async function clueOverlap(page: Page): Promise<number> {
 
 /** Poll until Holmes's centre is within `within` px of the point
  * and placement reads berth \u2014 and he has SETTLED there: two
- * matching samples at least 250 ms apart whose centres agree
+ * matching samples at least 900 ms apart whose centres agree
  * within 2 px. (Cure round 5, diagnosis A/B: arrival alone fires
  * mid-glide \u2014 the walk takes up to ~800 ms after the telegraph \u2014
  * and a mid-glide rect used as a planted baseline manufactures
- * "drift" equal to the rest of the glide. The 200 px / berth
- * conditions are unchanged; settling is now part of "arrived".) */
+ * "drift" equal to the rest of the glide. Round 6: the window
+ * is 900 ms, not 250 ms \u2014 a camera-idle re-solve ~120 ms after
+ * landing nudged him 12 px inside the shorter window; a settle
+ * claim must outlast it. The 200 px / berth conditions are
+ * unchanged; settling is now part of "arrived".) */
 async function waitArrived(
   page: Page,
   point: { x: number; y: number },
@@ -137,7 +140,7 @@ async function waitArrived(
       matches = Math.hypot(c.x - point.x, c.y - point.y) <= within;
     }
     if (matches && last) {
-      if (candidate && Date.now() - candidateAt >= 250) {
+      if (candidate && Date.now() - candidateAt >= 900) {
         const a = centre(candidate);
         const b = centre(last);
         if (Math.hypot(a.x - b.x, a.y - b.y) <= 2) return last;
@@ -227,7 +230,12 @@ test("follow (a)+(b): mouse travel, planted park, no dock return (1280)", async 
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
-    expect(await followTier(page)).toBe("PAGE_FOLLOW");
+    // Tier read polls 30 s (cure round 6): FG-5 re-qualification
+    // latency on software-rendered runners, as in detective-berth;
+    // the asserted value is unchanged.
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("PAGE_FOLLOW");
     // Cure A4: this is the SETTLED rect, not necessarily the dock —
     // after the cured idle wait Holmes may already be berthed where
     // the unlock dwell left him. It is still a valid no-return
@@ -283,7 +291,12 @@ test("follow (a): mouse travel at tablet width (768)", async ({ browser }) => {
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
-    expect(await followTier(page)).toBe("PAGE_FOLLOW");
+    // Tier read polls 30 s (cure round 6): FG-5 re-qualification
+    // latency on software-rendered runners, as in detective-berth;
+    // the asserted value is unchanged.
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("PAGE_FOLLOW");
     const settled = await holmesRect(page); // settled rect (Cure A4) — may be a berth, not the dock
     const p1 = await mapPoint(page, 0.6, 0.32);
     await page.mouse.move(p1.x, p1.y, { steps: 10 });
@@ -310,7 +323,12 @@ test("follow (a): touch travel + planted after finger lifts (390)", async ({
     await openStagingCase(page, 137);
     await waitForSearchIdle(page);
     await showMap(page);
-    expect(await followTier(page)).toBe("PAGE_FOLLOW");
+    // Tier read polls 30 s (cure round 6): FG-5 re-qualification
+    // latency on software-rendered runners, as in detective-berth;
+    // the asserted value is unchanged.
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("PAGE_FOLLOW");
     const settled = await holmesRect(page); // settled rect (Cure A4) — may be a berth, not the dock
     const p1 = await mapPoint(page, 0.62, 0.3);
     const cdp = await context.newCDPSession(page);
@@ -434,7 +452,12 @@ test("follow (c): planted during scroll and pinch (1280)", async ({
       Math.hypot(afterPinch!.x - landed.x, afterPinch!.y - landed.y),
       "pinch moved the planted Holmes",
     ).toBeLessThanOrEqual(24);
-    expect(await followTier(page)).toBe("PAGE_FOLLOW");
+    // Tier read polls 30 s (cure round 6): FG-5 re-qualification
+    // latency on software-rendered runners, as in detective-berth;
+    // the asserted value is unchanged.
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("PAGE_FOLLOW");
   } finally {
     await context.close();
   }
@@ -557,7 +580,10 @@ test("follow OFF (f): PAUSE_BERTH tier — sweeps ignored, pause berths + holds 
     // the tier this spec gates.
     await enterViaMapDrag(page);
     await waitForSearchIdle(page);
-    expect(await followTier(page)).toBe("PAUSE_BERTH");
+    // Tier read polls 30 s (cure round 6, as above).
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("PAUSE_BERTH");
     // Cure A4: the SETTLED rect after the cured idle wait — it may
     // be a dwell berth, not the dock. The sweep comparison below is
     // a no-move check against wherever he was settled, which is
@@ -581,7 +607,10 @@ test("follow OFF (f): PAUSE_BERTH tier — sweeps ignored, pause berths + holds 
     await page.mouse.move(p1.x, p1.y, { steps: 8 });
     const landed = await waitArrived(page, p1);
     await assertPlanted(page, landed, 3_000);
-    expect(await followTier(page)).toBe("PAUSE_BERTH");
+    // Tier read polls 30 s (cure round 6, as above).
+    await expect
+      .poll(() => followTier(page), { timeout: 30_000 })
+      .toBe("PAUSE_BERTH");
   } finally {
     await context.close();
   }
