@@ -596,3 +596,43 @@ the tip):
   E2E lock + VM load) and its results had NOT landed when
   this section was written — no kidtest outcome is recorded
   here, in either direction.
+
+## Coordinator verification, round-2 converged tip — 2026-11-08
+
+- **Guard merged + verified by the coordinator:**
+  `cure/366-neg` merged at `6a899b8` (guard `a081d39` +
+  kidtest soft-assert `951b0a5`). Coordinator re-ran the
+  guard standalone: **13/13 pass**.
+- **Gaze table (from the guard's diagnostics, read
+  first-hand):** 22 pose rows — 16 measured PASS, 0
+  contradictions; the 6 NOT MEASURED rows are exactly the
+  `delighted` plates (celebrate-jump / high-five / clap ×
+  both characters) — `delighted` is drawn as a closed eye
+  arc (spec §6.2), so there are no pupils to measure.
+  Named here so the re-vote sees the gap, not a silent
+  pass.
+- **Kidtest at `c76bc08` (coordinator's run, harness's
+  own numbers):** build green · assembly + palm PASS —
+  assembled palm error **Holmes 0.53 / Watson 0.56 rig
+  px** (supersedes the 0.22 / 0.33 headline from before
+  the open-palm repaint; records corrected) ·
+  assembly-vs-plate diff 0.561 / 0.557 (gate 0.60) ·
+  trial preparation PASS (96 trials, 0 missing) · face
+  floors: Holmes shortfall RECORDED at all 4 widths
+  (31/35/39/43 vs 38/44/48/52) — the by-design negative,
+  floors demoted §16.5.
+- **Coverage gap found + cured in the harness:** the 4
+  width tests aborted at Holmes's face assert, so zero
+  clue-text coverage and Watson's legs never executed.
+  The face-floor asserts are now `expect.soft` (same
+  floors; tests still fail on the shortfall; every leg
+  runs). A width-test re-run on the converged tip is
+  capturing the coverage + Watson numbers for the
+  re-vote record.
+- **Repo gates at `c76bc08`:** tsc clean · unit 3,287/0
+  (the guard adds 13 scripts tests on top at the merged
+  tip — full-suite re-run rides Silo QA) · worker 145/145
+  · lint-cards GATE PASSED.
+- Next: width-test re-run numbers → Silo QA re-key on
+  the final tip → panel re-vote (round 3), clean-context
+  briefs per the owner's retro law.
