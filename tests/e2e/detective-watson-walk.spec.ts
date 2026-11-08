@@ -259,11 +259,11 @@ for (const w of WIDTHS) {
       expect(countIn(plays2, CLUE2)).toBe(1);
 
       /* -- REPLAY AT THE STATION: instant, no re-walk -------------- */
-      // Watson is at the map dock in SEARCH_IDLE; his replay control
-      // replays the held clue-2 chain at once. (The station form of
-      // the same rule — replay while he stands at a card — is the
-      // shipped Unit A behaviour; what PR B adds is that a replay
-      // never starts a walk.)
+      // Watson holds his clue-card station in SEARCH_IDLE (station
+      // cure, 2026-11-08 — he no longer parks at the map dock while
+      // guessing); his replay control is the station form and
+      // replays the held clue-2 chain at once. What PR B adds is
+      // that a replay never starts a walk.
       await startWalkTrace(page);
       const acksBefore = countIn(await detectiveOnly(page), "fixed/ack-");
       await page.getByTestId("detective-watson-replay").click();
