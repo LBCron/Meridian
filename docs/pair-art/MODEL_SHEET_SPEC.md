@@ -607,7 +607,7 @@ two cannot drift apart (the study's staging addendum
 requires the model sheets to state them, for exactly
 this reason):
 
-| Viewport width | Figure height band | Face floor |
+| Viewport width | Figure height band | Face floor — pending owner's ruling, not binding (see below) |
 | :--- | :--- | :--- |
 | 390 px | 112–128 px | **38 px** |
 | 768 px | 128–144 px | **44 px** |
@@ -618,6 +618,25 @@ this reason):
 brim to chin) allowed in that cell. Below the floor, the
 §6 faces cannot read in two seconds, and the expression
 gate in §10 cannot pass honestly.
+
+> **Face floors DEMOTED — PENDING THE OWNER'S RULING
+> (panel re-vote cure, 2026-11-08; see §16.5):** why this
+> demotion exists: the size band and the face floors in
+> this section cannot both be met for Holmes. At his
+> delivered head share (~24% of figure height), meeting
+> the floors would need figure heights of 157 / 181 /
+> 197 / 213 px — above the band maxima of 128 / 144 /
+> 160 / 176 px in every cell. A law no sheet can obey
+> must not stand as binding law, and this spec does not
+> pick a winner. The choice — **re-proportion Holmes's
+> head** away from the owner-approved register, **or
+> amend the floors** — is the owner's, and it is
+> **deferred** until he rules. **Until he rules, the
+> face floors are NOT binding law. The size band
+> stands** and remains binding. The measured shortfall
+> (Holmes 31 / 35 / 39 / 43 px against the floors) stays
+> on record as a measurement, not as a breach of a
+> binding floor.
 
 > **In-play governance (panel round 1; see §16.2):** these
 > bands are the ONLY in-play size law. PR B must not
@@ -1169,3 +1188,27 @@ also noted inline at §5.2, §6.4, §8.2, and §8.3.
   population estimates (27/30 Wilson 95% CI ≈ 74–97%), and
   that the all-cells-pass requirement in practice demands
   a true rate well above 90%.
+
+### 16.5 Face floors demoted — pending the owner's ruling (panel re-vote cure, 2026-11-08)
+
+- **Why:** §8.3's size band and face floors are jointly
+  unsatisfiable for Holmes. Meeting the floors at his
+  delivered head share (~24% of figure height) would need
+  figure heights of 157 / 181 / 197 / 213 px, against band
+  maxima of 128 / 144 / 160 / 176 px.
+- **What now governs:** the face floors are **DEMOTED to
+  PENDING THE OWNER'S RULING**. They are **not binding
+  law** until the owner rules. The §8.3 **size band
+  stands** and remains binding.
+- **The deferred choice is the owner's alone:**
+  re-proportion Holmes's head away from the register he
+  approved, or amend the floors. This spec takes no side,
+  and no later PR may present either option as already
+  decided.
+- **What does not change:** the measurements stay on
+  record (Holmes 31 / 35 / 39 / 43 px; Watson 38 / 43 /
+  48 / 53 px at 390 / 768 / 1280 / 1920). They are
+  recorded shortfalls against a pending floor, not
+  breaches of a binding one. Earlier text that said the
+  floors "bind the PR D flip" is superseded by this
+  demotion until the owner rules.

@@ -96,7 +96,7 @@ placeholder.
 | Static composite — Watson | ≈20–30 KB | 18.6 KB | PASS |
 | Scale ratio Watson / Holmes (every composite) | 0.73–0.79 (≈0.75 law) | 0.75–0.77 (mean 0.76) | PASS |
 | Silhouette gate (grayscale, 104 px) | Approved before colour lock | Approved — both figures read correctly in grayscale at 104 px before colour lock (Holmes tall/thin + deerstalker, 47 px wide; Watson short/stout + bowler, 63 px wide; locked in ASSET_LOCK.json `silhouette_gate`) | PASS |
-| Face height at max in-band size (§8.3 floors) | Holmes ≥38 / 44 / 48 / 52 px · Watson ≥38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920 | Holmes 31 / 35 / 39 / 43 px · Watson 38 / 43 / 48 / 53 px | **FAIL — ruling (f): recorded, not cured in PR A; the floors bind the PR D flip (owner ruling 4); PR B owns reconciliation; the panel's face BLOCKs escalate the cure choice to the owner** |
+| Face height at max in-band size (§8.3 floors) | Holmes ≥38 / 44 / 48 / 52 px · Watson ≥38 / 44 / 48 / 52 px at 390 / 768 / 1280 / 1920 | Holmes 31 / 35 / 39 / 43 px · Watson 38 / 43 / 48 / 53 px | **MEASURED BELOW THE FLOORS — floors DEMOTED to PENDING THE OWNER'S RULING (spec §16.5): they are NOT binding law until the owner rules, so this is a recorded shortfall, not a breach of a binding floor; the §8.3 size band stands; the choice — re-proportion Holmes's head vs amend the floors — is the owner's and is deferred** |
 | Harness target revision | — | 1762e3f (the kid-test harness commit); the smoke re-run on the final art tip is recorded in the Harness line below | — |
 
 ## The laws, in summary
@@ -119,13 +119,19 @@ Full text: `docs/pair-art/MODEL_SHEET_SPEC.md` §§8–10.
   published face box is the whole head crop (hat brim →
   chin), exactly §8.3's definition, so the shortfall is
   real: the head is ~24% of Holmes's figure height in the
-  approved register, the floors assume ~30%. Recorded as
-  coordinator ruling (f) in `BRANCH_STATUS.md`: the floors
-  bind the PR D flip, not PR A's sheets; both cures
-  (re-proportion the head away from the owner-approved
-  register, or amend the study floors) are owner-level
-  calls, so PR B owns the reconciliation and the panel
-  votes with this finding on the table.
+  approved register, the floors assume ~30%. **The floors
+  are DEMOTED to PENDING THE OWNER'S RULING (spec §16.5):**
+  the band and the floors cannot both be met for Holmes
+  (the floors would need figure heights of 157 / 181 /
+  197 / 213 px against band maxima of 128 / 144 / 160 /
+  176 px), so until the owner rules the floors are **NOT
+  binding law** — the size band stands. The choice —
+  re-proportion the head away from the owner-approved
+  register, or amend the study floors — is the owner's,
+  it is deferred, and no side is picked here. Recorded
+  as coordinator ruling (f) in `BRANCH_STATUS.md`, as
+  demoted by §16.5; the panel votes with this finding on
+  the table.
 - **Staging law:** figures live in page space (the gutter) —
   never on map tiles, the map frame, attribution, buttons, or
   any UI chrome. Zero clue-text coverage. No bench furniture
