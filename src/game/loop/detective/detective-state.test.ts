@@ -126,7 +126,50 @@ test("clue 1: read → 600ms thinking beat → ack-1 + decode-geography → dock
   const searchView = viewForState(steps[3]!.state);
   assert.equal(searchView.holmes.placement, "dock");
   assert.equal(searchView.holmes.pose, "search");
-  assert.equal(searchView.watson.placement, "dock");
+  assert.equal(searchView.watson.placement, "station");
+});
+
+test("guessing phases: Watson holds the clue-card station, Holmes keeps his map placements (owner ruling 2026-11-07)", () => {
+  // SEARCH_AREA: the player pauses over an area while guessing.
+  const area = run([
+    ...normalClue(1),
+    { type: "pointerPaused", point: { x: 120, y: 200 } },
+  ]);
+  assert.equal(last(area).phase, "SEARCH_AREA");
+  const areaView = viewForState(last(area).state);
+  assert.equal(areaView.watson.placement, "station");
+  assert.equal(areaView.watson.pose, "station-idle");
+  assert.equal(areaView.holmes.placement, "berth");
+  assert.equal(areaView.holmes.pose, "berth-think");
+
+  // SELECTION_READ: Holmes reads the player's pick from the map dock.
+  const selection = run([
+    ...normalClue(1),
+    { type: "guessConfirmed", placeId: "geonames:42" },
+    { type: "ringAnimationEnded" },
+  ]);
+  assert.equal(last(selection).phase, "SELECTION_READ");
+  const selectionView = viewForState(last(selection).state);
+  assert.equal(selectionView.watson.placement, "station");
+  assert.equal(selectionView.watson.pose, "notebook-mark");
+  assert.equal(selectionView.holmes.placement, "dock");
+  assert.equal(selectionView.holmes.pose, "ack");
+
+  // ASK_NEXT: Holmes asks for the next question from the map dock.
+  const ask = run([
+    ...normalClue(1),
+    { type: "guessConfirmed", placeId: "geonames:42" },
+    { type: "ringAnimationEnded" },
+    { type: "clueUnlocked", clueIndex: 2 }, // mid-selection-read
+    { type: "speechEnded" }, // selection drains → NOTE_MARK
+    { type: "beatElapsed" }, // miss beat over → ASK_NEXT
+  ]);
+  assert.equal(last(ask).phase, "ASK_NEXT");
+  const askView = viewForState(last(ask).state);
+  assert.equal(askView.watson.placement, "station");
+  assert.equal(askView.watson.pose, "station-idle");
+  assert.equal(askView.holmes.placement, "dock");
+  assert.equal(askView.holmes.pose, "ack");
 });
 
 test("ack rotation is by ack count, and decode types by clue position", () => {
