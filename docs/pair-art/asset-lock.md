@@ -67,9 +67,9 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 | holmes-pose-announce.png | 16,568 | 240x356 |
 | holmes-pose-gaze-up.png | 15,552 | 240x356 |
 | holmes-pose-card-look.png | 15,076 | 240x356 |
-| holmes-pose-celebrate-jump.png | 15,259 | 240x356 |
-| holmes-pose-high-five.png | 15,420 | 240x356 |
-| holmes-pose-clap.png | 14,593 | 240x356 |
+| holmes-pose-celebrate-jump.png | 16,275 | 240x356 |
+| holmes-pose-high-five.png | 16,341 | 240x356 |
+| holmes-pose-clap.png | 14,605 | 240x356 |
 | holmes-pose-pout.png | 18,688 | 240x356 |
 | watson-pose-walk.png | 16,491 | 268x280 |
 | watson-pose-read.png | 17,574 | 268x280 |
@@ -77,9 +77,9 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 | watson-pose-station-idle.png | 16,651 | 268x280 |
 | watson-pose-notebook-mark.png | 17,784 | 268x280 |
 | watson-pose-gasp.png | 18,606 | 268x280 |
-| watson-pose-celebrate-jump.png | 18,114 | 268x280 |
-| watson-pose-high-five.png | 17,392 | 268x280 |
-| watson-pose-clap.png | 17,493 | 268x280 |
+| watson-pose-celebrate-jump.png | 17,360 | 268x280 |
+| watson-pose-high-five.png | 18,478 | 268x280 |
+| watson-pose-clap.png | 16,064 | 268x280 |
 | watson-pose-pout.png | 16,834 | 268x280 |
 | silhouette-holmes-104.png | 2,450 | 43x104 |
 | silhouette-watson-104.png | 2,647 | 63x104 |
@@ -88,7 +88,7 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 
 - Holmes: frontArm (78,58) · swingArm (44,58) · head (62,54) · torso (60,132) · leg-a (52,118) · leg-b (64,118) · palm anchor (99,25) · base hand points: front (87,83), back (37,98)
 - Watson: frontArm (36,54) · noteArm (82,54) · head (60,50) · torso (60,110) · leg-a (52,92) · leg-b (66,92) · palm anchor (15,21) · base hand points: front (26,89), note-arm (97,93)
-- Measured palm error on assembled high-five plates: Holmes {'measured_vb': [98.75, 24.75], 'contact_vb': [99, 25], 'error_px': 0.35, 'skin_px': 208} · Watson {'measured_vb': [14.75, 20.75], 'contact_vb': [15, 21], 'error_px': 0.35, 'skin_px': 208}
+- Measured palm error on the regenerated high-five plates: Holmes {'measured_vb': [98.89, 25.36], 'contact_vb': [99, 25], 'error_px': 0.37, 'skin_px': 229} · Watson {'measured_vb': [15.44, 20.91], 'contact_vb': [15, 21], 'error_px': 0.45, 'skin_px': 224}
 - Base arm palms (panel cure): every arm part contains its hand; skin centroid within 0.6 vb of the rig hand point; shoulder pivot inside painted pixels (alpha 235–250). Per-file numbers in `ASSET_LOCK.json` → `arm_palm_measurements_cure`.
 
 ## Silhouette gate (104 px, grayscale)
@@ -112,6 +112,7 @@ Pose plates and silhouettes are docs/test assets and are excluded from the runti
 
 - Parts are cropped to their alpha bbox; rect_vb gives each part's placement rect in rig viewBox units (x0,y0,x1,y1). Assemble in order: halo, legs (leg-a + leg-b), arm-back/note, torso, arm-front, face, hat.
 - Faces: holmes-face-<kind>.png / watson-face-<kind>.png are full head parts with the expression drawn in the character's own features; holmes-head.png / watson-head.png are the neutral bases.
+- POSE-PLATE REGENERATION 2026-11-08 (high-five geometry cure): the painted pose plates' raised arms disagreed with the rig pose spec (DetectivePair.tsx @ 9e49da3) — in the old high-five plates the anchor hand was a flat rig-colour disc (242,196,154), not painted skin, the arm rose from the wrong shoulder line, and a duplicate base-position front hand remained. All six arm-pose plates were regenerated as composites of the cured parts at the pose-spec angles (high-five: arm-front rotated about its pivot by the harness angle, hand segment extended along the arm axis so the painted palm lands on HIGH_FIVE_CONTACT; celebrate/clap: parts at CELEBRATE/CLAP spec angles, arms behind/over torso in rig draw order). Measured on the shipped plates (harness skin band, >=40px cluster within 30 vb): Holmes high-five palm (98.89,25.36) vb, 0.37 vb from (99,25), 229 px; Watson (15.44,20.91), 0.45 vb from (15,21), 224 px. Celebrate palms 0.39-0.90 vb from rig targets; clap palms 0.29-0.36 vb. Glass: high-five and Holmes celebrate/clap carry zero pale-lens px (glass = null); Watson celebrate carries the prop glass at the rig position. NOTE: the parts-assembly palm number is bounded by rigid-arm geometry — the arm-front part's palm radius (26.6 vb Holmes) is shorter than the contact radius (39.1 vb), so a pure rotation assembly lands ~7.3 rig px short regardless of plate content; the rig itself draws a longer explicit arm for high-five. Plates now show the true anchor geometry.
 - PANEL CURE 2026-11-08 (glass): the earlier claim that the painted magnifier had been cleared was FALSE for the parts and plates as shipped. The baked hand + magnifier has now been inpainted out of holmes-torso.png, the Holmes leg parts and every Holmes pose plate (plaid/trouser clone-tile fill, contained to the original silhouette). Measured with a narrow skin band (see arm_palm_measurements_cure.band): holmes-torso hand-zone skin 165 -> 0 px below y=130 (8 skin px remain at the neck, which is the neck); Holmes leg parts 190 -> 0 / 4 px; pale-lens pixels in the baked-glass box of every Holmes plate -> 0 (<=1). prop-glass.png is now the single glass source: dock/search/berth-think/ack/announce/gaze-up/card-look/walk plates carry exactly one glass (400 pale-lens px, the prop), celebrate-jump/high-five/clap carry zero (glass = null, section 4.2/3.5).
 - PANEL CURE 2026-11-08 (arms): all four arm parts were repainted to the rig geometry — shoulder cap centred on the pivot, sleeve to a cream cuff, painted hand centred on the rig hand point (Holmes front (87,83), Holmes back (37,98), Watson front (26,89), Watson note-arm hand (97,93) measured from the notebook hand in the source painting). See arm_palm_measurements_cure.
 - PANEL CURE 2026-11-08 (legs split): holmes-legs.png / watson-legs.png are replaced by leg-a + leg-b parts (complementary masks over the same placement rect; pivots Holmes (52,118)/(64,118), Watson (52,92)/(66,92) recorded in pivots_vb and the manifest, each pivot inside its part's painted hip, alpha 254-255). Watson's book + hand were also inpainted out of his leg parts (coat plaid fill) — legs carry legs only. The fused holmes-legs.png / watson-legs.png files are removed.

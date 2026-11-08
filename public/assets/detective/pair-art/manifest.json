@@ -88,15 +88,15 @@
       },
       "palmMeasurement": {
         "measured_vb": [
-          98.75,
-          24.75
+          98.89,
+          25.36
         ],
         "contact_vb": [
           99,
           25
         ],
-        "error_px": 0.35,
-        "skin_px": 208
+        "error_px": 0.37,
+        "skin_px": 229
       },
       "parts": [
         {
@@ -594,15 +594,15 @@
       },
       "palmMeasurement": {
         "measured_vb": [
-          14.75,
-          20.75
+          15.44,
+          20.91
         ],
         "contact_vb": [
           15,
           21
         ],
-        "error_px": 0.35,
-        "skin_px": 208
+        "error_px": 0.45,
+        "skin_px": 224
       },
       "parts": [
         {

@@ -80,27 +80,27 @@
   "palm_anchor_error_measured": {
     "holmes": {
       "measured_vb": [
-        98.75,
-        24.75
+        98.89,
+        25.36
       ],
       "contact_vb": [
         99,
         25
       ],
-      "error_px": 0.35,
-      "skin_px": 208
+      "error_px": 0.37,
+      "skin_px": 229
     },
     "watson": {
       "measured_vb": [
-        14.75,
-        20.75
+        15.44,
+        20.91
       ],
       "contact_vb": [
         15,
         21
       ],
-      "error_px": 0.35,
-      "skin_px": 208
+      "error_px": 0.45,
+      "skin_px": 224
     }
   },
   "palm_gate_px": 3,
@@ -1604,7 +1604,7 @@
     },
     {
       "file": "holmes-pose-celebrate-jump.png",
-      "bytes": 15259,
+      "bytes": 16275,
       "width": 240,
       "height": 356,
       "decodedMB": 0.3418,
@@ -1614,7 +1614,7 @@
     },
     {
       "file": "holmes-pose-high-five.png",
-      "bytes": 15420,
+      "bytes": 16341,
       "width": 240,
       "height": 356,
       "decodedMB": 0.3418,
@@ -1624,7 +1624,7 @@
     },
     {
       "file": "holmes-pose-clap.png",
-      "bytes": 14593,
+      "bytes": 14605,
       "width": 240,
       "height": 356,
       "decodedMB": 0.3418,
@@ -1704,7 +1704,7 @@
     },
     {
       "file": "watson-pose-celebrate-jump.png",
-      "bytes": 18114,
+      "bytes": 17360,
       "width": 268,
       "height": 280,
       "decodedMB": 0.3002,
@@ -1714,7 +1714,7 @@
     },
     {
       "file": "watson-pose-high-five.png",
-      "bytes": 17392,
+      "bytes": 18478,
       "width": 268,
       "height": 280,
       "decodedMB": 0.3002,
@@ -1724,7 +1724,7 @@
     },
     {
       "file": "watson-pose-clap.png",
-      "bytes": 17493,
+      "bytes": 16064,
       "width": 268,
       "height": 280,
       "decodedMB": 0.3002,
@@ -1772,7 +1772,8 @@
     "Watson's painted notebook remains in his torso/arm region where the source art places it; prop-notebook-pencil.png is also provided for the engine.",
     "High-five raised arms are drawn explicitly to the anchor (same technique as the SVG rig), sleeve in coat plaid, palm disc centred on HIGH_FIVE_CONTACT; error measured from the assembled plates' skin-cluster centroid.",
     "Identity distractors (tracker-standing.png, jolly-standing.png) are TEST assets for the identity trial: listed separately, EXCLUDED from the runtime 500 KB total.",
-    "manifest.json (beside the assets) is the harness/engine-shaped export of this lock's geometry \u2014 see manifest_alignment."
+    "manifest.json (beside the assets) is the harness/engine-shaped export of this lock's geometry \u2014 see manifest_alignment.",
+    "POSE-PLATE REGENERATION 2026-11-08 (high-five geometry cure): the painted pose plates' raised arms disagreed with the rig pose spec (DetectivePair.tsx @ 9e49da3) \u2014 in the old high-five plates the anchor hand was a flat rig-colour disc (242,196,154), not painted skin, the arm rose from the wrong shoulder line, and a duplicate base-position front hand remained. All six arm-pose plates were regenerated as composites of the cured parts at the pose-spec angles (high-five: arm-front rotated about its pivot by the harness angle, hand segment extended along the arm axis so the painted palm lands on HIGH_FIVE_CONTACT; celebrate/clap: parts at CELEBRATE/CLAP spec angles, arms behind/over torso in rig draw order). Measured on the shipped plates (harness skin band, >=40px cluster within 30 vb): Holmes high-five palm (98.89,25.36) vb, 0.37 vb from (99,25), 229 px; Watson (15.44,20.91), 0.45 vb from (15,21), 224 px. Celebrate palms 0.39-0.90 vb from rig targets; clap palms 0.29-0.36 vb. Glass: high-five and Holmes celebrate/clap carry zero pale-lens px (glass = null); Watson celebrate carries the prop glass at the rig position. NOTE: the parts-assembly palm number is bounded by rigid-arm geometry \u2014 the arm-front part's palm radius (26.6 vb Holmes) is shorter than the contact radius (39.1 vb), so a pure rotation assembly lands ~7.3 rig px short regardless of plate content; the rig itself draws a longer explicit arm for high-five. Plates now show the true anchor geometry."
   ],
   "manifest_alignment": "public/assets/detective/pair-art/manifest.json carries the identical geometry (natural sizes, per-face-kind faceBox, per-part placement rects, pivots, palm anchors + measurements) in harness/engine shape. ASSET_LOCK.json remains the audit record; manifest.json is the runtime-shaped contract. Numbers are generated from the same build data \u2014 they cannot drift without a rebuild.",
   "face_geometry": {
