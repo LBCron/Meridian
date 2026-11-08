@@ -318,8 +318,8 @@ face for every cell.
 | 4 | `berth-think` | `thinking` | Parked and thinking while you think. Glass raised toward his own face — never toward an answer (§9.3). |
 | 5 | `ack` | `attentive` | A short nod of acknowledgement after a clue read. "I heard that too." |
 | 6 | `announce` | `hushed` | The case-open hushed moment. There is no true whisper on this rig; hushed is the honest version. |
-| 7 | `gaze-up` | `wonder` | Looking up in wonder — at the sky, the scale of the place — never down at a target. |
-| 8 | `card-look` | `reading` | Reading the clue card in his swing hand, with Watson. |
+| 7 | `gaze-up` | `wonder` | Looking up in wonder — at the sky, the scale of the place — never down at a target. **Reserve / unwired:** no `viewForState` phase emits this pose today — drawn and held in reserve, awaiting a beat; it is not a live pose and no PR may claim it plays (panel round 1, Game designer nit 4; see §16.3). |
+| 8 | `card-look` | `reading` | Reading the clue card in his swing hand, with Watson. **Reserve / unwired:** no `viewForState` phase emits this pose today — drawn and held in reserve, awaiting a beat; it is not a live pose and no PR may claim it plays (panel round 1, Game designer nit 4; see §16.3). |
 | 9 | `celebrate-jump` | `delighted` | The solve jump. No glass in hand (handed to Watson). |
 | 10 | `high-five` | `delighted` | Palm raised to the anchor `(99, 25)`. Palm meets Watson's palm exactly. |
 | 11 | `clap` | `delighted` | Clapping after the high-five. Both arms in, no glass. |
@@ -490,6 +490,17 @@ reaction drawing. Draw reaction mouths bigger than feels
 polite. Then measure. A face pair that fails this rule
 fails the expression cell of the kid test (§10) in advance.
 
+> **Clarifying note (panel round 1 — Game designer nit 2 +
+> Game audio nit 2; see §16.1):** this §6.4 rule and the
+> §5.4 coordinator ruling (d) are **not** in conflict, and
+> neither replaces the other. Ruling (d)'s **mouth-HEIGHT
+> ≥3 px** governs the **speaking flap** — the mouth region
+> must be tall enough to read as speech. This §6.4 rule's
+> **≥3 px centroid/arc travel** governs **expression
+> mouths** — the visible change between a neutral mouth
+> and a reaction mouth. Different mechanisms, different
+> measures, both binding.
+
 ---
 
 ## 7. Budgets — hard numbers, not aspirations
@@ -573,6 +584,16 @@ in §8.3 — the ratio holds even where the absolute heights
 interpolate. If a layout cannot fit the locked height,
 the layout changes; the ratio does not.
 
+> **Which lock governs where (panel round 1 — Game level
+> architect nit 1 + UX designer nit 1; see §16.2):** the
+> 170/130 and 150/115 locks in this section govern the
+> **bench hero tableau** — the composed surface the numbers
+> were measured on. They do **not** govern in-play sizes.
+> In-play sizes are governed by the §8.3 bands alone
+> (112–128 px at 390, and so on). The zero-coverage PASS on
+> record was proven at 128 px at 390 — the band maximum —
+> and at no larger in-play size.
+
 **Hero moments are different, on purpose.** The bench and
 the celebration are composed frames (PR C). Their artwork
 carries the ≈0.75 ratio **inside the drawing** — the
@@ -597,6 +618,14 @@ this reason):
 brim to chin) allowed in that cell. Below the floor, the
 §6 faces cannot read in two seconds, and the expression
 gate in §10 cannot pass honestly.
+
+> **In-play governance (panel round 1; see §16.2):** these
+> bands are the ONLY in-play size law. PR B must not
+> implement the §8.2 bench lock (170 px at 390) as an
+> in-play size without first re-proving zero clue-text
+> coverage at that size, on the built page, at every width
+> it ships — the coverage proof on record covers 128 px
+> at 390, not 170 px.
 
 > **Known tension, stated openly (see also §12):** the
 > shipped engine pins the rig height at
@@ -1049,3 +1078,94 @@ not after it.
 - Study + mockup evidence: the format-study folder
   named at the top of this file.
 - Branch state: `BRANCH_STATUS.md` at the repo root.
+
+---
+
+## 16. Amendments — panel round 1 cure (2026-11-08)
+
+Recorded in the §12 style: each amendment names the finding
+it answers, states what now governs, and does not silently
+rewrite the sections it clarifies. The clarifications are
+also noted inline at §5.2, §6.4, §8.2, and §8.3.
+
+### 16.1 Mouth rules — two measures, two mechanisms (Game designer nit 2, Game audio nits 1–2)
+
+- §5.4 / coordinator ruling (d) — **mouth-HEIGHT ≥3 px** —
+  governs the **speaking flap**: the mouth region must be
+  tall enough to read as speech on the painted face.
+- §6.4 — **≥3 px mouth centroid/arc travel** between neutral
+  and a reaction mouth — governs **expression readability**.
+- Both stand. They measure different things for different
+  mechanisms; neither is a relaxation of the other.
+- **Recorded gap (Game audio nit 1):** the ≥3 px
+  mouth-height bar is currently measured **nowhere** — no
+  shipped code takes it, and PR A does not pass it. It is
+  therefore a named **PR B entry measurement**: PR B must
+  record, per face, a mouth region in the pair-art manifest
+  (the mouth's placement box, as faces already record
+  `faceBox`) and measure its rendered height against the
+  ≥3 px bar before the flap is wired. Until that measurement
+  exists, any claim about the flap bar is UNVERIFIED.
+
+### 16.2 §8.2 vs §8.3 — which size law governs where (Game level architect nit 1, UX designer nit 1)
+
+- The §8.2 locks (Holmes 170 px / Watson 130 px at 390;
+  150/115 at 1280) govern the **bench hero tableau**, the
+  composed surface they were measured on.
+- The §8.3 bands (112–128 px at 390, etc.) govern **in-play
+  sizes**, everywhere, with no exception imported from §8.2.
+- The zero clue-text coverage PASS on record was proven at
+  **128 px at 390** (the band maximum). **PR B must not
+  implement 170 px in-play without re-proving coverage at
+  that size** on the built page at every width it ships.
+
+### 16.3 Orphan poses — reserve / unwired (Game designer nit 4)
+
+- Holmes `gaze-up` and Holmes `card-look` are emitted by
+  **no** `viewForState` phase in `detective-state.ts`.
+  They are flagged in the §5.2 table as **reserve /
+  unwired**: drawn, awaiting a beat. They count toward the
+  22-pose sheet deliverable; they do not count as live
+  behaviour, and no report may describe them as playing.
+- Wiring either pose is a §5.3 amendment plus a state-
+  machine change in its own PR — never a silent side
+  effect of the re-skin.
+
+### 16.4 Harness + protocol cures recorded (Game developer F4 + nit 1, Senior developer nits, UX researcher B1–B3 + nit 1)
+
+- **Assembly + palm (F4, BLOCK):** the kid-test spec now
+  ships the measurer §7 always required — parts composed
+  per the manifest contract at the high-five pose, palm
+  error measured from the assembly's raised-hand skin
+  cluster, reported in viewBox units, natural px, and
+  rendered rig px (the pre-cure "0.35 px" was a viewBox-unit
+  distance mislabelled), plus an assembly-vs-plate pixel
+  diff. A missing contract or hand is an explicit
+  FAIL/NOT RUN, never a silent skip.
+- **Measure-1 honesty (Game developer nit 1):** the size
+  measure now also asserts natural aspect vs rendered
+  aspect and natural height ≥ band max; the spec text
+  states plainly what the set-then-assert height check can
+  and cannot catch.
+- **Senior developer nits:** identity/expression choices
+  use Fisher–Yates (was `sort(() => rng() - 0.5)`);
+  `discoverPlates()` sorts its file list, so seed 20261107
+  reproduces across filesystems; a find-trial spot the real
+  page cannot lawfully offer is reconciled into the trial
+  manifest (`spotId` + `spotSource`) before the manifest is
+  written, so manifest and screenshot agree.
+- **Expression leg (B1):** trials render the face on the
+  figure at the cell's in-band minimum size (floor scale),
+  cover delighted + surprised + pout per cell, record the
+  emotion per trial, and include Watson at the same bar.
+- **Allocation + bands (B2, B3):** the protocol now states
+  independent observations per cell (30 per cell, one cell
+  per child, total N = 360, first exposure by construction)
+  and per-age-band floors of ≥9/10 per band, written before
+  any run; the results template reports pooled, per-band,
+  and first-exposure counts per cell.
+- **Statistics (UX researcher nit 1):** the protocol states
+  plainly that at n=30 the bars are acceptance rules, not
+  population estimates (27/30 Wilson 95% CI ≈ 74–97%), and
+  that the all-cells-pass requirement in practice demands
+  a true rate well above 90%.
