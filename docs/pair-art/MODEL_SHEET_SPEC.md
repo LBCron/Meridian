@@ -775,7 +775,7 @@ art files.
 | :--- | :--- | :--- |
 | Find Holmes | **≥27/30 children, in ≤2 s, in every cell** — including the static-fallback cell (rung 4, §7) | **≤25/30 in any cell = kill.** 26/30 is a fail that may be re-drawn and re-tested once per the panel's call; it is not a pass. |
 | Identity | **≥27/30** | The child names which figure is Holmes and which is Watson; ≤3/30 confusion with each other, the Cold Trail tracker, or Jolly. |
-| Expression | **≥26/30** | The child reads the face's feeling (delighted / surprised / pout at minimum) from the §6 art at the cell's face floor. |
+| Expression | **≥26/30** | The child reads the face's feeling (delighted / surprised / pout at minimum) from the §6 art at the cell's in-band size (face floors pending the owner's ruling — §16.5). |
 | Clue-text coverage | **Zero** | At the maximum in-band size (§8.3), sampled through play: bench, walk, reading, celebration, closed states. One covered word fails the cell. |
 | Performance | **Sustained ~60 fps** on a 2 GB-class Android during map pan + Holmes follow + Watson walk, on the built page at 390 / 768 / 1280 | Measured, not felt. Frame collapse that trips the pair's auto-kill counts as a failure of this bar, not as the device's fault. |
 
